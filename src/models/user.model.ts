@@ -6,3 +6,11 @@ export const CreateUserSchema = z
   })
   .strict();
 export type CreateUserDTO = z.infer<typeof CreateUserSchema>;
+
+export const getUserByIdSchema = z
+  .object({
+    id: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
+  })
+  .strict();
+
+export type GetUserByIdDTO = z.infer<typeof getUserByIdSchema>;
