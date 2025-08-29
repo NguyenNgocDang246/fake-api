@@ -3,6 +3,7 @@ export enum ERROR_MESSAGES {
   VALIDATION_FAILED = "Validation failed",
   UNAUTHORIZED = "Unauthorized",
   NOT_FOUND = "Resource not found",
+  NO_CONTENT = "No content",
   SERVER_ERROR = "Internal server error",
 }
 
