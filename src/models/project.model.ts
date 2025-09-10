@@ -1,6 +1,7 @@
 import { z } from "zod";
-export const CreateProjectSchema = z
+export const ProjectSchema = z
   .object({
+    id: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
     user_id: z.union([
       z.number(),
       z.string().transform((str) => parseInt(str, 10)),
@@ -12,4 +13,9 @@ export const CreateProjectSchema = z
       .optional(),
   })
   .strict();
+export const CreateProjectSchema = ProjectSchema.pick({
+  user_id: true,
+  name: true,
+  description: true,
+});
 export type CreateProjectDTO = z.infer<typeof CreateProjectSchema>;
