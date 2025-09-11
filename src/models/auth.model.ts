@@ -1,5 +1,4 @@
 import { z } from "zod";
-
 import { UserSchema } from "./user.model";
 
 export const LoginSchema = UserSchema.pick({
@@ -7,6 +6,14 @@ export const LoginSchema = UserSchema.pick({
   password: true,
 }).strict();
 export type LoginDTO = z.infer<typeof LoginSchema>;
+
+export const LoginResponseSchema = z
+  .object({
+    access_token: z.string(),
+    refresh_token: z.string(),
+  })
+  .strict();
+export type LoginResponseDTO = z.infer<typeof LoginResponseSchema>;
 
 export const RegisterSchema = UserSchema.pick({
   name: true,
@@ -22,8 +29,14 @@ export const UserToAccessTokenSchema = UserSchema.pick({ id: true }).strict();
 export type UserToAccessTokenDTO = z.infer<typeof UserToAccessTokenSchema>;
 
 export const UserToRefreshTokenSchema = UserSchema.pick({ id: true })
-  .extend({
-    token_version: z.number(),
-  })
+  .extend({ token_version: z.number() })
   .strict();
 export type UserToRefreshTokenDTO = z.infer<typeof UserToRefreshTokenSchema>;
+
+export const AccessTokenPayloadSchema = UserSchema.pick({ id: true }).strict();
+export type AccessTokenPayloadDTO = z.infer<typeof AccessTokenPayloadSchema>;
+
+export const RefreshTokenPayloadSchema = UserSchema.pick({ id: true })
+  .extend({ token_version: z.number() })
+  .strict();
+export type RefreshTokenPayloadDTO = z.infer<typeof RefreshTokenPayloadSchema>;
