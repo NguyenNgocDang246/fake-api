@@ -1,5 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-import { CreateUserDTO, GetUserByIdDTO } from "@/models/user.model";
+import {
+  CreateUserDTO,
+  GetUserByIdDTO,
+  GetUserByEmailDTO,
+} from "@/models/user.model";
 
 const prisma = new PrismaClient();
 
@@ -8,12 +12,19 @@ class UserService {
     return await prisma.users.findMany();
   }
   async createUser(user: CreateUserDTO) {
-    console.log(user);
     return await prisma.users.create({ data: user });
   }
 
   async getUserById({ id }: GetUserByIdDTO) {
     return await prisma.users.findUnique({ where: { id } });
+  }
+
+  async getUserProjects({ id }: GetUserByIdDTO) {
+    return await prisma.projects.findMany({ where: { user_id: id } });
+  }
+
+  async getUserByEmail({ email }: GetUserByEmailDTO) {
+    return await prisma.users.findUnique({ where: { email } });
   }
 }
 const userService = new UserService();

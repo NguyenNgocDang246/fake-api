@@ -1,5 +1,5 @@
 import UserService from "@/services/user.service";
-import { getUserByIdSchema } from "@/models/user.model";
+import { getUserProjectsSchema } from "@/models/user.model";
 import { ErrorValidation } from "@/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/core/constants";
 import ApiResponse from "@/core/api_response";
@@ -11,7 +11,7 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    const result = getUserByIdSchema.safeParse({ id });
+    const result = getUserProjectsSchema.safeParse({ id });
     if (!result.success) {
       return ApiResponse.error({
         errors: ErrorValidation.fromZodError(result.error),
@@ -19,13 +19,13 @@ export async function GET(
         statusCode: STATUS_CODE.BAD_REQUEST,
       });
     }
-    const user = await UserService.getUserById(result.data);
-    if (user === null)
+    const projects = await UserService.getUserProjects(result.data);
+    if (projects.length === 0)
       return ApiResponse.error({
-        message: ERROR_MESSAGES.UNAUTHORIZED,
-        statusCode: STATUS_CODE.UNAUTHORIZED,
+        message: ERROR_MESSAGES.NO_CONTENT,
+        statusCode: STATUS_CODE.NO_CONTENT,
       });
-    return ApiResponse.success({ data: user });
+    return ApiResponse.success({ data: projects });
   } catch (error) {
     console.log(error);
     return ApiResponse.error();
