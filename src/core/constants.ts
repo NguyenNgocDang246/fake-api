@@ -41,6 +41,8 @@ export enum AUTH_MESSAGES {
 export enum TOKEN_MESSAGE {
   INVALID_TOKEN = "Invalid token",
   EXPIRED_TOKEN = "Expired token",
+  INVALID_EXPIRED_TOKEN = "Invalid or expired token",
   INVALID_REFRESH_TOKEN = "Invalid refresh token",
   EXPIRED_REFRESH_TOKEN = "Expired refresh token",
+  INVALID_EXPIRED_REFRESH_TOKEN = "Invalid or expired refresh token",
 }

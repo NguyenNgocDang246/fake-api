@@ -50,11 +50,11 @@ class AuthService {
         });
       }
 
-      const refreshToken = tokenService.createRefreshToken({
+      const refreshToken = await tokenService.createRefreshToken({
         id: user.id,
         token_version: user.token_version,
       });
-      const accessToken = tokenService.createAccessToken({ id: user.id });
+      const accessToken = await tokenService.createAccessToken({ id: user.id });
 
       return LoginResponseSchema.parse({
         access_token: accessToken,

@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
         statusCode: STATUS_CODE.BAD_REQUEST,
       });
     }
-    const loggedUser = await authService.login(result.data);
-    return ApiResponse.success({ data: loggedUser });
+    const data = await authService.login(result.data);
+    return ApiResponse.success({ data });
   } catch (error) {
     if (error instanceof AppError) {
       return ApiResponse.error({
