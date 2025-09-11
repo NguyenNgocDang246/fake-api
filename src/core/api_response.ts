@@ -25,6 +25,9 @@ export default class ApiResponse {
     message?: string;
     statusCode?: STATUS_CODE;
   } = {}) {
+    if (statusCode == STATUS_CODE.NO_CONTENT) {
+      return new NextResponse(null, { status: STATUS_CODE.NO_CONTENT });
+    }
     return NextResponse.json(
       { status: RESPONSE_STATUS.ERROR, message, errors },
       { status: statusCode }

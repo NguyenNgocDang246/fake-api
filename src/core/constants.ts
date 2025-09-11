@@ -5,6 +5,7 @@ export enum ERROR_MESSAGES {
   NOT_FOUND = "Resource not found",
   NO_CONTENT = "No content",
   SERVER_ERROR = "Internal server error",
+  UNEXPECTED_ERROR = "Unexpected error",
 }
 
 export enum SUCCESS_MESSAGES {
@@ -27,4 +28,19 @@ export enum STATUS_CODE {
   FORBIDDEN = 403,
   NOT_FOUND = 404,
   SERVER_ERROR = 500,
+}
+
+export enum AUTH_MESSAGES {
+  EMAIL_NOT_FOUND = "Email not found",
+  EMAIL_DUPLICATED = "Email already exists",
+
+  USER_ALREADY_EXISTS = "User already exists",
+  INVALID_CREDENTIALS = "Invalid credentials",
+}
+
+export enum TOKEN_MESSAGE {
+  INVALID_TOKEN = "Invalid token",
+  EXPIRED_TOKEN = "Expired token",
+  INVALID_REFRESH_TOKEN = "Invalid refresh token",
+  EXPIRED_REFRESH_TOKEN = "Expired refresh token",
 }
