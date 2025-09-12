@@ -1,6 +1,6 @@
 import UserService from "@/services/user.service";
-import { getUserByIdSchema } from "@/models/user.model";
-import { ErrorValidation } from "@/core/errors";
+import { GetUserByIdSchema } from "@/models/user.model";
+import { ErrorValidation, AppError } from "@/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/core/constants";
 import ApiResponse from "@/core/api_response";
 import { NextRequest } from "next/server";
@@ -8,7 +8,7 @@ import { NextRequest } from "next/server";
 export async function GET(req: NextRequest) {
   try {
     const id = req.headers.get("x-user-id");
-    const result = getUserByIdSchema.safeParse({ id });
+    const result = GetUserByIdSchema.safeParse({ id });
     if (!result.success) {
       return ApiResponse.error({
         errors: ErrorValidation.fromZodError(result.error),
@@ -24,7 +24,12 @@ export async function GET(req: NextRequest) {
       });
     return ApiResponse.success({ data: user });
   } catch (error) {
-    console.log(error);
+    if (error instanceof AppError) {
+      return ApiResponse.error({
+        message: error.message,
+        statusCode: error.statusCode,
+      });
+    }
     return ApiResponse.error();
   }
 }

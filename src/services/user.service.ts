@@ -4,27 +4,48 @@ import {
   GetUserByIdDTO,
   GetUserByEmailDTO,
 } from "@/models/user.model";
+import { AppError } from "@/core/errors";
 
 const prisma = new PrismaClient();
 
 class UserService {
   async getAllUsers() {
-    return await prisma.users.findMany();
+    try {
+      return await prisma.users.findMany();
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
   }
   async createUser(user: CreateUserDTO) {
-    return await prisma.users.create({ data: user });
+    try {
+      return await prisma.users.create({ data: user });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
   }
 
   async getUserById({ id }: GetUserByIdDTO) {
-    return await prisma.users.findUnique({ where: { id } });
+    try {
+      return await prisma.users.findUnique({ where: { id } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
   }
 
   async getUserProjects({ id }: GetUserByIdDTO) {
-    return await prisma.projects.findMany({ where: { user_id: id } });
+    try {
+      return await prisma.projects.findMany({ where: { user_id: id } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
   }
 
   async getUserByEmail({ email }: GetUserByEmailDTO) {
-    return await prisma.users.findUnique({ where: { email } });
+    try {
+      return await prisma.users.findUnique({ where: { email } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
   }
 }
 const userService = new UserService();

@@ -26,8 +26,8 @@ export const CreateUserSchema = UserSchema.pick({
 }).strict();
 export type CreateUserDTO = z.infer<typeof CreateUserSchema>;
 
-export const getUserByIdSchema = UserSchema.pick({ id: true }).strict();
-export type GetUserByIdDTO = z.infer<typeof getUserByIdSchema>;
+export const GetUserByIdSchema = UserSchema.pick({ id: true }).strict();
+export type GetUserByIdDTO = z.infer<typeof GetUserByIdSchema>;
 
 export const GetUserByEmailSchema = UserSchema.pick({
   email: true,
