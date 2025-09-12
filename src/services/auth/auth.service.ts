@@ -24,11 +24,7 @@ class AuthService {
       const password = await hashPassword(data.password);
       return await userService.createUser({ ...data, password });
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      } else {
-        throw new AppError();
-      }
+      throw error instanceof AppError ? error : new AppError();
     }
   }
 
@@ -61,11 +57,7 @@ class AuthService {
         refresh_token: refreshToken,
       });
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      } else {
-        throw new AppError();
-      }
+      throw error instanceof AppError ? error : new AppError();
     }
   }
 }
