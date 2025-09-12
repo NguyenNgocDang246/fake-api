@@ -1,13 +1,24 @@
-import ProjectService from "@/services/project.service";
+import UserService from "@/services/user.service";
+import projectService from "@/services/project.service";
+import { GetUserByIdSchema } from "@/models/user.model";
 import { CreateProjectSchema } from "@/models/project.model";
-import { ErrorValidation } from "@/core/errors";
+import { ErrorValidation, AppError } from "@/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/core/constants";
 import ApiResponse from "@/core/api_response";
 import { NextRequest } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const projects = await ProjectService.getAllProjects();
+    const userIdRaw = req.headers.get("x-user-id");
+    const userIdResult = GetUserByIdSchema.safeParse({ id: userIdRaw });
+    if (!userIdResult.success) {
+      return ApiResponse.error({
+        errors: ErrorValidation.fromZodError(userIdResult.error),
+        message: ERROR_MESSAGES.VALIDATION_FAILED,
+        statusCode: STATUS_CODE.BAD_REQUEST,
+      });
+    }
+    const projects = await UserService.getUserProjects(userIdResult.data);
     if (projects.length === 0)
       return ApiResponse.error({
         message: ERROR_MESSAGES.NO_CONTENT,
@@ -15,29 +26,46 @@ export async function GET() {
       });
     return ApiResponse.success({ data: projects });
   } catch (error) {
-    console.log(error);
+    if (error instanceof AppError) {
+      return ApiResponse.error({
+        message: error.message,
+        statusCode: error.statusCode,
+      });
+    }
     return ApiResponse.error();
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const project = await req.json();
-    const result = CreateProjectSchema.safeParse(project);
-    if (!result.success) {
+    const userIdRaw = req.headers.get("x-user-id");
+    const userIdResult = GetUserByIdSchema.safeParse({ id: userIdRaw });
+    if (!userIdResult.success) {
       return ApiResponse.error({
-        errors: ErrorValidation.fromZodError(result.error),
+        errors: ErrorValidation.fromZodError(userIdResult.error),
         message: ERROR_MESSAGES.VALIDATION_FAILED,
         statusCode: STATUS_CODE.BAD_REQUEST,
       });
     }
-    const createdProject = await ProjectService.createProject(result.data);
-    return ApiResponse.success({
-      data: createdProject,
-      statusCode: STATUS_CODE.CREATED,
-    });
+    const data = await req.json();
+    const projectRaw = { ...data, user_id: userIdResult.data.id };
+    const projectResult = CreateProjectSchema.safeParse(projectRaw);
+    if (!projectResult.success) {
+      return ApiResponse.error({
+        errors: ErrorValidation.fromZodError(projectResult.error),
+        message: ERROR_MESSAGES.VALIDATION_FAILED,
+        statusCode: STATUS_CODE.BAD_REQUEST,
+      });
+    }
+    const project = await projectService.createProject(projectResult.data);
+    return ApiResponse.success({ data: project });
   } catch (error) {
-    console.log(error);
+    if (error instanceof AppError) {
+      return ApiResponse.error({
+        message: error.message,
+        statusCode: error.statusCode,
+      });
+    }
     return ApiResponse.error();
   }
 }

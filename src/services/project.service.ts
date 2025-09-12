@@ -1,23 +1,40 @@
-import { CreateProjectDTO } from "@/models/project.model";
+import { CreateProjectDTO, GetProjectByIdDTO } from "@/models/project.model";
 import { PrismaClient } from "@prisma/client";
+import { AppError } from "@/core/errors";
 
 const prisma = new PrismaClient();
 
 export class ProjectService {
   async getAllProjects() {
-    return await prisma.projects.findMany();
+    try {
+      return await prisma.projects.findMany();
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async getProjectById({ id }: GetProjectByIdDTO) {
+    try {
+      return await prisma.projects.findUnique({ where: { id } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
   }
 
   async createProject(project: CreateProjectDTO) {
-    const { user_id, ...rest } = project;
-    return await prisma.projects.create({
-      data: {
-        ...rest,
-        users: {
-          connect: { id: user_id },
+    try {
+      const { user_id, ...rest } = project;
+      return await prisma.projects.create({
+        data: {
+          ...rest,
+          users: {
+            connect: { id: user_id },
+          },
         },
-      },
-    });
+      });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
   }
 }
 const projectService = new ProjectService();
