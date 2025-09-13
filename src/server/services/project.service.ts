@@ -1,4 +1,4 @@
-import { CreateProjectDTO, GetProjectByIdDTO } from "@/server/models/project.model";
+import { CreateProjectDTO, GetProjectByIdDTO } from "@/models/project.model";
 import { PrismaClient } from "@prisma/client";
 import { AppError } from "@/server/core/errors";
 

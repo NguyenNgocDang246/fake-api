@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import ApiResponse from "@/server/core/api_response";
-import { GetProjectByIdSchema } from "@/server/models/project.model";
-import { GetUserByIdSchema } from "@/server/models/user.model";
+import { GetProjectByIdSchema } from "@/models/project.model";
+import { GetUserByIdSchema } from "@/models/user.model";
 import { ErrorValidation, AppError } from "@/server/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import projectService from "@/server/services/project.service";

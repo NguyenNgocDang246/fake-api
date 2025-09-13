@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { CreateUserDTO, GetUserByIdDTO, GetUserByEmailDTO } from "@/server/models/user.model";
+import { CreateUserDTO, GetUserByIdDTO, GetUserByEmailDTO } from "@/models/user.model";
 import { AppError } from "@/server/core/errors";
 
 const prisma = new PrismaClient();

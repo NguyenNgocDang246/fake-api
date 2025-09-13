@@ -1,4 +1,4 @@
-import { LoginSchema } from "@/server/models/auth.model";
+import { LoginSchema } from "@/models/auth.model";
 import { ErrorValidation, AppError } from "@/server/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import ApiResponse from "@/server/core/api_response";
