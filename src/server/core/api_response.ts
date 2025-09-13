@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { RESPONSE_STATUS, ERROR_MESSAGES } from "@/core/constants";
-import { STATUS_CODE } from "@/core/constants";
+import { RESPONSE_STATUS, ERROR_MESSAGES } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
 
 export default class ApiResponse {
   static success<T>({

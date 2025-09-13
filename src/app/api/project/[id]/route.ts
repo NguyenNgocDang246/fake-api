@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
-import ApiResponse from "@/core/api_response";
-import { GetProjectByIdSchema } from "@/models/project.model";
-import { GetUserByIdSchema } from "@/models/user.model";
-import { ErrorValidation, AppError } from "@/core/errors";
-import { ERROR_MESSAGES, STATUS_CODE } from "@/core/constants";
-import projectService from "@/services/project.service";
+import ApiResponse from "@/server/core/api_response";
+import { GetProjectByIdSchema } from "@/server/models/project.model";
+import { GetUserByIdSchema } from "@/server/models/user.model";
+import { ErrorValidation, AppError } from "@/server/core/errors";
+import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import projectService from "@/server/services/project.service";
 
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {

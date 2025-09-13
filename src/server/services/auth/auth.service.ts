@@ -1,15 +1,15 @@
-import { AUTH_MESSAGES, STATUS_CODE } from "@/core/constants";
-import { AppError } from "@/core/errors";
+import { AUTH_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { AppError } from "@/server/core/errors";
 import {
   LoginDTO,
   LoginResponseDTO,
   LoginResponseSchema,
   RegisterDTO,
-} from "@/models/auth.model";
-import { UserDTO } from "@/models/user.model";
-import userService from "@/services/user.service";
-import { hashPassword, verifyPassword } from "@/services/auth/hash.service";
-import tokenService from "@/services/auth/token.service";
+} from "@/server/models/auth.model";
+import { UserDTO } from "@/server/models/user.model";
+import userService from "@/server/services/user.service";
+import { hashPassword, verifyPassword } from "@/server/services/auth/hash.service";
+import tokenService from "@/server/services/auth/token.service";
 
 class AuthService {
   async register(data: RegisterDTO): Promise<UserDTO> {

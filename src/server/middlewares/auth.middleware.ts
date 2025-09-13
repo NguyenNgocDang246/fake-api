@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import TokenService from "@/services/auth/token.service";
-import ApiResponse from "@/core/api_response";
-import { STATUS_CODE, TOKEN_MESSAGE } from "@/core/constants";
-import { AppError } from "@/core/errors";
+import TokenService from "@/server/services/auth/token.service";
+import ApiResponse from "@/server/core/api_response";
+import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
+import { AppError } from "@/server/core/errors";
 
 const authMiddleware = async (req: NextRequest) => {
   const authHeader = req.headers.get("authorization");

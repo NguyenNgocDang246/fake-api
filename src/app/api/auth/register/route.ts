@@ -1,9 +1,9 @@
-import { RegisterSchema } from "@/models/auth.model";
-import { ErrorValidation, AppError } from "@/core/errors";
-import { ERROR_MESSAGES, STATUS_CODE } from "@/core/constants";
-import ApiResponse from "@/core/api_response";
+import { RegisterSchema } from "@/server/models/auth.model";
+import { ErrorValidation, AppError } from "@/server/core/errors";
+import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import ApiResponse from "@/server/core/api_response";
 import { NextRequest } from "next/server";
-import authService from "@/services/auth/auth.service";
+import authService from "@/server/services/auth/auth.service";
 
 export async function POST(req: NextRequest) {
   try {

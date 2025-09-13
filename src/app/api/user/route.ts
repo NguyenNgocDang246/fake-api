@@ -1,8 +1,8 @@
-import UserService from "@/services/user.service";
-import { GetUserByIdSchema } from "@/models/user.model";
-import { ErrorValidation, AppError } from "@/core/errors";
-import { ERROR_MESSAGES, STATUS_CODE } from "@/core/constants";
-import ApiResponse from "@/core/api_response";
+import UserService from "@/server/services/user.service";
+import { GetUserByIdSchema } from "@/server/models/user.model";
+import { ErrorValidation, AppError } from "@/server/core/errors";
+import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import ApiResponse from "@/server/core/api_response";
 import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {

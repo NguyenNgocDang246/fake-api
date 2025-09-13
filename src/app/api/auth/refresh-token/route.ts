@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import ApiResponse from "@/core/api_response";
-import { AppError } from "@/core/errors";
-import { STATUS_CODE, TOKEN_MESSAGE } from "@/core/constants";
-import tokenService from "@/services/auth/token.service";
+import ApiResponse from "@/server/core/api_response";
+import { AppError } from "@/server/core/errors";
+import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
+import tokenService from "@/server/services/auth/token.service";
 
 export async function POST(req: NextRequest) {
   const { refreshToken } = await req.json();

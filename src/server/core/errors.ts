@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { STATUS_CODE, ERROR_MESSAGES } from "@/core/constants";
+import { STATUS_CODE, ERROR_MESSAGES } from "@/server/core/constants";
 export class ErrorValidation {
   message: string;
   field: string;
