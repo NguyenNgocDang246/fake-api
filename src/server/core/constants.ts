@@ -1,4 +1,8 @@
-// constants/messages.ts
+export const ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS = 15 * 60;
+export const ACCESS_TOKEN_EXPIRATION_TIME_IN_STRING = "15m";
+export const REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS = 7 * 24 * 60 * 60;
+export const REFRESH_TOKEN_EXPIRATION_TIME_IN_STRING = "7d";
+
 export enum ERROR_MESSAGES {
   VALIDATION_FAILED = "Validation failed",
   UNAUTHORIZED = "Unauthorized",

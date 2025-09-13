@@ -1,18 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import TokenService from "@/server/services/auth/token.service";
 import ApiResponse from "@/server/core/api_response";
 import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
 import { AppError } from "@/server/core/errors";
 
-const authMiddleware = async (req: NextRequest) => {
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return ApiResponse.error({
-      message: TOKEN_MESSAGE.INVALID_TOKEN,
-      statusCode: STATUS_CODE.BAD_REQUEST,
-    });
-  }
-  const accessToken = authHeader.replace("Bearer ", "");
+const authMiddleware = async () => {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get("access_token")?.value;
   if (!accessToken) {
     return ApiResponse.error({
       message: TOKEN_MESSAGE.INVALID_TOKEN,

@@ -7,7 +7,7 @@ export function middleware(req: NextRequest) {
   if (url.pathname.startsWith("/api/auth/login")) return NextResponse.next();
   if (url.pathname.startsWith("/api/auth/register")) return NextResponse.next();
   if (url.pathname.startsWith("/api/auth/refresh-token")) return NextResponse.next();
-  if (url.pathname.startsWith("/api")) return authMiddleware(req);
+  if (url.pathname.startsWith("/api")) return authMiddleware();
 
   // client
 

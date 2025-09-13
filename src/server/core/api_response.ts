@@ -4,16 +4,13 @@ import { STATUS_CODE } from "@/server/core/constants";
 
 export default class ApiResponse {
   static success<T>({
-    data,
+    data = null,
     statusCode = STATUS_CODE.OK,
   }: {
-    data: T;
+    data?: T | null;
     statusCode?: STATUS_CODE;
-  }) {
-    return NextResponse.json(
-      { status: RESPONSE_STATUS.SUCCESS, data },
-      { status: statusCode }
-    );
+  } = {}) {
+    return NextResponse.json({ status: RESPONSE_STATUS.SUCCESS, data }, { status: statusCode });
   }
 
   static error<T>({

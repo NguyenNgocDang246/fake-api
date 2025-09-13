@@ -10,6 +10,10 @@ import {
 import { GetUserByIdDTO } from "@/models/user.model";
 import { AppError } from "@/server/core/errors";
 import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
+import {
+  ACCESS_TOKEN_EXPIRATION_TIME_IN_STRING,
+  REFRESH_TOKEN_EXPIRATION_TIME_IN_STRING,
+} from "@/server/core/constants";
 import userService from "../user.service";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
@@ -21,7 +25,7 @@ class TokenService {
   async createAccessToken({ id }: UserToAccessTokenDTO): Promise<string> {
     return new SignJWT({ id })
       .setProtectedHeader({ alg: "HS256" })
-      .setExpirationTime("15m")
+      .setExpirationTime(ACCESS_TOKEN_EXPIRATION_TIME_IN_STRING)
       .sign(ACCESS_SECRET);
   }
 
@@ -41,7 +45,7 @@ class TokenService {
   async createRefreshToken({ id, token_version }: UserToRefreshTokenDTO): Promise<string> {
     return new SignJWT({ id, token_version })
       .setProtectedHeader({ alg: "HS256" })
-      .setExpirationTime("7d")
+      .setExpirationTime(REFRESH_TOKEN_EXPIRATION_TIME_IN_STRING)
       .sign(REFRESH_SECRET);
   }
 
