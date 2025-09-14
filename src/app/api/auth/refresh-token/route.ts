@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { serialize } from "cookie";
 import ApiResponse from "@/server/core/api_response";
@@ -7,11 +6,7 @@ import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
 import { ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS } from "@/server/core/constants";
 import tokenService from "@/server/services/auth/token.service";
 
-export async function POST(req: NextRequest) {
-  void req;
-  // const body = await req.json();
-  // const CSRFToken = body.csrfToken;
-  // TODO: Xử lý CSRF Token
+export async function GET() {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get("refresh_token")?.value;
   try {
