@@ -1,5 +1,6 @@
 import React, { ReactNode } from "react";
 import Link from "next/link";
+import { twMerge } from "tailwind-merge";
 
 interface NavigationButtonProps {
   href: string;
@@ -21,7 +22,10 @@ export const NavigationButton: React.FC<NavigationButtonProps> = ({
   if (disabled) {
     return (
       <span
-        className={`rounded-lg bg-gray-300 px-4 py-2 text-gray-500 font-medium font-bold cursor-not-allowed ${className}`}
+        className={twMerge(
+          "rounded-lg bg-gray-300 px-4 py-2 text-gray-500 font-medium cursor-not-allowed",
+          className
+        )}
       >
         {content}
       </span>

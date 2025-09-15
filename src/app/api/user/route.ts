@@ -1,5 +1,5 @@
 import UserService from "@/server/services/user.service";
-import { GetUserByIdSchema } from "@/models/user.model";
+import { GetUserByIdSchema, UserInfoSchema } from "@/models/user.model";
 import { ErrorValidation, AppError } from "@/server/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import ApiResponse from "@/server/core/api_response";
@@ -22,7 +22,12 @@ export async function GET(req: NextRequest) {
         message: ERROR_MESSAGES.UNAUTHORIZED,
         statusCode: STATUS_CODE.UNAUTHORIZED,
       });
-    return ApiResponse.success({ data: user });
+    const userInfo = UserInfoSchema.parse({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    });
+    return ApiResponse.success({ data: userInfo });
   } catch (error) {
     if (error instanceof AppError) {
       return ApiResponse.error({
