@@ -35,7 +35,10 @@ export const NavigationButton: React.FC<NavigationButtonProps> = ({
   return (
     <Link
       href={href}
-      className={`rounded-lg bg-inherit px-4 py-2 font-medium hover:bg-blue-200 transition-colors ${className}`}
+      className={twMerge(
+        "rounded-lg bg-inherit px-4 py-2 font-medium hover:bg-blue-200 transition-colors",
+        className
+      )}
     >
       {content}
     </Link>
