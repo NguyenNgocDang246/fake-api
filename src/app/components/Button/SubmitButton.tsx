@@ -1,18 +1,29 @@
-import React from "react";
+import React, { ReactNode } from "react";
+import { twMerge } from "tailwind-merge";
 
 interface SubmitButtonProps {
-  label: string;
+  label?: string;
+  children?: ReactNode;
   disabled?: boolean;
+  className?: string;
 }
 
-export const SubmitButton: React.FC<SubmitButtonProps> = ({ label, disabled = false }) => {
+export const SubmitButton: React.FC<SubmitButtonProps> = ({
+  label,
+  children,
+  disabled = false,
+  className,
+}) => {
   return (
     <button
       type="submit"
       disabled={disabled}
-      className="cursor-pointer w-full rounded-lg bg-cyan-400 px-4 py-2 font-bold hover:bg-cyan-500 disabled:opacity-50 transition-colors outline-0"
+      className={twMerge(
+        "cursor-pointer w-full rounded-lg px-4 py-2 bg-blue-300 font-bold hover:bg-blue-400 disabled:opacity-50 transition-colors outline-0",
+        className
+      )}
     >
-      {label}
+      {children ?? label}
     </button>
   );
 };

@@ -1,15 +1,23 @@
 "use client";
 
 import { UseFormRegisterReturn } from "react-hook-form";
+import { twMerge } from "tailwind-merge";
 
 interface FloatingInputProps {
   label: string;
   register: UseFormRegisterReturn;
   type?: string;
   id: string;
+  className?: string;
 }
 
-export const FloatingInput: React.FC<FloatingInputProps> = ({ label, register, type, id }) => {
+export const FloatingInput: React.FC<FloatingInputProps> = ({
+  label,
+  register,
+  type,
+  id,
+  className,
+}) => {
   return (
     <div className="relative">
       <input
@@ -17,7 +25,10 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({ label, register, t
         id={id}
         type={type}
         placeholder=" "
-        className="w-full border-b pb-1 pt-2 mt-4 focus:outline-none focus:ring-0 focus:border-b peer"
+        className={twMerge(
+          "w-full border-b-2 pb-1 pt-2 mt-4 focus:outline-none focus:ring-0 focus:border-b-2 peer",
+          className
+        )}
       />
       <label
         htmlFor="email"
