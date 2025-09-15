@@ -11,7 +11,7 @@ const authMiddleware = async () => {
   if (!accessToken) {
     return ApiResponse.error({
       message: TOKEN_MESSAGE.INVALID_TOKEN,
-      statusCode: STATUS_CODE.BAD_REQUEST,
+      statusCode: STATUS_CODE.UNAUTHORIZED,
     });
   }
 
