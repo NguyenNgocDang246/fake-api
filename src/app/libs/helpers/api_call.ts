@@ -1,7 +1,7 @@
 // lib/api.ts
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { STATUS_CODE } from "@/server/core/constants";
-import { API_ROUTES } from "../api-routes";
+import { API_ROUTES } from "../routes";
 
 interface RetryAxiosRequestConfig extends AxiosRequestConfig {
   _retry?: boolean;

@@ -20,3 +20,12 @@ export const API_ROUTES = {
     // DELETE: "/api/projects/:id",
   },
 };
+
+export const PAGE_ROUTES = {
+  AUTH: {
+    LOGIN: "/auth/login",
+    REGISTER: "/auth/register",
+  },
+  HOME: "/",
+};
+
