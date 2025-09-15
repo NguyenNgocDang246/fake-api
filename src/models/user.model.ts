@@ -19,6 +19,13 @@ export const UserSchema = z
   .strict();
 export type UserDTO = z.infer<typeof UserSchema>;
 
+export const UserInfoSchema = UserSchema.pick({
+  id: true,
+  name: true,
+  email: true,
+}).strict();
+export type UserInfoDTO = z.infer<typeof UserInfoSchema>;
+
 export const CreateUserSchema = UserSchema.pick({
   name: true,
   email: true,
