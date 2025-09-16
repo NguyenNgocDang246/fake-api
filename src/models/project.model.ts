@@ -10,6 +10,7 @@ export const ProjectSchema = z
     description: z.string().max(255, "Mô tả không được quá 255 ký tự").optional(),
   })
   .strict();
+export type ProjectDTO = z.infer<typeof ProjectSchema>;
 export const CreateProjectSchema = ProjectSchema.pick({
   user_id: true,
   name: true,

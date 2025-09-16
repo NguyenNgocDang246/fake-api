@@ -27,5 +27,6 @@ export const PAGE_ROUTES = {
     REGISTER: "/auth/register",
   },
   HOME: "/",
+  PROJECT: "/project",
 };
 
