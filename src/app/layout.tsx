@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Baloo_2 } from "next/font/google";
 import "@/app/styles/globals.css";
+import { HeaderWrapper } from "@/app/components/Wrapper/Header/HeaderWrapper";
+import { AuthWrapper } from "@/app/components/Wrapper/Auth/AuthWrapper";
 
 export const baloo2 = Baloo_2({
   subsets: ["latin", "vietnamese"],
@@ -19,7 +21,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${baloo2.className} antialiased`}>{children}</body>
+      <body className={`${baloo2.className} antialiased`}>
+        <AuthWrapper>
+          <HeaderWrapper />
+          <div className="px-42 mt-8">{children}</div>
+        </AuthWrapper>
+        <footer className="flex mb-4 justify-center text-sm text-gray-500">
+          <p>© 2025 Fake API. All rights reserved.</p>
+        </footer>
+      </body>
     </html>
   );
 }
