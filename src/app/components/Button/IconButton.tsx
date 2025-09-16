@@ -7,7 +7,7 @@ interface ImgProps {
   height: number;
   className?: string;
 }
-interface ActionButtonProps {
+interface IconButtonProps {
   label?: string;
   icon: ImgProps;
   onClick: () => void;
@@ -15,7 +15,7 @@ interface ActionButtonProps {
   className?: string;
 }
 
-export const IconButton: React.FC<ActionButtonProps> = ({
+export const IconButton: React.FC<IconButtonProps> = ({
   label,
   icon,
   onClick,
