@@ -1,10 +1,10 @@
-// lib/api.ts
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { STATUS_CODE } from "@/server/core/constants";
 import { API_ROUTES } from "../routes";
 
 interface RetryAxiosRequestConfig extends AxiosRequestConfig {
   _retry?: boolean;
+  skipAuthInterceptor?: boolean;
 }
 
 // Định nghĩa item trong failedQueue
@@ -15,7 +15,7 @@ interface FailedRequest {
 
 const api = axios.create({
   baseURL: "/",
-  withCredentials: true, // để cookie (httpOnly) được gửi đi
+  withCredentials: true,
 });
 
 let isRefreshing = false;
@@ -34,7 +34,8 @@ const processQueue = (error: unknown) => {
 
 api.interceptors.response.use(
   (res) => res,
-  async (err: AxiosError) => {
+  async (err: AxiosError & { config: { skipAuthInterceptor?: boolean } }) => {
+    if (err.config.skipAuthInterceptor) return Promise.reject(err);
     const originalRequest = err.config as RetryAxiosRequestConfig;
     const route = originalRequest.url;
     if (route == API_ROUTES.AUTH.LOGIN || route == API_ROUTES.AUTH.REGISTER) {
@@ -54,14 +55,20 @@ api.interceptors.response.use(
 
       try {
         // Gọi refresh token
-        await api.get("/auth/refresh-token");
+        await api.get(API_ROUTES.AUTH.REFRESH_TOKEN);
 
         processQueue(null);
         return api(originalRequest);
       } catch (refreshErr) {
         processQueue(refreshErr);
-
-        await api.get("/auth/logout");
+        try {
+          await api.get(API_ROUTES.AUTH.LOGOUT, {
+            skipAuthInterceptor: true,
+          } as RetryAxiosRequestConfig);
+        } catch (logoutErr) {
+          void logoutErr;
+          return Promise.reject(refreshErr);
+        }
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;

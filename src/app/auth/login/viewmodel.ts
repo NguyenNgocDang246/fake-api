@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { LoginSchema, LoginDTO } from "@/models/auth.model";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import { AUTH_MESSAGES } from "./constants";
@@ -16,13 +17,14 @@ export function useLoginViewModel() {
   } = useForm<LoginDTO>({
     resolver: zodResolver(LoginSchema),
   });
+  const router = useRouter();
 
   const onSubmit = async (data: LoginDTO) => {
     try {
       const res = (await api.post(API_ROUTES.AUTH.LOGIN, data)).data as ApiSuccessResponse;
       void res;
       setMessage(AUTH_MESSAGES.SUCCESS);
-      window.location.href = PAGE_ROUTES.HOME;
+      router.replace(PAGE_ROUTES.HOME);
     } catch (error) {
       const data = (error as { data: ApiErrorResponse }).data;
       console.log(data.message);
