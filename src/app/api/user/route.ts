@@ -1,6 +1,6 @@
 import UserService from "@/server/services/user.service";
 import { GetUserByIdSchema, UserInfoSchema } from "@/models/user.model";
-import { ErrorValidation, AppError } from "@/server/core/errors";
+import { AppError } from "@/server/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import ApiResponse from "@/server/core/api_response";
 import { NextRequest } from "next/server";
@@ -8,15 +8,8 @@ import { NextRequest } from "next/server";
 export async function GET(req: NextRequest) {
   try {
     const id = req.headers.get("x-userId");
-    const result = GetUserByIdSchema.safeParse({ id });
-    if (!result.success) {
-      return ApiResponse.error({
-        errors: ErrorValidation.fromZodError(result.error),
-        message: ERROR_MESSAGES.VALIDATION_FAILED,
-        statusCode: STATUS_CODE.BAD_REQUEST,
-      });
-    }
-    const user = await UserService.getUserById(result.data);
+    const userId = GetUserByIdSchema.parse({ id });
+    const user = await UserService.getUserById(userId);
     if (user === null)
       return ApiResponse.error({
         message: ERROR_MESSAGES.UNAUTHORIZED,
