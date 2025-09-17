@@ -8,7 +8,7 @@ import projectService from "@/server/services/project.service";
 
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
-    const userIdRaw = req.headers.get("x-user-id");
+    const userIdRaw = req.headers.get("x-userId");
     const userIdResult = GetUserByIdSchema.safeParse({ id: userIdRaw });
     if (!userIdResult.success) {
       return ApiResponse.error({

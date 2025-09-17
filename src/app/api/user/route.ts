@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
-    const id = req.headers.get("x-user-id");
+    const id = req.headers.get("x-userId");
     const result = GetUserByIdSchema.safeParse({ id });
     if (!result.success) {
       return ApiResponse.error({

@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import TokenService from "@/server/services/auth/token.service";
 import ApiResponse from "@/server/core/api_response";
 import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
 import { AppError } from "@/server/core/errors";
+import { MiddlewareContext } from "@/middleware";
 
-const authMiddleware = async () => {
+const authMiddleware = async ({ ctx }: { ctx: MiddlewareContext }) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token")?.value;
   if (!accessToken) {
@@ -18,9 +18,8 @@ const authMiddleware = async () => {
   try {
     const payload = await TokenService.verifyAccessToken(accessToken);
     // console.log(payload);
-    const res = NextResponse.next();
-    res.headers.set("x-user-id", `${payload.id}`);
-    return res;
+    ctx.userId = String(payload.id);
+    return null;
   } catch (error) {
     if (error instanceof AppError) {
       return ApiResponse.error({

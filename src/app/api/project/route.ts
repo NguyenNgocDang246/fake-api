@@ -9,7 +9,7 @@ import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
-    const userIdRaw = req.headers.get("x-user-id");
+    const userIdRaw = req.headers.get("x-userId");
     const userIdResult = GetUserByIdSchema.safeParse({ id: userIdRaw });
     if (!userIdResult.success) {
       return ApiResponse.error({
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const userIdRaw = req.headers.get("x-user-id");
+    const userIdRaw = req.headers.get("x-userId");
     const userIdResult = GetUserByIdSchema.safeParse({ id: userIdRaw });
     if (!userIdResult.success) {
       return ApiResponse.error({
