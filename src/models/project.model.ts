@@ -15,7 +15,7 @@ export const CreateProjectSchema = ProjectSchema.pick({
   user_id: true,
   name: true,
   description: true,
-});
+}).strict();
 export type CreateProjectDTO = z.infer<typeof CreateProjectSchema>;
 
 export const GetProjectByIdSchema = ProjectSchema.pick({ id: true }).strict();
