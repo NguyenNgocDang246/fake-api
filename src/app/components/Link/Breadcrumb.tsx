@@ -8,12 +8,12 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
-    <nav className="text-gray-600" aria-label="Breadcrumb">
+    <nav className="text-blue-800" aria-label="Breadcrumb">
       <ol className="flex items-center space-x-2">
         {items.map((item, index) => (
           <li key={index} className="flex items-center">
             {item.href ? (
-              <Link href={item.href} className="hover:text-blue-600 transition-colors">
+              <Link href={item.href} className="hover:underline transition-colors">
                 {item.label}
               </Link>
             ) : (
