@@ -24,7 +24,7 @@ export default function RootLayout({
       <body className={`${baloo2.className} antialiased`}>
         <AuthWrapper>
           <HeaderWrapper />
-          <div className="px-42 mt-8">{children}</div>
+          <div className="px-42 mt-4">{children}</div>
         </AuthWrapper>
         <footer className="flex mb-4 justify-center text-sm text-gray-500">
           <p>© 2025 Fake API. All rights reserved.</p>
