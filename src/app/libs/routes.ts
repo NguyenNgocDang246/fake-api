@@ -14,10 +14,17 @@ export const API_ROUTES = {
   },
   PROJECT: {
     GET_ALL: "/api/project",
-    GET_BY_ID: "/api/project/:id",
+    GET_BY_ID: "/api/project/:projectId",
     CREATE: "/api/project",
     // UPDATE: "/api/projects/:id",
     // DELETE: "/api/projects/:id",
+  },
+  ENDPOINT_GROUP: {
+    GET_ALL: "/api/project/:projectId/endpoint-group",
+    GET_BY_ID: "/api/endpoint/:id",
+    CREATE: "/api/endpoint",
+    // UPDATE: "/api/endpoints/:id",
+    // DELETE: "/api/endpoints/:id",
   },
 };
 

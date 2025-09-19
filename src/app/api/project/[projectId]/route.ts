@@ -6,12 +6,12 @@ import { ErrorValidation, AppError } from "@/server/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import projectService from "@/server/services/project.service";
 
-export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ projectId: string }> }) {
   try {
     const id = req.headers.get("x-userId");
     const userId = GetUserByIdSchema.parse({ id }).id;
     const params = await props.params;
-    const projectIdRaw = params.id;
+    const projectIdRaw = params.projectId;
     const projectIdResult = GetProjectByIdSchema.safeParse({ id: projectIdRaw });
     if (!projectIdResult.success) {
       return ApiResponse.error({

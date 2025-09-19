@@ -4,7 +4,7 @@ import { AppError } from "@/server/core/errors";
 
 const prisma = new PrismaClient();
 
-export class ProjectService {
+class ProjectService {
   async getAllProjects() {
     try {
       return await prisma.projects.findMany();
