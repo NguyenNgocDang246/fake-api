@@ -5,21 +5,22 @@ import url_builder from "@/app/libs/helpers/url_builder";
 import { API_ROUTES } from "@/app/libs/routes";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import { EndpointGroupDTO } from "@/models/endpoint_group.model";
+import { ProjectDTO } from "@/models/project.model";
 
 export function useEndpointGroupViewModel() {
   const pathname = usePathname();
   const [endpointGroups, setEndpointGroups] = useState<EndpointGroupDTO[]>([]);
-  const [projectName, setProjectName] = useState<string>("");
+  const [projectInfo, setProjectInfo] = useState<ProjectDTO>();
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string>("");
 
-  const fetchProjectName = async (projectId: string) => {
+  const fetchProjectInfo = async (projectId: string) => {
     try {
       const res = (
         await api.get(url_builder(API_ROUTES.PROJECT.GET_BY_ID, { projectId: projectId }))
       ).data as ApiSuccessResponse;
-      const project = res.data as EndpointGroupDTO;
-      setProjectName(project.name);
+      const project = res.data as ProjectDTO;
+      setProjectInfo(project);
     } catch (error) {
       throw error;
     }
@@ -41,7 +42,7 @@ export function useEndpointGroupViewModel() {
     const fetchData = async (projectId: string) => {
       try {
         await fetchEndpointGroups(projectId);
-        await fetchProjectName(projectId);
+        await fetchProjectInfo(projectId);
       } catch (error) {
         console.log(error);
         const data = (error as { data: ApiErrorResponse }).data;
@@ -56,5 +57,5 @@ export function useEndpointGroupViewModel() {
     fetchData(projectId);
   }, [pathname]);
 
-  return { projectName, endpointGroups, loading, message };
+  return { projectInfo, endpointGroups, loading, message };
 }

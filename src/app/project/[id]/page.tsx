@@ -6,7 +6,7 @@ import { LoadingDots } from "@/app/components/Loading/LoadingDots";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 export default function Project() {
-  const { projectName, endpointGroups, loading, message } = useEndpointGroupViewModel();
+  const { projectInfo, endpointGroups, loading, message } = useEndpointGroupViewModel();
   return (
     <div className="h-screen">
       <div className="flex justify-start">
@@ -27,7 +27,7 @@ export default function Project() {
             items={[
               { label: "Home", href: PAGE_ROUTES.HOME },
               { label: "Project", href: PAGE_ROUTES.PROJECT },
-              { label: projectName, href: "./" },
+              { label: projectInfo?.name ?? "", href: PAGE_ROUTES.PROJECT + "/" + projectInfo?.id },
             ]}
           />
         )}
