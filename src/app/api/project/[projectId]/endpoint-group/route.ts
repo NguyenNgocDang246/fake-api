@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import ApiResponse from "@/server/core/api_response";
 import EndpointGroupService from "@/server/services/endpoint_group.service";
-import { ErrorValidation, AppError } from "@/server/core/errors";
+import { AppError } from "@/server/core/errors";
+import { validateData } from "@/server/core/validation";
 import { GetUserByIdSchema } from "@/models/user.model";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import { CreateEndpointGroupSchema } from "@/models/endpoint_group.model";
@@ -15,15 +16,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
-    const projectIdResult = GetProjectByIdSchema.safeParse({ id: projectIdRaw });
-    if (!projectIdResult.success) {
-      return ApiResponse.error({
-        errors: ErrorValidation.fromZodError(projectIdResult.error),
-        message: ERROR_MESSAGES.VALIDATION_FAILED,
-        statusCode: STATUS_CODE.BAD_REQUEST,
-      });
+    const validation = validateData({ id: projectIdRaw }, GetProjectByIdSchema);
+    if (!validation.success) {
+      return validation.response;
     }
-    const projectId = projectIdResult.data.id;
+    const projectId = validation.data.id;
 
     const hasPermission = await checkProjectPermission({ projectId, userId });
     if (!hasPermission) {
@@ -58,15 +55,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ projectI
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
-    const projectIdResult = GetProjectByIdSchema.safeParse({ id: projectIdRaw });
-    if (!projectIdResult.success) {
-      return ApiResponse.error({
-        errors: ErrorValidation.fromZodError(projectIdResult.error),
-        message: ERROR_MESSAGES.VALIDATION_FAILED,
-        statusCode: STATUS_CODE.BAD_REQUEST,
-      });
+    const projectIdValidation = validateData({ id: projectIdRaw }, GetProjectByIdSchema);
+    if (!projectIdValidation.success) {
+      return projectIdValidation.response;
     }
-    const projectId = projectIdResult.data.id;
+    const projectId = projectIdValidation.data.id;
 
     const hasPermission = await checkProjectPermission({ projectId, userId });
     if (!hasPermission) {
@@ -76,20 +69,19 @@ export async function POST(req: NextRequest, props: { params: Promise<{ projectI
       });
     }
 
-    const data = await req.json();
-    const parsed = CreateEndpointGroupSchema.safeParse({ ...data, project_id: projectId });
-    if (!parsed.success) {
-      return ApiResponse.error({
-        errors: ErrorValidation.fromZodError(parsed.error),
-        message: ERROR_MESSAGES.VALIDATION_FAILED,
-        statusCode: STATUS_CODE.BAD_REQUEST,
-      });
+    const body = await req.json();
+    const endpointGroupValidation = validateData(
+      { ...body, project_id: projectId },
+      CreateEndpointGroupSchema
+    );
+    if (!endpointGroupValidation.success) {
+      return endpointGroupValidation.response;
     }
-    const endpointGroup = await EndpointGroupService.createEndpointGroup({
-      ...parsed.data,
-    });
-    return ApiResponse.success({ data: endpointGroup });
+    const endpointGroup = endpointGroupValidation.data;
+    const endpointGroupCreated = await EndpointGroupService.createEndpointGroup(endpointGroup);
+    return ApiResponse.success({ data: endpointGroupCreated });
   } catch (error) {
+    console.log(error);
     if (error instanceof AppError) {
       return ApiResponse.error({
         message: error.message,

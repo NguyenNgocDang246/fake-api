@@ -1,7 +1,7 @@
 import { serialize } from "cookie";
 import { LoginSchema } from "@/models/auth.model";
-import { ErrorValidation, AppError } from "@/server/core/errors";
-import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { AppError } from "@/server/core/errors";
+import { validateData } from "@/server/core/validation";
 import {
   ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
   REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
@@ -12,16 +12,13 @@ import authService from "@/server/services/auth/auth.service";
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await req.json();
-    const result = LoginSchema.safeParse(user);
-    if (!result.success) {
-      return ApiResponse.error({
-        errors: ErrorValidation.fromZodError(result.error),
-        message: ERROR_MESSAGES.VALIDATION_FAILED,
-        statusCode: STATUS_CODE.BAD_REQUEST,
-      });
+    const body = await req.json();
+    const validation = validateData(body, LoginSchema);
+    if (!validation.success) {
+      return validation.response;
     }
-    const data = await authService.login(result.data);
+    const user = validation.data;
+    const data = await authService.login(user);
     const cookie = [
       serialize("access_token", data.access_token, {
         httpOnly: true,

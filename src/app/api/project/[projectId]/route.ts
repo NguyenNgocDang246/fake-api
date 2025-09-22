@@ -2,8 +2,9 @@ import { NextRequest } from "next/server";
 import ApiResponse from "@/server/core/api_response";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import { GetUserByIdSchema } from "@/models/user.model";
-import { ErrorValidation, AppError } from "@/server/core/errors";
+import { AppError } from "@/server/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { validateData } from "@/server/core/validation";
 import projectService from "@/server/services/project.service";
 
 export async function GET(req: NextRequest, props: { params: Promise<{ projectId: string }> }) {
@@ -12,16 +13,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
     const userId = GetUserByIdSchema.parse({ id }).id;
     const params = await props.params;
     const projectIdRaw = params.projectId;
-    const projectIdResult = GetProjectByIdSchema.safeParse({ id: projectIdRaw });
-    if (!projectIdResult.success) {
-      return ApiResponse.error({
-        errors: ErrorValidation.fromZodError(projectIdResult.error),
-        message: ERROR_MESSAGES.VALIDATION_FAILED,
-        statusCode: STATUS_CODE.BAD_REQUEST,
-      });
+    const validation = validateData({ id: projectIdRaw }, GetProjectByIdSchema);
+    if (!validation.success) {
+      return validation.response;
     }
-
-    const projectId = projectIdResult.data.id;
+    const projectId = validation.data.id;
 
     const project = await projectService.getProjectById({ id: projectId });
     if (project === null) {
