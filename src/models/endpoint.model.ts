@@ -29,7 +29,7 @@ export const EndpointInfoSchema = EndpointSchema.pick({
   response_body: true,
   delay_ms: true,
 })
-  .extend({ public_id: z.string(), endpoint_groups_public_id: z.string() })
+  .extend({ public_id: z.string(), endpoint_groups_id: z.string() })
   .strict();
 export type EndpointInfoDTO = z.infer<typeof EndpointInfoSchema>;
 
