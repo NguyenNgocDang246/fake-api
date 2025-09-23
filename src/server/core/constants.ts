@@ -6,6 +6,7 @@ export const REFRESH_TOKEN_EXPIRATION_TIME_IN_STRING = "7d";
 export enum ERROR_MESSAGES {
   VALIDATION_FAILED = "Validation failed",
   UNAUTHORIZED = "Unauthorized",
+  FORBIDDEN = "Forbidden",
   NOT_FOUND = "Resource not found",
   NO_CONTENT = "No content",
   SERVER_ERROR = "Internal server error",

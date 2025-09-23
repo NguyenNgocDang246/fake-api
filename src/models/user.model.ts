@@ -20,10 +20,11 @@ export const UserSchema = z
 export type UserDTO = z.infer<typeof UserSchema>;
 
 export const UserInfoSchema = UserSchema.pick({
-  id: true,
   name: true,
   email: true,
-}).strict();
+})
+  .extend({ public_id: z.string() })
+  .strict();
 export type UserInfoDTO = z.infer<typeof UserInfoSchema>;
 
 export const CreateUserSchema = UserSchema.pick({

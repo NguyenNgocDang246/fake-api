@@ -3,9 +3,9 @@ import { useRouter } from "next/navigation";
 import api from "@/app/libs/helpers/api_call";
 import { API_ROUTES } from "@/app/libs/routes";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
-import { ProjectDTO } from "@/models/project.model";
+import { ProjectInfoDTO } from "@/models/project.model";
 export function useProjectViewModel() {
-  const [projects, setProjects] = useState<ProjectDTO[]>([]);
+  const [projects, setProjects] = useState<ProjectInfoDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string>("");
   const router = useRouter();
@@ -14,7 +14,7 @@ export function useProjectViewModel() {
     const fetchProjects = async () => {
       try {
         const res = (await api.get(API_ROUTES.PROJECT.GET_ALL)).data as ApiSuccessResponse;
-        const projects = res.data as Array<ProjectDTO>;
+        const projects = res.data as Array<ProjectInfoDTO>;
         setProjects(projects);
       } catch (error) {
         const data = (error as { data: ApiErrorResponse }).data;
@@ -26,8 +26,8 @@ export function useProjectViewModel() {
     fetchProjects();
   }, []);
 
-  const handleOnclickProject = (id: string) => {
-    void router.push(`/project/${id}`);
+  const handleOnclickProject = (public_id: string) => {
+    void router.push(`/project/${public_id}`);
   };
   return { projects, handleOnclickProject, loading, message };
 }

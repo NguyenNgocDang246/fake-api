@@ -1,9 +1,13 @@
 interface EndpointGroupItemProps {
-  id: number;
+  public_id: string;
   name: string;
   onclick: () => void;
 }
-export const EndpointGroupItem: React.FC<EndpointGroupItemProps> = ({ id, name, onclick }) => {
+export const EndpointGroupItem: React.FC<EndpointGroupItemProps> = ({
+  public_id,
+  name,
+  onclick,
+}) => {
   return (
     <div
       onClick={onclick}

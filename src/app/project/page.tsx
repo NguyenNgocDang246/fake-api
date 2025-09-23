@@ -25,12 +25,12 @@ export default function Project() {
           <div>
             {projects.length > 0 ? (
               projects.map((project) => (
-                <div className="mb-8" key={project.id}>
+                <div className="mb-8" key={project.public_id}>
                   <ProjectItem
                     description={project.description}
                     name={project.name}
-                    id={project.id}
-                    onclick={() => handleOnclickProject(project.id.toString())}
+                    public_id={project.public_id}
+                    onclick={() => handleOnclickProject(project.public_id.toString())}
                   />
                 </div>
               ))

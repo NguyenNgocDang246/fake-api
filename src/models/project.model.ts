@@ -11,6 +11,10 @@ export const ProjectSchema = z
   })
   .strict();
 export type ProjectDTO = z.infer<typeof ProjectSchema>;
+export const ProjectInfoSchema = ProjectSchema.pick({ name: true, description: true })
+  .extend({ public_id: z.string(), user_id: z.string() })
+  .strict();
+export type ProjectInfoDTO = z.infer<typeof ProjectInfoSchema>;
 export const CreateProjectSchema = ProjectSchema.pick({
   user_id: true,
   name: true,

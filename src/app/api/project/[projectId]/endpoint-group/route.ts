@@ -5,9 +5,10 @@ import { AppError } from "@/server/core/errors";
 import { validateData } from "@/server/core/validation";
 import { GetUserByIdSchema } from "@/models/user.model";
 import { GetProjectByIdSchema } from "@/models/project.model";
-import { CreateEndpointGroupSchema } from "@/models/endpoint_group.model";
+import { CreateEndpointGroupSchema, EndpointGroupInfoSchema } from "@/models/endpoint_group.model";
 import { STATUS_CODE, ERROR_MESSAGES } from "@/server/core/constants";
 import checkProjectPermission from "@/app/api/project/helpers/checkProjectPermission";
+import IdConverter from "@/app/libs/helpers/idConverter";
 
 export async function GET(req: NextRequest, props: { params: Promise<{ projectId: string }> }) {
   try {
@@ -16,7 +17,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
-    const validation = validateData({ id: projectIdRaw }, GetProjectByIdSchema);
+
+    const validation = validateData({ id: IdConverter.decode(projectIdRaw) }, GetProjectByIdSchema);
     if (!validation.success) {
       return validation.response;
     }
@@ -25,8 +27,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
     const hasPermission = await checkProjectPermission({ projectId, userId });
     if (!hasPermission) {
       return ApiResponse.error({
-        message: ERROR_MESSAGES.UNAUTHORIZED,
-        statusCode: STATUS_CODE.UNAUTHORIZED,
+        message: ERROR_MESSAGES.FORBIDDEN,
+        statusCode: STATUS_CODE.FORBIDDEN,
       });
     }
     const endpointGroups = await EndpointGroupService.getAllEndpointGroups({ id: projectId });
@@ -36,7 +38,19 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
         statusCode: STATUS_CODE.NO_CONTENT,
       });
     }
-    return ApiResponse.success({ data: endpointGroups });
+    const endpointGroupInfoValidation = validateData(
+      endpointGroups.map((e) => ({
+        public_id: IdConverter.encode(e.id),
+        name: e.name,
+        project_id: IdConverter.encode(e.project_id),
+      })),
+      [EndpointGroupInfoSchema]
+    );
+    if (!endpointGroupInfoValidation.success) {
+      return endpointGroupInfoValidation.response;
+    }
+    const endpointGroupInfo = endpointGroupInfoValidation.data;
+    return ApiResponse.success({ data: endpointGroupInfo });
   } catch (error) {
     if (error instanceof AppError) {
       return ApiResponse.error({
@@ -55,7 +69,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ projectI
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
-    const projectIdValidation = validateData({ id: projectIdRaw }, GetProjectByIdSchema);
+    const projectIdValidation = validateData(
+      { id: IdConverter.decode(projectIdRaw) },
+      GetProjectByIdSchema
+    );
     if (!projectIdValidation.success) {
       return projectIdValidation.response;
     }
@@ -64,8 +81,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ projectI
     const hasPermission = await checkProjectPermission({ projectId, userId });
     if (!hasPermission) {
       return ApiResponse.error({
-        message: ERROR_MESSAGES.UNAUTHORIZED,
-        statusCode: STATUS_CODE.UNAUTHORIZED,
+        message: ERROR_MESSAGES.FORBIDDEN,
+        statusCode: STATUS_CODE.FORBIDDEN,
       });
     }
 
@@ -79,7 +96,19 @@ export async function POST(req: NextRequest, props: { params: Promise<{ projectI
     }
     const endpointGroup = endpointGroupValidation.data;
     const endpointGroupCreated = await EndpointGroupService.createEndpointGroup(endpointGroup);
-    return ApiResponse.success({ data: endpointGroupCreated });
+    const endpointGroupInfoValidation = validateData(
+      {
+        public_id: IdConverter.encode(endpointGroupCreated.id),
+        name: endpointGroupCreated.name,
+        project_id: IdConverter.encode(endpointGroupCreated.project_id),
+      },
+      EndpointGroupInfoSchema
+    );
+    if (!endpointGroupInfoValidation.success) {
+      return endpointGroupInfoValidation.response;
+    }
+    const endpointGroupInfo = endpointGroupInfoValidation.data;
+    return ApiResponse.success({ data: endpointGroupInfo });
   } catch (error) {
     console.log(error);
     if (error instanceof AppError) {

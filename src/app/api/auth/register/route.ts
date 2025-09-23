@@ -4,6 +4,8 @@ import { validateData } from "@/server/core/validation";
 import ApiResponse from "@/server/core/api_response";
 import { NextRequest } from "next/server";
 import authService from "@/server/services/auth/auth.service";
+import { UserInfoSchema } from "@/models/user.model";
+import IdConverter from "@/app/libs/helpers/idConverter";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +16,19 @@ export async function POST(req: NextRequest) {
     }
     const user = validation.data;
     const registeredUser = await authService.register(user);
-    return ApiResponse.success({ data: registeredUser });
+    const userInfoValidation = validateData(
+      {
+        public_id: IdConverter.encode(registeredUser.id),
+        name: registeredUser.name,
+        email: registeredUser.email,
+      },
+      UserInfoSchema
+    );
+    if (!userInfoValidation.success) {
+      return userInfoValidation.response;
+    }
+    const userInfo = userInfoValidation.data;
+    return ApiResponse.success({ data: userInfo });
   } catch (error) {
     if (error instanceof AppError) {
       return ApiResponse.error({

@@ -11,6 +11,11 @@ export const EndpointGroupSchema = z
   .strict();
 export type EndpointGroupDTO = z.infer<typeof EndpointGroupSchema>;
 
+export const EndpointGroupInfoSchema = EndpointGroupSchema.pick({ name: true })
+  .extend({ public_id: z.string(), project_id: z.string() })
+  .strict();
+export type EndpointGroupInfoDTO = z.infer<typeof EndpointGroupInfoSchema>;
+
 export const CreateEndpointGroupSchema = EndpointGroupSchema.pick({
   project_id: true,
   name: true,

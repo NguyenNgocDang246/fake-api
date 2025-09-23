@@ -22,6 +22,17 @@ export const EndpointSchema = z
   .strict();
 export type EndpointDTO = z.infer<typeof EndpointSchema>;
 
+export const EndpointInfoSchema = EndpointSchema.pick({
+  method: true,
+  path: true,
+  status_code: true,
+  response_body: true,
+  delay_ms: true,
+})
+  .extend({ public_id: z.string(), endpoint_groups_public_id: z.string() })
+  .strict();
+export type EndpointInfoDTO = z.infer<typeof EndpointInfoSchema>;
+
 export const CreateEndpointSchema = EndpointSchema.pick({
   endpoint_groups_id: true,
   method: true,

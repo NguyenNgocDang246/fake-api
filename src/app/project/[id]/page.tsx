@@ -6,7 +6,7 @@ import { LoadingDots } from "@/app/components/Loading/LoadingDots";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 export default function Project() {
-  const { projectInfo, endpointGroups, loading, message } = useEndpointGroupViewModel();
+  const { projectInfo, endpointGroupsInfo, loading, message } = useEndpointGroupViewModel();
   return (
     <div className="h-screen">
       <div className="flex justify-start">
@@ -37,9 +37,13 @@ export default function Project() {
           <p className="text-center text-xl">Endpoint Groups</p>
           <div className="mt-2 p-4 border rounded-2xl border-gray-400">
             <ActionButton label="Create new" className="mb-4 flex w-full" onClick={() => {}} />
-            {endpointGroups.map((group) => (
-              <div key={group.id} className="mb-2">
-                <EndpointGroupItem id={group.id} name={group.name} onclick={() => {}} />
+            {endpointGroupsInfo.map((group) => (
+              <div key={group.public_id} className="mb-2">
+                <EndpointGroupItem
+                  public_id={group.public_id}
+                  name={group.name}
+                  onclick={() => {}}
+                />
               </div>
             ))}
           </div>

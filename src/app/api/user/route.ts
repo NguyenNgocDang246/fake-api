@@ -4,6 +4,8 @@ import { AppError } from "@/server/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import ApiResponse from "@/server/core/api_response";
 import { NextRequest } from "next/server";
+import IdConverter from "@/app/libs/helpers/idConverter";
+import { validateData } from "@/server/core/validation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,11 +17,18 @@ export async function GET(req: NextRequest) {
         message: ERROR_MESSAGES.UNAUTHORIZED,
         statusCode: STATUS_CODE.UNAUTHORIZED,
       });
-    const userInfo = UserInfoSchema.parse({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    });
+    const validation = validateData(
+      {
+        public_id: IdConverter.encode(user.id),
+        name: user.name,
+        email: user.email,
+      },
+      UserInfoSchema
+    );
+    if (!validation.success) {
+      return validation.response;
+    }
+    const userInfo = validation.data;
     return ApiResponse.success({ data: userInfo });
   } catch (error) {
     if (error instanceof AppError) {

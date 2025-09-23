@@ -4,12 +4,12 @@ import api from "@/app/libs/helpers/api_call";
 import url_builder from "@/app/libs/helpers/url_builder";
 import { API_ROUTES } from "@/app/libs/routes";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
-import { EndpointGroupDTO } from "@/models/endpoint_group.model";
+import { EndpointGroupInfoDTO } from "@/models/endpoint_group.model";
 import { ProjectDTO } from "@/models/project.model";
 
 export function useEndpointGroupViewModel() {
   const pathname = usePathname();
-  const [endpointGroups, setEndpointGroups] = useState<EndpointGroupDTO[]>([]);
+  const [endpointGroupsInfo, setEndpointGroupsInfo] = useState<EndpointGroupInfoDTO[]>([]);
   const [projectInfo, setProjectInfo] = useState<ProjectDTO>();
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string>("");
@@ -31,8 +31,8 @@ export function useEndpointGroupViewModel() {
       const res = (
         await api.get(url_builder(API_ROUTES.ENDPOINT_GROUP.GET_ALL, { projectId: projectId }))
       ).data as ApiSuccessResponse;
-      const endpointGroups = res.data as Array<EndpointGroupDTO>;
-      setEndpointGroups(endpointGroups);
+      const endpointGroups = res.data as Array<EndpointGroupInfoDTO>;
+      setEndpointGroupsInfo(endpointGroups);
     } catch (error) {
       throw error;
     }
@@ -57,5 +57,5 @@ export function useEndpointGroupViewModel() {
     fetchData(projectId);
   }, [pathname]);
 
-  return { projectInfo, endpointGroups, loading, message };
+  return { projectInfo, endpointGroupsInfo, loading, message };
 }

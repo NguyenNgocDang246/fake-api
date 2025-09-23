@@ -6,13 +6,15 @@ import { AppError } from "@/server/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { validateData } from "@/server/core/validation";
 import projectService from "@/server/services/project.service";
+import IdConverter from "@/app/libs/helpers/idConverter";
+import { ProjectInfoSchema } from "@/models/project.model";
 
 export async function GET(req: NextRequest, props: { params: Promise<{ projectId: string }> }) {
   try {
     const id = req.headers.get("x-userId");
     const userId = GetUserByIdSchema.parse({ id }).id;
     const params = await props.params;
-    const projectIdRaw = params.projectId;
+    const projectIdRaw = IdConverter.decode(params.projectId);
     const validation = validateData({ id: projectIdRaw }, GetProjectByIdSchema);
     if (!validation.success) {
       return validation.response;
@@ -28,12 +30,26 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
     }
     if (userId !== project.user_id) {
       return ApiResponse.error({
-        message: ERROR_MESSAGES.UNAUTHORIZED,
-        statusCode: STATUS_CODE.UNAUTHORIZED,
+        message: ERROR_MESSAGES.FORBIDDEN,
+        statusCode: STATUS_CODE.FORBIDDEN,
       });
     }
 
-    return ApiResponse.success({ data: project });
+    const projectInfoValidation = validateData(
+      {
+        public_id: IdConverter.encode(project.id),
+        name: project.name,
+        description: project.description,
+        user_id: IdConverter.encode(project.user_id),
+      },
+      ProjectInfoSchema
+    );
+    if (!projectInfoValidation.success) {
+      return projectInfoValidation.response;
+    }
+    const projectInfo = projectInfoValidation.data;
+
+    return ApiResponse.success({ data: projectInfo });
   } catch (error) {
     if (error instanceof AppError) {
       return ApiResponse.error({
