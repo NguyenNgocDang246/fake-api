@@ -7,6 +7,7 @@ interface ActionButtonProps {
   onClick: () => void;
   disabled?: boolean;
   className?: string;
+  type?: "create" | "delete" | "update" | "view";
 }
 
 export const ActionButton: React.FC<ActionButtonProps> = ({
@@ -15,14 +16,23 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   onClick,
   disabled = false,
   className,
+  type,
 }) => {
+  const typeClasses: Record<string, string> = {
+    create: "bg-blue-600 text-white hover:bg-blue-700 disabled:bg-green-400",
+    delete: "bg-red-600 text-white hover:bg-red-700 disabled:bg-red-400",
+    update: "bg-yellow-500 text-white hover:bg-yellow-600 disabled:bg-yellow-300",
+    view: "bg-green-600 text-white hover:bg-green-700 disabled:bg-blue-400",
+  };
+
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
       className={twMerge(
-        "rounded-lg bg-blue-200 px-4 py-2 font-medium hover:bg-blue-300 disabled:opacity-50 transition-colors outline-0 cursor-pointer",
+        "rounded-lg px-4 py-2 font-medium transition-colors outline-0 cursor-pointer disabled:opacity-50",
+        type ? typeClasses[type] : "bg-gray-300 hover:bg-gray-400",
         className
       )}
     >
