@@ -15,7 +15,8 @@ export function useProjectViewModel() {
       try {
         const res = (await api.get(API_ROUTES.PROJECT.GET_ALL)).data as ApiSuccessResponse;
         const projects = res.data as Array<ProjectInfoDTO>;
-        setProjects(projects);
+        if (projects) setProjects(projects);
+        else setProjects([]);
       } catch (error) {
         const data = (error as { data: ApiErrorResponse }).data;
         setMessage(data.message);

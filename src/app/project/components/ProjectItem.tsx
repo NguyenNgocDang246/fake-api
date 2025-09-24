@@ -13,7 +13,7 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({
   return (
     <div
       onClick={onclick}
-      className="flex items-center justify-between border border-gray-200 rounded-3xl bg-gray-100 px-8 py-4 hover:bg-blue-200 cursor-pointer"
+      className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md cursor-pointer"
     >
       <div>
         <h3 className="text-2xl font-medium">{name}</h3>

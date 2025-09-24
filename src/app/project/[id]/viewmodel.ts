@@ -5,13 +5,17 @@ import url_builder from "@/app/libs/helpers/url_builder";
 import { API_ROUTES } from "@/app/libs/routes";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import { EndpointGroupInfoDTO } from "@/models/endpoint_group.model";
-import { ProjectDTO } from "@/models/project.model";
+import { EndpointInfoDTO } from "@/models/endpoint.model";
+import { ProjectInfoDTO } from "@/models/project.model";
 
 export function useEndpointGroupViewModel() {
   const pathname = usePathname();
   const [endpointGroupsInfo, setEndpointGroupsInfo] = useState<EndpointGroupInfoDTO[]>([]);
-  const [projectInfo, setProjectInfo] = useState<ProjectDTO>();
+  const [endpointGroupChosenId, setEndpointGroupChosenId] = useState<string>("");
+  const [endpointsInfo, setEndpointsInfo] = useState<EndpointInfoDTO[]>([]);
+  const [projectInfo, setProjectInfo] = useState<ProjectInfoDTO>();
   const [loading, setLoading] = useState(true);
+  const [endpointLoading, setEndpointLoading] = useState(true);
   const [message, setMessage] = useState<string>("");
 
   const fetchProjectInfo = async (projectId: string) => {
@@ -19,7 +23,7 @@ export function useEndpointGroupViewModel() {
       const res = (
         await api.get(url_builder(API_ROUTES.PROJECT.GET_BY_ID, { projectId: projectId }))
       ).data as ApiSuccessResponse;
-      const project = res.data as ProjectDTO;
+      const project = res.data as ProjectInfoDTO;
       setProjectInfo(project);
     } catch (error) {
       throw error;
@@ -32,7 +36,13 @@ export function useEndpointGroupViewModel() {
         await api.get(url_builder(API_ROUTES.ENDPOINT_GROUP.GET_ALL, { projectId: projectId }))
       ).data as ApiSuccessResponse;
       const endpointGroups = res.data as Array<EndpointGroupInfoDTO>;
-      setEndpointGroupsInfo(endpointGroups);
+      if (endpointGroups) setEndpointGroupsInfo(endpointGroups);
+      else setEndpointGroupsInfo([]);
+      if (endpointGroups && endpointGroups.length > 0) {
+        setEndpointGroupChosenId(endpointGroups[0].public_id);
+      } else {
+        setEndpointLoading(false);
+      }
     } catch (error) {
       throw error;
     }
@@ -41,8 +51,8 @@ export function useEndpointGroupViewModel() {
   useEffect(() => {
     const fetchData = async (projectId: string) => {
       try {
-        await fetchEndpointGroups(projectId);
         await fetchProjectInfo(projectId);
+        await fetchEndpointGroups(projectId);
       } catch (error) {
         console.log(error);
         const data = (error as { data: ApiErrorResponse }).data;
@@ -57,5 +67,47 @@ export function useEndpointGroupViewModel() {
     fetchData(projectId);
   }, [pathname]);
 
-  return { projectInfo, endpointGroupsInfo, loading, message };
+  useEffect(() => {
+    const fetchEndpoints = async (endpointGroupId: string, projectId: string) => {
+      try {
+        setEndpointLoading(true);
+        const res = (
+          await api.get(
+            url_builder(API_ROUTES.ENDPOINT.GET_ALL, {
+              projectId: projectId,
+              endpointGroupId: endpointGroupId,
+            })
+          )
+        ).data as ApiSuccessResponse;
+        const endpoints = res.data as Array<EndpointInfoDTO>;
+        if (endpoints) setEndpointsInfo(endpoints);
+        else setEndpointsInfo([]);
+      } catch (error) {
+        console.log(error);
+        const data = (error as { data: ApiErrorResponse }).data;
+        setMessage(data.message);
+      } finally {
+        setEndpointLoading(false);
+        setLoading(false);
+      }
+    };
+    if (endpointGroupChosenId == "") {
+      return;
+    }
+    if (!projectInfo) {
+      return;
+    }
+    fetchEndpoints(endpointGroupChosenId, projectInfo.public_id);
+  }, [endpointGroupChosenId, projectInfo]);
+
+  return {
+    projectInfo,
+    endpointGroupsInfo,
+    endpointGroupChosenId,
+    setEndpointGroupChosenId,
+    endpointsInfo,
+    loading,
+    endpointLoading,
+    message,
+  };
 }
