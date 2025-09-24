@@ -8,9 +8,13 @@ import { UserHeader } from "@/app/components/Wrapper/Header/UserHeader";
 
 export function HeaderWrapper() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   if (pathname === PAGE_ROUTES.AUTH.LOGIN || pathname === PAGE_ROUTES.AUTH.REGISTER) {
+    return null;
+  }
+
+  if (loading) {
     return null;
   }
 

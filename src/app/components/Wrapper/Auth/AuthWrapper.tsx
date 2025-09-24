@@ -59,7 +59,13 @@ export const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
       router.push(PAGE_ROUTES.AUTH.LOGIN);
     }
   }, [loading, user, router, pathname]);
-  if (loading)
+  if (
+    loading ||
+    (!user &&
+      pathname !== PAGE_ROUTES.AUTH.LOGIN &&
+      pathname !== PAGE_ROUTES.AUTH.REGISTER &&
+      pathname !== PAGE_ROUTES.HOME)
+  )
     return (
       <div className="flex flex-col justify-center items-center h-screen gap-8">
         <Spinner size={60} />
