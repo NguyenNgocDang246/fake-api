@@ -10,18 +10,20 @@ import { Spinner } from "@/app/components/Loading/Spinner";
 import { NoContentText } from "@/app/components/Text/NoContentText";
 export default function Project() {
   const {
-    projectInfo,
-    endpointGroupsInfo,
-    endpointGroupChosenId,
-    setEndpointGroupChosenId,
-    endpointsInfo,
-    loading,
-    endpointLoading,
+    projectInfoState,
+    endpointGroupsState,
+    endpointsState,
+    setSelectedGroupId,
+    selectedGroupId,
   } = useEndpointGroupViewModel();
+
+  const hasEndpointGroups = endpointGroupsState.data && endpointGroupsState.data.length > 0;
+  const hasEndpoints = endpointsState.data && endpointsState.data.length > 0;
+
   return (
     <div className="h-screen">
       <div className="flex justify-start">
-        {loading ? (
+        {projectInfoState.isLoading ? (
           <div className="flex items-center">
             <Breadcrumb
               items={[
@@ -39,8 +41,8 @@ export default function Project() {
               { label: "Home", href: PAGE_ROUTES.HOME },
               { label: "Project", href: PAGE_ROUTES.PROJECT },
               {
-                label: projectInfo?.name ?? "",
-                href: PAGE_ROUTES.PROJECT + "/" + projectInfo?.public_id,
+                label: projectInfoState.data?.name ?? "",
+                href: PAGE_ROUTES.PROJECT + "/" + projectInfoState.data?.public_id,
               },
             ]}
           />
@@ -57,19 +59,19 @@ export default function Project() {
               onClick={() => {}}
             />
             <div className="space-y-1">
-              {loading ? (
+              {endpointGroupsState.isLoading || projectInfoState.isLoading ? (
                 <div className="flex justify-center">
                   <Spinner size={40} />
                 </div>
-              ) : endpointGroupsInfo.length > 0 ? (
-                endpointGroupsInfo.map((group) => (
+              ) : hasEndpointGroups ? (
+                endpointGroupsState.data.map((group) => (
                   <EndpointGroupItem
                     key={group.public_id}
                     public_id={group.public_id}
                     name={group.name}
-                    isChosen={group.public_id === endpointGroupChosenId}
+                    isChosen={group.public_id === selectedGroupId}
                     onclick={(public_id) => {
-                      setEndpointGroupChosenId(public_id);
+                      setSelectedGroupId(public_id);
                     }}
                   />
                 ))
@@ -86,12 +88,14 @@ export default function Project() {
             <ActionButton label="Delete all" type="delete" className="ml-4" onClick={() => {}} />
           </div>
           <div className="overflow-auto min-h-64 max-h-96 pr-4">
-            {endpointLoading ? (
+            {endpointsState.isLoading ||
+            endpointGroupsState.isLoading ||
+            projectInfoState.isLoading ? (
               <div className="flex justify-center mt-24">
                 <Spinner size={40} />
               </div>
-            ) : endpointsInfo.length > 0 ? (
-              endpointsInfo.map((endpoint) => (
+            ) : hasEndpoints ? (
+              endpointsState.data.map((endpoint) => (
                 <div key={endpoint.public_id} className="mb-2">
                   <EndpointItem {...endpoint} onclick={() => {}} />
                 </div>

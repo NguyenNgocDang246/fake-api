@@ -6,8 +6,14 @@ import { useProjectViewModel } from "@/app/project/viewmodel";
 import { ProjectItem } from "@/app/project/components/ProjectItem";
 import { NoContentText } from "@/app/components/Text/NoContentText";
 import { ActionButton } from "@/app/components/Button/ActionButton";
+import { useModal } from "@/app/components/Wrapper/Modal/ModalWrapper";
+
 export default function Project() {
-  const { projects, handleOnclickProject, loading } = useProjectViewModel();
+  const { projectsState, handleOnclickProject } = useProjectViewModel();
+  const modal = useModal();
+
+  const hasProjects = projectsState.data && projectsState.data.length > 0;
+
   return (
     <div className="h-screen">
       <div className="flex justify-start">
@@ -20,23 +26,39 @@ export default function Project() {
       </div>
       <div className="mt-8 flex flex-col justify-center">
         <div className="mb-4 flex items-center justify-end">
-          <ActionButton label="Create new" type="create" className="ml-4" onClick={() => {}} />
+          <ActionButton
+            label="Create new"
+            type="create"
+            className="ml-4"
+            onClick={() => {
+              modal?.openModal({
+                type: "form",
+                props: {
+                  title: "Create new project",
+                  onSubmit: () => {},
+                  children: <div> abc </div>,
+                },
+              });
+            }}
+          />
           <ActionButton
             label="Delete all"
             type="delete"
-            disabled={!projects || projects.length === 0}
+            disabled={!hasProjects}
             className="ml-4"
             onClick={() => {}}
           />
         </div>
-        {loading ? (
+        {projectsState.isLoading ? (
           <div className="flex justify-center mt-24">
             <Spinner />
           </div>
+        ) : projectsState.isError ? (
+          <div className="text-center mt-24 text-red-500">{String(projectsState.error)}</div>
         ) : (
           <div>
-            {projects.length > 0 ? (
-              projects.map((project) => (
+            {hasProjects ? (
+              projectsState.data.map((project) => (
                 <div className="mb-4" key={project.public_id}>
                   <ProjectItem
                     description={project.description}

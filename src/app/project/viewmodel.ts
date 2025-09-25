@@ -1,34 +1,29 @@
-import { useState, useEffect } from "react";
+"use client";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import api from "@/app/libs/helpers/api_call";
 import { API_ROUTES } from "@/app/libs/routes";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import { ProjectInfoDTO } from "@/models/project.model";
+
+async function fetchProjects(): Promise<ProjectInfoDTO[]> {
+  const res = (await api.get(API_ROUTES.PROJECT.GET_ALL)).data as ApiSuccessResponse;
+  return (res.data as ProjectInfoDTO[]) || [];
+}
+
 export function useProjectViewModel() {
-  const [projects, setProjects] = useState<ProjectInfoDTO[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<string>("");
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const res = (await api.get(API_ROUTES.PROJECT.GET_ALL)).data as ApiSuccessResponse;
-        const projects = res.data as Array<ProjectInfoDTO>;
-        if (projects) setProjects(projects);
-        else setProjects([]);
-      } catch (error) {
-        const data = (error as { data: ApiErrorResponse }).data;
-        setMessage(data.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProjects();
-  }, []);
+  const projectsState = useQuery<ProjectInfoDTO[], ApiErrorResponse>({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  });
 
   const handleOnclickProject = (public_id: string) => {
     void router.push(`/project/${public_id}`);
   };
-  return { projects, handleOnclickProject, loading, message };
+
+  return { projectsState, handleOnclickProject };
 }

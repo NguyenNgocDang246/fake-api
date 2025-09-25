@@ -7,107 +7,71 @@ import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.mode
 import { EndpointGroupInfoDTO } from "@/models/endpoint_group.model";
 import { EndpointInfoDTO } from "@/models/endpoint.model";
 import { ProjectInfoDTO } from "@/models/project.model";
+import { useQuery } from "@tanstack/react-query";
 
 export function useEndpointGroupViewModel() {
   const pathname = usePathname();
-  const [endpointGroupsInfo, setEndpointGroupsInfo] = useState<EndpointGroupInfoDTO[]>([]);
-  const [endpointGroupChosenId, setEndpointGroupChosenId] = useState<string>("");
-  const [endpointsInfo, setEndpointsInfo] = useState<EndpointInfoDTO[]>([]);
-  const [projectInfo, setProjectInfo] = useState<ProjectInfoDTO>();
-  const [loading, setLoading] = useState(true);
-  const [endpointLoading, setEndpointLoading] = useState(true);
-  const [message, setMessage] = useState<string>("");
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
 
-  const fetchProjectInfo = async (projectId: string) => {
-    try {
-      const res = (
-        await api.get(url_builder(API_ROUTES.PROJECT.GET_BY_ID, { projectId: projectId }))
-      ).data as ApiSuccessResponse;
-      const project = res.data as ProjectInfoDTO;
-      setProjectInfo(project);
-    } catch (error) {
-      throw error;
-    }
+  const pathnameSplit = pathname.split("/");
+  const projectId = pathnameSplit[pathnameSplit.length - 1];
+
+  const fetchProjectInfo = async (): Promise<ProjectInfoDTO> => {
+    const res = (await api.get(url_builder(API_ROUTES.PROJECT.GET_BY_ID, { projectId })))
+      .data as ApiSuccessResponse;
+    return res.data as ProjectInfoDTO;
   };
 
-  const fetchEndpointGroups = async (projectId: string) => {
-    try {
-      const res = (
-        await api.get(url_builder(API_ROUTES.ENDPOINT_GROUP.GET_ALL, { projectId: projectId }))
-      ).data as ApiSuccessResponse;
-      const endpointGroups = res.data as Array<EndpointGroupInfoDTO>;
-      if (endpointGroups) setEndpointGroupsInfo(endpointGroups);
-      else setEndpointGroupsInfo([]);
-      if (endpointGroups && endpointGroups.length > 0) {
-        setEndpointGroupChosenId(endpointGroups[0].public_id);
-      } else {
-        setEndpointLoading(false);
-      }
-    } catch (error) {
-      throw error;
-    }
+  const projectInfoState = useQuery<ProjectInfoDTO, ApiErrorResponse>({
+    queryKey: ["projectInfo", projectId],
+    queryFn: fetchProjectInfo,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const fetchEndpointGroups = async (): Promise<EndpointGroupInfoDTO[]> => {
+    const res = (await api.get(url_builder(API_ROUTES.ENDPOINT_GROUP.GET_ALL, { projectId })))
+      .data as ApiSuccessResponse;
+    return (res.data as EndpointGroupInfoDTO[]) || [];
   };
 
-  useEffect(() => {
-    const fetchData = async (projectId: string) => {
-      try {
-        await fetchProjectInfo(projectId);
-        await fetchEndpointGroups(projectId);
-      } catch (error) {
-        console.log(error);
-        const data = (error as { data: ApiErrorResponse }).data;
-        setMessage(data.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const pathnameSplit = pathname.split("/");
-    const projectId = pathnameSplit[pathnameSplit.length - 1];
-    fetchData(projectId);
-  }, [pathname]);
+  const endpointGroupsState = useQuery<EndpointGroupInfoDTO[], ApiErrorResponse>({
+    queryKey: ["endpointGroups", projectId],
+    queryFn: fetchEndpointGroups,
+    enabled: !!projectInfoState.data,
+    staleTime: 1000 * 60 * 5,
+  });
 
   useEffect(() => {
-    const fetchEndpoints = async (endpointGroupId: string, projectId: string) => {
-      try {
-        setEndpointLoading(true);
-        const res = (
-          await api.get(
-            url_builder(API_ROUTES.ENDPOINT.GET_ALL, {
-              projectId: projectId,
-              endpointGroupId: endpointGroupId,
-            })
-          )
-        ).data as ApiSuccessResponse;
-        const endpoints = res.data as Array<EndpointInfoDTO>;
-        if (endpoints) setEndpointsInfo(endpoints);
-        else setEndpointsInfo([]);
-      } catch (error) {
-        console.log(error);
-        const data = (error as { data: ApiErrorResponse }).data;
-        setMessage(data.message);
-      } finally {
-        setEndpointLoading(false);
-        setLoading(false);
-      }
-    };
-    if (endpointGroupChosenId == "") {
-      return;
+    if (endpointGroupsState.data && endpointGroupsState.data.length > 0) {
+      setSelectedGroupId(endpointGroupsState.data[0].public_id);
     }
-    if (!projectInfo) {
-      return;
-    }
-    fetchEndpoints(endpointGroupChosenId, projectInfo.public_id);
-  }, [endpointGroupChosenId, projectInfo]);
+  }, [endpointGroupsState.data]);
+
+  const fetchEndpoints = async (): Promise<EndpointInfoDTO[]> => {
+    if (!selectedGroupId) return [];
+    const res = (
+      await api.get(
+        url_builder(API_ROUTES.ENDPOINT.GET_ALL, {
+          projectId,
+          endpointGroupId: selectedGroupId,
+        })
+      )
+    ).data as ApiSuccessResponse;
+    return (res.data as EndpointInfoDTO[]) || [];
+  };
+
+  const endpointsState = useQuery<EndpointInfoDTO[], ApiErrorResponse>({
+    queryKey: ["endpoints", projectId, selectedGroupId],
+    queryFn: fetchEndpoints,
+    enabled: !!selectedGroupId,
+    staleTime: 1000 * 60 * 5,
+  });
 
   return {
-    projectInfo,
-    endpointGroupsInfo,
-    endpointGroupChosenId,
-    setEndpointGroupChosenId,
-    endpointsInfo,
-    loading,
-    endpointLoading,
-    message,
+    projectInfoState,
+    endpointGroupsState,
+    selectedGroupId,
+    setSelectedGroupId,
+    endpointsState,
   };
 }

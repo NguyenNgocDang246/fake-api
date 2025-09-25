@@ -19,6 +19,14 @@ export function createApi() {
         return Promise.reject(error);
       }
 
+      if (
+        error.config?.url === API_ROUTES.AUTH.LOGOUT ||
+        error.config?.url === API_ROUTES.AUTH.LOGIN ||
+        error.config?.url === API_ROUTES.AUTH.REGISTER
+      ) {
+        return Promise.reject(error.response);
+      }
+
       try {
         // refresh token
         await plainApi.get(API_ROUTES.AUTH.REFRESH_TOKEN);
