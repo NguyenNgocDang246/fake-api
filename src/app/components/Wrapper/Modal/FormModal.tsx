@@ -1,5 +1,7 @@
 "use client";
 import { ReactNode } from "react";
+import { SubmitButton } from "@/app/components/Button/SubmitButton";
+import { ActionButton } from "@/app/components/Button/ActionButton";
 
 export interface FormModalProps {
   title: string;
@@ -21,13 +23,9 @@ export function FormModal({ title, children, onSubmit, onClose }: FormModalProps
         <h2 className="text-lg font-semibold mb-4">{title}</h2>
         <form onSubmit={(e) => handleSubmit(e)}>
           {children}
-          <div className="flex justify-end gap-2">
-            <button className="px-4 py-2 bg-gray-200 rounded" onClick={onClose}>
-              Đóng
-            </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded" onSubmit={handleSubmit}>
-              Xác nhận
-            </button>
+          <div className="flex justify-end gap-2 mt-4">
+            <ActionButton label="Cancel" onClick={onClose} className="flex-1" />
+            <SubmitButton label="Save" className="flex-1" />
           </div>
         </form>
       </div>

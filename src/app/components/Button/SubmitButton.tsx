@@ -19,7 +19,7 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
       type="submit"
       disabled={disabled}
       className={twMerge(
-        "cursor-pointer w-full rounded-lg px-4 py-2 bg-blue-300 font-bold hover:bg-blue-400 disabled:opacity-50 transition-colors outline-0",
+        "cursor-pointer rounded-lg px-4 py-2 bg-blue-300 font-bold hover:bg-blue-400 disabled:opacity-50 transition-colors outline-0",
         className
       )}
     >

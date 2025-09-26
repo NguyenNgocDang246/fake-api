@@ -3,6 +3,8 @@ import { forwardRef, useImperativeHandle } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { ClientCreateProjectDTO, ClientCreateProjectSchema } from "@/models/project.model";
+import { FloatingInput } from "@/app/components/Input/FloatingInput";
+import { ErrorText } from "@/app/components/Text/ErrorText";
 
 export interface CreateProjectFormHandles {
   submit: () => Promise<boolean>;
@@ -40,14 +42,19 @@ export const CreateProjectForm = forwardRef<CreateProjectFormHandles>((props, re
     },
   }));
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       <div>
-        <input type="text" {...register("name")} />
-        {errors.name && <p>{errors.name.message}</p>}
+        <FloatingInput label="Name" register={register("name")} type="text" id="name" />
+        {errors.name && <ErrorText message={errors.name.message} />}
       </div>
       <div>
-        <input type="text" {...register("description")} />
-        {errors.description && <p>{errors.description.message}</p>}
+        <FloatingInput
+          label="Description"
+          register={register("description")}
+          type="text"
+          id="description"
+        />
+        {errors.description && <ErrorText message={errors.description.message} />}
       </div>
     </div>
   );

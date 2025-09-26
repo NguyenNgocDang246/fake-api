@@ -3,7 +3,7 @@ import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 import { Spinner } from "../components/Loading/Spinner";
 import { useProjectViewModel } from "@/app/project/viewmodel";
-import { ProjectItem } from "@/app/project/components/ProjectItem";
+import { ProjectItem } from "@/app/project/components/ProjectItem/ProjectItem";
 import { NoContentText } from "@/app/components/Text/NoContentText";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 
