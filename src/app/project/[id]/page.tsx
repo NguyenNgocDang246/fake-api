@@ -59,7 +59,7 @@ export default function Project() {
               onClick={() => {}}
             />
             <div className="space-y-1">
-              {endpointGroupsState.isLoading || projectInfoState.isLoading ? (
+              {endpointGroupsState.isLoading ? (
                 <div className="flex justify-center">
                   <Spinner size={40} />
                 </div>

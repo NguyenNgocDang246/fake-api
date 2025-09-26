@@ -37,7 +37,6 @@ export function useEndpointGroupViewModel() {
   const endpointGroupsState = useQuery<EndpointGroupInfoDTO[], ApiErrorResponse>({
     queryKey: ["endpointGroups", projectId],
     queryFn: fetchEndpointGroups,
-    enabled: !!projectInfoState.data,
     staleTime: 1000 * 60 * 5,
   });
 
