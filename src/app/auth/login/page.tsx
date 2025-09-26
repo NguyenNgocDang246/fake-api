@@ -32,9 +32,7 @@ export default function LoginPage() {
               <ErrorText className="text-end mt-1" message={errors.password.message} />
             )}
           </div>
-          <div className="mt-8">
-            <SubmitButton label="Login" />
-          </div>
+          <SubmitButton label="Login" className="w-full mt-8" />
         </form>
         <div className="flex justify-between my-4">
           <TextLink className="underline" href={PAGE_ROUTES.AUTH.REGISTER}>

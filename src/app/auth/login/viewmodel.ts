@@ -25,7 +25,7 @@ export function useLoginViewModel() {
       const res = (await api.post(API_ROUTES.AUTH.LOGIN, data)).data as ApiSuccessResponse;
       void res;
       queryClient.clear();
-      router.replace(PAGE_ROUTES.HOME);
+      router.replace(PAGE_ROUTES.PROJECT);
     } catch (error) {
       const data = (error as { data: ApiErrorResponse }).data;
       setMessage(data.message);

@@ -41,7 +41,7 @@ export default function RegisterPage() {
             )}
           </div>
 
-          <SubmitButton className="mt-8" label="Sign Up" />
+          <SubmitButton className="mt-8 w-full" label="Sign Up" />
         </form>
         <div className="text-center my-4">
           <span>

@@ -26,7 +26,7 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
         type={type}
         placeholder=" "
         className={twMerge(
-          "w-full border-b-2 pb-1 pt-2 mt-4 focus:outline-none focus:ring-0 focus:border-b-2 peer",
+          "w-full border-b-1 border-gray-500 pb-1 pt-2 mt-4 focus:outline-none focus:ring-0 peer",
           className
         )}
       />

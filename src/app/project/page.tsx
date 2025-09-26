@@ -45,7 +45,7 @@ export default function Project() {
         ) : projectsState.isError ? (
           <div className="text-center mt-24 text-red-500">{String(projectsState.error)}</div>
         ) : (
-          <div>
+          <div className="px-4 overflow-y-auto max-h-96 min-h-64">
             {hasProjects ? (
               projectsState.data.map((project) => (
                 <div className="mb-4" key={project.public_id}>
