@@ -22,7 +22,7 @@ export default function Project() {
           ]}
         />
       </div>
-      <div className="mt-8 flex flex-col justify-center">
+      <div className="mt-4 flex flex-col justify-center">
         <div className="mb-4 flex items-center justify-end">
           <ActionButton
             label="Create new"

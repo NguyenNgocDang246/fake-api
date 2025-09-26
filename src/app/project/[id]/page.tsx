@@ -48,9 +48,9 @@ export default function Project() {
           />
         )}
       </div>
-      <div className="flex mt-8 gap-12">
-        <div className="w-1/4">
-          <p className="text-center text-lg font-semibold text-gray-800">Endpoint Groups</p>
+      <div className="flex mt-4 gap-12">
+        <div className="w-1/4 pt-2">
+          <p className="text-center text-lg font-semibold text-gray-800 pt-2">Endpoint Groups</p>
           <div className="mt-3 rounded-2xl border border-gray-300 bg-white shadow-sm p-4">
             <ActionButton
               label="Create new"

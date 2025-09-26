@@ -4,21 +4,25 @@ import { useState, useRef, useEffect, ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 
 interface DropdownProps {
-  label: ReactNode;
+  children: ReactNode;
   title: string;
   options: ReactNode[];
   onSelect?: (index: number) => void;
   className?: string;
+  btnClassName?: string;
+  dividerClassName?: string;
   boxClassName?: string;
   position?: "left" | "right" | "center";
 }
 
 export const DropdownButton: React.FC<DropdownProps> = ({
-  label,
+  children,
   title,
   options,
   onSelect,
   className,
+  btnClassName,
+  dividerClassName,
   boxClassName,
   position = "left",
 }: DropdownProps) => {
@@ -38,7 +42,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
   }, []);
 
   const positionClass =
-    position === "right"
+    position === "left"
       ? "right-0"
       : position === "center"
       ? "left-1/2 transform -translate-x-1/2"
@@ -47,10 +51,16 @@ export const DropdownButton: React.FC<DropdownProps> = ({
   return (
     <div ref={dropdownRef} className={twMerge("relative inline-block text-left", className)}>
       <button
-        onClick={() => setOpen(!open)}
-        className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(!open);
+        }}
+        className={twMerge(
+          "px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 cursor-pointer",
+          btnClassName
+        )}
       >
-        {label}
+        {children}
       </button>
 
       <div
@@ -63,7 +73,11 @@ export const DropdownButton: React.FC<DropdownProps> = ({
             : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
         )}
       >
-        <h3 className="px-4 py-2 text-sm text-gray-600">{title}</h3>
+        <h3 className="px-4 pt-2 pb-1 text-sm text-gray-600">{title}</h3>
+        <div className="flex justify-center h-1 px-4 pb-1">
+          <div className={twMerge("w-full border-b border-gray-400", dividerClassName)}></div>
+        </div>
+
         {options.map((option, index) => (
           <button
             key={index}

@@ -1,6 +1,6 @@
 "use client";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
-import Image from "next/image";
+import { User } from "lucide-react";
 import { DropdownButton } from "@/app/components/Button/DropdownButton";
 import { LogoutButton } from "@/app/components/Button/LogoutButton";
 import { TextLink } from "@/app/components/Link/TextLink";
@@ -17,21 +17,14 @@ export function UserHeader() {
       <div className="flex justify-between items-center gap-4">
         <NavigationButton href="" label="Docs" />
         <DropdownButton
-          label={
-            <Image
-              src="/assets/user_icon.png"
-              alt="avatar"
-              width={24}
-              height={24}
-              className="rounded-full"
-            />
-          }
-          position="right"
+          position="left"
           boxClassName="w-52 bg-gray-200"
           title={`Hello, ${user?.name}`}
           options={[<LogoutButton key="logout" />]}
           onSelect={() => {}}
-        />
+        >
+          <User size={20} />
+        </DropdownButton>
       </div>
     </div>
   );
