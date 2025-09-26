@@ -9,6 +9,7 @@ import { API_ROUTES } from "@/app/libs/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import api from "@/app/libs/helpers/api_call";
+import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/QueryKey";
 
 export interface CreateProjectFormHandles {
   submit: () => Promise<boolean>;
@@ -33,7 +34,7 @@ export const CreateProjectForm = forwardRef<CreateProjectFormHandles>((props, re
     mutationFn: (data) => api.post(API_ROUTES.PROJECT.CREATE, data),
     onSuccess() {
       reset();
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY.PROJECT.ALL] });
     },
   });
   const onSubmit = async (data: ClientCreateProjectDTO): Promise<boolean> => {
