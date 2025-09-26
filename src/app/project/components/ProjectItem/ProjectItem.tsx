@@ -17,7 +17,7 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({
   return (
     <div
       onClick={onclick}
-      className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md cursor-pointer"
+      className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md hover:bg-linear-to-r from-blue-100 from-70% to-inherit cursor-pointer"
     >
       <div className="flex-1 min-w-0">
         <h3 className="text-2xl font-medium">{name}</h3>
