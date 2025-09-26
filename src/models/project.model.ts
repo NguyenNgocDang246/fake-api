@@ -27,3 +27,19 @@ export type ClientCreateProjectDTO = z.infer<typeof ClientCreateProjectSchema>;
 
 export const GetProjectByIdSchema = ProjectSchema.pick({ id: true }).strict();
 export type GetProjectByIdDTO = z.infer<typeof GetProjectByIdSchema>;
+
+export const GetProjectByUserIdSchema = ProjectSchema.pick({ user_id: true }).strict();
+export type GetProjectByUserIdDTO = z.infer<typeof GetProjectByUserIdSchema>;
+
+export const UpdateProjectByIdSchema = ProjectSchema.pick({
+  id: true,
+  name: true,
+  description: true,
+}).strict();
+export type UpdateProjectByIdDTO = z.infer<typeof UpdateProjectByIdSchema>;
+
+export const DeleteProjectByIdSchema = ProjectSchema.pick({ id: true }).strict();
+export type DeleteProjectByIdDTO = z.infer<typeof DeleteProjectByIdSchema>;
+
+export const DeleteProjectByUserIdSchema = ProjectSchema.pick({ user_id: true }).strict();
+export type DeleteProjectByUserIdDTO = z.infer<typeof DeleteProjectByUserIdSchema>;

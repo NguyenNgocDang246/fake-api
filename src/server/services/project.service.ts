@@ -1,4 +1,11 @@
-import { CreateProjectDTO, GetProjectByIdDTO } from "@/models/project.model";
+import {
+  CreateProjectDTO,
+  GetProjectByIdDTO,
+  DeleteProjectByIdDTO,
+  DeleteProjectByUserIdDTO,
+  UpdateProjectByIdDTO,
+  GetProjectByUserIdDTO,
+} from "@/models/project.model";
 import { PrismaClient } from "@prisma/client";
 import { AppError } from "@/server/core/errors";
 
@@ -13,9 +20,42 @@ class ProjectService {
     }
   }
 
+  async deleteAllProjectsByUserId({ user_id }: DeleteProjectByUserIdDTO) {
+    try {
+      return await prisma.projects.deleteMany({ where: { user_id } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async getAllProjectsByUserId({ user_id }: GetProjectByUserIdDTO) {
+    try {
+      return await prisma.projects.findMany({ where: { user_id } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
   async getProjectById({ id }: GetProjectByIdDTO) {
     try {
       return await prisma.projects.findUnique({ where: { id } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async deleteProjectById({ id }: DeleteProjectByIdDTO) {
+    try {
+      return await prisma.projects.delete({ where: { id } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async updateProjectById(project: UpdateProjectByIdDTO) {
+    try {
+      const { id, ...rest } = project;
+      return await prisma.projects.update({ where: { id }, data: rest });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

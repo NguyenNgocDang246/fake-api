@@ -1,4 +1,3 @@
-import UserService from "@/server/services/user.service";
 import projectService from "@/server/services/project.service";
 import { GetUserByIdSchema } from "@/models/user.model";
 import { CreateProjectSchema } from "@/models/project.model";
@@ -13,8 +12,8 @@ import IdConverter from "@/app/libs/helpers/idConverter";
 export async function GET(req: NextRequest) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id });
-    const projects = await UserService.getUserProjects(userId);
+    const userId = GetUserByIdSchema.parse({ id }).id;
+    const projects = await projectService.getAllProjectsByUserId({ user_id: userId });
     if (projects.length === 0)
       return ApiResponse.error({
         message: ERROR_MESSAGES.NO_CONTENT,
@@ -72,6 +71,23 @@ export async function POST(req: NextRequest) {
     }
     const projectInfo = projectInfoValidation.data;
     return ApiResponse.success({ data: projectInfo });
+  } catch (error) {
+    if (error instanceof AppError) {
+      return ApiResponse.error({
+        message: error.message,
+        statusCode: error.statusCode,
+      });
+    }
+    return ApiResponse.error();
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const id = req.headers.get("x-userId");
+    const userId = GetUserByIdSchema.parse({ id }).id;
+    await projectService.deleteAllProjectsByUserId({ user_id: userId });
+    return ApiResponse.success();
   } catch (error) {
     if (error instanceof AppError) {
       return ApiResponse.error({

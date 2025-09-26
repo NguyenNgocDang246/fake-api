@@ -28,14 +28,6 @@ class UserService {
     }
   }
 
-  async getUserProjects({ id }: GetUserByIdDTO) {
-    try {
-      return await prisma.projects.findMany({ where: { user_id: id } });
-    } catch (error) {
-      throw error instanceof AppError ? error : new AppError();
-    }
-  }
-
   async getUserByEmail({ email }: GetUserByEmailDTO) {
     try {
       return await prisma.users.findUnique({ where: { email } });
