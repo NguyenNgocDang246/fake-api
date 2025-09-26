@@ -6,7 +6,7 @@ import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.mode
 import { ProjectInfoDTO } from "@/models/project.model";
 import { useCreateProjectViewModel } from "@/app/project/components/CreateProjectForm/viewmodel";
 import { useProjectItemViewModel } from "@/app/project/components/ProjectItem/viewmodel";
-import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/QueryKey";
+import { QUERY_KEY, STALETIME } from "@/app/components/Wrapper/QueryClient/Constants";
 
 async function fetchProjects(): Promise<ProjectInfoDTO[]> {
   const res = (await api.get(API_ROUTES.PROJECT.GET_ALL)).data as ApiSuccessResponse;
@@ -17,7 +17,7 @@ export function useProjectViewModel() {
   const projectsState = useQuery<ProjectInfoDTO[], ApiErrorResponse>({
     queryKey: [QUERY_KEY.PROJECT.ALL],
     queryFn: fetchProjects,
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALETIME,
     retry: 1,
   });
   const { openCreateProjectModal } = useCreateProjectViewModel();

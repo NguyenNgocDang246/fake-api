@@ -9,7 +9,7 @@ import { API_ROUTES, PAGE_ROUTES } from "@/app/libs/routes";
 import { ApiSuccessResponse } from "@/models/api_response.model";
 import { Spinner } from "@/app/components/Loading/Spinner";
 import { LoadingDots } from "@/app/components/Loading/LoadingDots";
-import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/QueryKey";
+import { QUERY_KEY, STALETIME } from "@/app/components/Wrapper/QueryClient/Constants";
 
 interface AuthContextType {
   user: UserInfoDTO | null;
@@ -37,7 +37,7 @@ export const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   const { data: user, isLoading } = useQuery<UserInfoDTO | null>({
     queryKey: [QUERY_KEY.AUTH.CHECK],
     queryFn: fetchUser,
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALETIME,
     retry: 0,
     enabled: pathname !== PAGE_ROUTES.AUTH.LOGIN && pathname !== PAGE_ROUTES.AUTH.REGISTER,
   });

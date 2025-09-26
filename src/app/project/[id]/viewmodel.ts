@@ -8,7 +8,7 @@ import { EndpointGroupInfoDTO } from "@/models/endpoint_group.model";
 import { EndpointInfoDTO } from "@/models/endpoint.model";
 import { ProjectInfoDTO } from "@/models/project.model";
 import { useQuery } from "@tanstack/react-query";
-import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/QueryKey";
+import { QUERY_KEY, STALETIME } from "@/app/components/Wrapper/QueryClient/Constants";
 
 export function useEndpointGroupViewModel() {
   const pathname = usePathname();
@@ -26,7 +26,7 @@ export function useEndpointGroupViewModel() {
   const projectInfoState = useQuery<ProjectInfoDTO, ApiErrorResponse>({
     queryKey: [QUERY_KEY.PROJECT.ONE, projectId],
     queryFn: fetchProjectInfo,
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALETIME,
   });
 
   const fetchEndpointGroups = async (): Promise<EndpointGroupInfoDTO[]> => {
@@ -38,7 +38,7 @@ export function useEndpointGroupViewModel() {
   const endpointGroupsState = useQuery<EndpointGroupInfoDTO[], ApiErrorResponse>({
     queryKey: [QUERY_KEY.ENDPOINT_GROUP.ALL, projectId],
     queryFn: fetchEndpointGroups,
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALETIME,
   });
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function useEndpointGroupViewModel() {
     queryKey: [QUERY_KEY.ENDPOINT.ALL, projectId, selectedGroupId],
     queryFn: fetchEndpoints,
     enabled: !!selectedGroupId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALETIME,
   });
 
   return {

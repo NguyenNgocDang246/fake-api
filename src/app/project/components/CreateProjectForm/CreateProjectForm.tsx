@@ -9,7 +9,7 @@ import { API_ROUTES } from "@/app/libs/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import api from "@/app/libs/helpers/api_call";
-import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/QueryKey";
+import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/Constants";
 
 export interface CreateProjectFormHandles {
   submit: () => Promise<boolean>;

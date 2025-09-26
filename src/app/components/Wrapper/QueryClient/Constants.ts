@@ -15,3 +15,5 @@ export const QUERY_KEY = {
     ONE: "endpoint-group",
   },
 };
+
+export const STALETIME = 5 * 60 * 1000;
