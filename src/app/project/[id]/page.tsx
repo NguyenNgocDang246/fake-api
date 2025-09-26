@@ -88,7 +88,7 @@ export default function Project() {
             <ActionButton label="Delete all" type="delete" className="ml-4" onClick={() => {}} />
           </div>
           <div className="overflow-auto min-h-64 max-h-96 pr-4">
-            {endpointsState.isLoading || endpointGroupsState.isLoading ? (
+            {endpointsState.isLoading || !endpointsState.isFetched ? (
               <div className="flex justify-center mt-24">
                 <Spinner size={40} />
               </div>
