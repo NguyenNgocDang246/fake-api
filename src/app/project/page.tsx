@@ -6,11 +6,9 @@ import { useProjectViewModel } from "@/app/project/viewmodel";
 import { ProjectItem } from "@/app/project/components/ProjectItem";
 import { NoContentText } from "@/app/components/Text/NoContentText";
 import { ActionButton } from "@/app/components/Button/ActionButton";
-import { useModal } from "@/app/components/Wrapper/Modal/ModalWrapper";
 
 export default function Project() {
-  const { projectsState, handleOnclickProject } = useProjectViewModel();
-  const modal = useModal();
+  const { projectsState, handleOnclickProject, openCreateProjectModal } = useProjectViewModel();
 
   const hasProjects = projectsState.data && projectsState.data.length > 0;
 
@@ -30,16 +28,7 @@ export default function Project() {
             label="Create new"
             type="create"
             className="ml-4"
-            onClick={() => {
-              modal?.openModal({
-                type: "form",
-                props: {
-                  title: "Create new project",
-                  onSubmit: () => {},
-                  children: <div> abc </div>,
-                },
-              });
-            }}
+            onClick={() => openCreateProjectModal()}
           />
           <ActionButton
             label="Delete all"
