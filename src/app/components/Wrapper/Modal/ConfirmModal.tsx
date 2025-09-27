@@ -1,4 +1,5 @@
 "use client";
+import { ActionButton } from "@/app/components/Button/ActionButton";
 export interface ConfirmModalProps {
   question: string;
   onConfirm: () => void;
@@ -21,13 +22,9 @@ export function ConfirmModal({ question, onConfirm, onCancel, onClose }: Confirm
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
       <div className="bg-white p-6 rounded-xl shadow-xl w-80">
         <p className="mb-6">{question}</p>
-        <div className="flex justify-end gap-2">
-          <button className="px-4 py-2 bg-gray-200 rounded" onClick={handleCancel}>
-            Hủy
-          </button>
-          <button className="px-4 py-2 bg-red-600 text-white rounded" onClick={handleConfirm}>
-            Xác nhận
-          </button>
+        <div className="flex gap-2">
+          <ActionButton label="Cancel" onClick={handleCancel} className="flex-1" />
+          <ActionButton label="Confirm" type="delete" onClick={handleConfirm} className="flex-1" />
         </div>
       </div>
     </div>

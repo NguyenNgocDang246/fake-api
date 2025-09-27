@@ -14,6 +14,7 @@ export const API_ROUTES = {
   },
   PROJECT: {
     GET_ALL: "/api/project",
+    DELETE_ALL: "/api/project",
     GET_BY_ID: "/api/project/:projectId",
     CREATE: "/api/project",
     // UPDATE: "/api/projects/:id",

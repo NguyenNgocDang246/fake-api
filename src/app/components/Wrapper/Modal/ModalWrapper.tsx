@@ -7,7 +7,7 @@ import { ConfirmModalProps, ConfirmModal } from "./ConfirmModal";
 type ModalState =
   | { id: string; type: "form"; props: Omit<FormModalProps, "onClose"> }
   | { id: string; type: "alert"; props: AlertModalProps }
-  | { id: string; type: "confirm"; props: ConfirmModalProps };
+  | { id: string; type: "confirm"; props: Omit<ConfirmModalProps, "onClose"> };
 
 interface ModalContextType {
   modals: ModalState[];

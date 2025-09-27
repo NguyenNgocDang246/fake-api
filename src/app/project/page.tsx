@@ -8,7 +8,8 @@ import { NoContentText } from "@/app/components/Text/NoContentText";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 
 export default function Project() {
-  const { projectsState, handleOnclickProject, openCreateProjectModal } = useProjectViewModel();
+  const { projectsState, handleOnclickProject, openCreateProjectModal, openDeleteAllProjectModal } =
+    useProjectViewModel();
 
   const hasProjects = projectsState.data && projectsState.data.length > 0;
 
@@ -35,10 +36,10 @@ export default function Project() {
             type="delete"
             disabled={!hasProjects}
             className="ml-4"
-            onClick={() => {}}
+            onClick={() => openDeleteAllProjectModal()}
           />
         </div>
-        {projectsState.isLoading ? (
+        {projectsState.isFetching ? (
           <div className="flex justify-center mt-24">
             <Spinner />
           </div>
