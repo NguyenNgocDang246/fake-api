@@ -5,7 +5,6 @@ import { API_ROUTES } from "@/app/libs/routes";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import { ProjectInfoDTO } from "@/models/project.model";
 import { useCreateProjectViewModel } from "@/app/project/components/CreateProjectForm/viewmodel";
-import { useProjectItemViewModel } from "@/app/project/components/ProjectItem/viewmodel";
 import { QUERY_KEY, STALETIME } from "@/app/components/Wrapper/QueryClient/Constants";
 import { useModal } from "@/app/components/Wrapper/Modal/ModalWrapper";
 
@@ -22,7 +21,6 @@ export function useProjectViewModel() {
     retry: 1,
   });
   const { openCreateProjectModal } = useCreateProjectViewModel();
-  const { handleOnclickProject } = useProjectItemViewModel();
 
   const modal = useModal();
   const queryClient = useQueryClient();
@@ -44,5 +42,5 @@ export function useProjectViewModel() {
     });
   };
 
-  return { projectsState, handleOnclickProject, openCreateProjectModal, openDeleteAllProjectModal };
+  return { projectsState, openCreateProjectModal, openDeleteAllProjectModal };
 }

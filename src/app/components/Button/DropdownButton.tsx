@@ -53,6 +53,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
       <button
         onClick={(e) => {
           e.stopPropagation();
+          dropdownRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
           setOpen(!open);
         }}
         className={twMerge(
@@ -65,7 +66,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
 
       <div
         className={twMerge(
-          "absolute mt-2 bg-white border border-gray-200 rounded-md shadow-lg z-10 transition-all duration-200 ease-out",
+          "absolute mt-2 p-2 bg-white border border-gray-300 rounded-md shadow-lg z-10 transition-all duration-200 ease-out",
           positionClass,
           boxClassName,
           open
@@ -73,19 +74,20 @@ export const DropdownButton: React.FC<DropdownProps> = ({
             : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
         )}
       >
-        <h3 className="px-4 pt-2 pb-1 text-sm text-gray-600">{title}</h3>
-        <div className="flex justify-center h-1 px-4 pb-1">
+        <h3 className="px-2 pt-2 pb-1 text-sm text-gray-600">{title}</h3>
+        <div className="flex justify-center h-1 px-2 pb-1">
           <div className={twMerge("w-full border-b border-gray-400", dividerClassName)}></div>
         </div>
 
         {options.map((option, index) => (
           <button
             key={index}
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               onSelect?.(index);
               setOpen(false);
             }}
-            className="cursor-pointer block w-full text-left px-4 py-2 hover:bg-gray-100"
+            className="cursor-pointer block w-full text-left px-3 rounded-lg py-1 hover:bg-blue-300"
           >
             {option}
           </button>

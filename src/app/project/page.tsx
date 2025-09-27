@@ -8,7 +8,7 @@ import { NoContentText } from "@/app/components/Text/NoContentText";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 
 export default function Project() {
-  const { projectsState, handleOnclickProject, openCreateProjectModal, openDeleteAllProjectModal } =
+  const { projectsState, openCreateProjectModal, openDeleteAllProjectModal } =
     useProjectViewModel();
 
   const hasProjects = projectsState.data && projectsState.data.length > 0;
@@ -54,7 +54,6 @@ export default function Project() {
                     description={project.description}
                     name={project.name}
                     public_id={project.public_id}
-                    onclick={() => handleOnclickProject(project.public_id.toString())}
                   />
                 </div>
               ))

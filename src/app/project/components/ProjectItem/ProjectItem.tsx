@@ -1,22 +1,20 @@
 import { MoreVertical } from "lucide-react";
 import { DropdownButton } from "@/app/components/Button/DropdownButton";
+import { useProjectItemViewModel } from "@/app/project/components/ProjectItem/viewmodel";
 
 interface ProjectItemProps {
   public_id: string;
   name: string;
   description: string | undefined;
-  onclick: () => void;
 }
 
-export const ProjectItem: React.FC<ProjectItemProps> = ({
-  public_id,
-  name,
-  description,
-  onclick,
-}) => {
+export const ProjectItem: React.FC<ProjectItemProps> = ({ public_id, name, description }) => {
+  const { handleOnclickProject, openDeleteProjectModal } = useProjectItemViewModel();
   return (
     <div
-      onClick={onclick}
+      onClick={() => {
+        handleOnclickProject(public_id);
+      }}
       className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md hover:bg-linear-to-r from-blue-100 from-70% to-inherit cursor-pointer"
     >
       <div className="flex-1 min-w-0">
@@ -37,6 +35,10 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({
           position="left"
           title="Project Action"
           options={["Edit", "Delete"]}
+          onSelect={(index) => {
+            console.log(index);
+            if (index === 1) openDeleteProjectModal({ public_id });
+          }}
         >
           <MoreVertical size={20} />
         </DropdownButton>
