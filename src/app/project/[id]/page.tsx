@@ -23,7 +23,7 @@ export default function Project() {
   return (
     <div className="h-screen">
       <div className="flex justify-start">
-        {projectInfoState.isLoading ? (
+        {projectInfoState.isFetching ? (
           <div className="flex items-center">
             <Breadcrumb
               items={[
@@ -59,7 +59,7 @@ export default function Project() {
               onClick={() => {}}
             />
             <div className="space-y-1">
-              {endpointGroupsState.isLoading ? (
+              {endpointGroupsState.isFetching ? (
                 <div className="flex justify-center">
                   <Spinner size={40} />
                 </div>
@@ -88,7 +88,7 @@ export default function Project() {
             <ActionButton label="Delete all" type="delete" className="ml-4" onClick={() => {}} />
           </div>
           <div className="overflow-auto min-h-64 max-h-96 pr-4">
-            {endpointsState.isLoading || !endpointsState.isFetched ? (
+            {endpointsState.isFetching || endpointGroupsState.isFetching ? (
               <div className="flex justify-center mt-24">
                 <Spinner size={40} />
               </div>
