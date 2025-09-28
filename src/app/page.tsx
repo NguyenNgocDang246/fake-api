@@ -6,7 +6,7 @@ export default function Home() {
   const { user } = useAuth();
   return (
     <div className="font-sans flex flex-col items-center justify-center min-h-screen px-6 py-12 bg-gray-50">
-      <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-4">Fake API</h1>
+      <h1 className="text-4xl font-medium text-black mb-4">Mock APIs in seconds</h1>
       <p className="text-lg text-gray-600 max-w-2xl text-center mb-8">
         Quickly create and manage mock APIs to develop and test your applications. No real backend
         needed—just a few clicks.

@@ -31,7 +31,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
       disabled={disabled}
       onClick={onClick}
       className={twMerge(
-        "rounded-lg px-4 py-2 font-medium transition-colors outline-0 cursor-pointer disabled:opacity-50",
+        "rounded-lg px-4 py-2 font-medium transition-colors outline-0 cursor-pointer disabled:opacity-50 truncate",
         type ? typeClasses[type] : "bg-gray-300 hover:bg-gray-400",
         className
       )}

@@ -10,8 +10,8 @@ import { PAGE_ROUTES } from "@/app/libs/routes";
 export function UserHeader() {
   const { user } = useAuth();
   return (
-    <div className="flex justify-between px-[6rem] py-4">
-      <TextLink href={PAGE_ROUTES.HOME} className="font-bold text-4xl">
+    <div className="flex justify-between lg:px-24 md:px-16 sm:px-8 px-4 py-4">
+      <TextLink href={PAGE_ROUTES.HOME} className="font-bold sm:text-[2.7rem] text-3xl">
         Fake API
       </TextLink>
       <div className="flex justify-between items-center gap-4">

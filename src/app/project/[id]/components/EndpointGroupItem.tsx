@@ -1,3 +1,4 @@
+import { MoreVertical } from "lucide-react";
 interface EndpointGroupItemProps {
   public_id: string;
   name: string;
@@ -23,7 +24,10 @@ export const EndpointGroupItem: React.FC<EndpointGroupItemProps> = ({
         }
       `}
     >
-      <h3 className="truncate">{name}</h3>
+      <div className="flex items-center justify-between gap-2 w-full">
+        <h3 className="truncate">{name}</h3>
+        <MoreVertical size={20} />
+      </div>
     </div>
   );
 };

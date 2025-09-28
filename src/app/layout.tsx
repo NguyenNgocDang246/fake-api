@@ -29,7 +29,7 @@ export default function RootLayout({
           <ModalWrapper>
             <AuthWrapper>
               <HeaderWrapper />
-              <div className="px-42 mt-4">{children}</div>
+              <div className="lg:px-32 md:px-24 sm:px-12 px-8 mt-4">{children}</div>
             </AuthWrapper>
           </ModalWrapper>
         </QueryWrapper>
