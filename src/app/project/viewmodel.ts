@@ -36,7 +36,13 @@ export function useProjectViewModel() {
       props: {
         question: "Delete all projects?",
         onConfirm: async () => {
-          await deleteAllProjectMutation.mutateAsync();
+          try {
+            await deleteAllProjectMutation.mutateAsync();
+            return true;
+          } catch (error) {
+            console.error("Delete project failed:", error);
+            return false;
+          }
         },
       },
     });

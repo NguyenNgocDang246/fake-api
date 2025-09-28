@@ -53,7 +53,6 @@ export const DropdownButton: React.FC<DropdownProps> = ({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          dropdownRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
           setOpen(!open);
         }}
         className={twMerge(
@@ -65,6 +64,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
       </button>
 
       <div
+        onClick={(e) => e.stopPropagation()}
         className={twMerge(
           "absolute mt-2 p-2 bg-white border border-gray-300 rounded-md shadow-lg z-10 transition-all duration-200 ease-out",
           positionClass,

@@ -31,6 +31,12 @@ export type GetProjectByIdDTO = z.infer<typeof GetProjectByIdSchema>;
 export const GetProjectByUserIdSchema = ProjectSchema.pick({ user_id: true }).strict();
 export type GetProjectByUserIdDTO = z.infer<typeof GetProjectByUserIdSchema>;
 
+export const ClientUpdateProjectSchema = ProjectInfoSchema.pick({
+  name: true,
+  description: true,
+}).strict();
+export type ClientUpdateProjectDTO = z.infer<typeof ClientUpdateProjectSchema>;
+
 export const UpdateProjectByIdSchema = ProjectSchema.pick({
   id: true,
   name: true,

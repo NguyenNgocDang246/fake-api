@@ -34,7 +34,13 @@ export const useProjectItemViewModel = () => {
       props: {
         question: "Delete project?",
         onConfirm: async () => {
-          await deleteProjectByIdMutation.mutateAsync({ public_id });
+          try {
+            await deleteProjectByIdMutation.mutateAsync({ public_id });
+            return true;
+          } catch (error) {
+            console.error("Delete project failed:", error);
+            return false;
+          }
         },
       },
     });

@@ -14,7 +14,7 @@ export default function Project() {
   const hasProjects = projectsState.data && projectsState.data.length > 0;
 
   return (
-    <div className="h-screen">
+    <div className="min-h-screen">
       <div className="flex justify-start">
         <Breadcrumb
           items={[
@@ -39,14 +39,14 @@ export default function Project() {
             onClick={() => openDeleteAllProjectModal()}
           />
         </div>
-        {projectsState.isFetching ? (
+        {!projectsState.isFetched ? (
           <div className="flex justify-center mt-24">
             <Spinner />
           </div>
         ) : projectsState.isError ? (
           <div className="text-center mt-24 text-red-500">{String(projectsState.error)}</div>
         ) : (
-          <div className="px-4 overflow-y-auto max-h-96 min-h-64">
+          <div className="px-4">
             {hasProjects ? (
               projectsState.data.map((project) => (
                 <div className="mb-4" key={project.public_id}>
