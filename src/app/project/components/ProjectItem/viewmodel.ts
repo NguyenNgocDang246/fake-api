@@ -46,5 +46,7 @@ export const useProjectItemViewModel = () => {
     });
   };
 
-  return { handleOnclickProject, openDeleteProjectModal };
+  const copyToClipboard = (text: string) => navigator.clipboard.writeText(text);
+
+  return { handleOnclickProject, openDeleteProjectModal, copyToClipboard };
 };

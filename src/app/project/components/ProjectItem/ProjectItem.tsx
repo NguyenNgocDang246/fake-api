@@ -1,4 +1,4 @@
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Copy } from "lucide-react";
 import { DropdownButton } from "@/app/components/Button/DropdownButton";
 import { useProjectItemViewModel } from "@/app/project/components/ProjectItem/viewmodel";
 import { useUpdateProjectViewModel } from "@/app/project/components/UpdateProjectForm/viewmodel";
@@ -10,7 +10,8 @@ interface ProjectItemProps {
 }
 
 export const ProjectItem: React.FC<ProjectItemProps> = ({ public_id, name, description }) => {
-  const { handleOnclickProject, openDeleteProjectModal } = useProjectItemViewModel();
+  const { handleOnclickProject, openDeleteProjectModal, copyToClipboard } =
+    useProjectItemViewModel();
   const { openUpdateProjectModal } = useUpdateProjectViewModel({
     public_id,
     old_data: { name, description },
@@ -29,9 +30,22 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({ public_id, name, descr
         </p>
       </div>
 
-      <div className="flex items-center gap-3 w-48 justify-between">
+      <div className="flex items-center gap-2 w-60 justify-between">
         <p className="text-sm font-medium text-gray-900 whitespace-nowrap">
-          Project ID: {public_id}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              copyToClipboard(public_id);
+            }}
+            className="p-1 px-2 rounded-md hover:bg-gray-300 cursor-pointer"
+            title="Copy Project ID"
+          >
+            <div className="flex items-center gap-2">
+              <Copy size={16} />
+              Project ID: {public_id}
+            </div>
+          </button>
         </p>
 
         <DropdownButton
