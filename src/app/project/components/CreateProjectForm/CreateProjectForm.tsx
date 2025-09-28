@@ -1,5 +1,6 @@
 "use client";
 import { forwardRef, useImperativeHandle } from "react";
+import Notify from "@/app/components/Notify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { ClientCreateProjectDTO, ClientCreateProjectSchema } from "@/models/project.model";
@@ -34,6 +35,7 @@ export const CreateProjectForm = forwardRef<CreateProjectFormHandles>((props, re
     mutationFn: (data) => api.post(API_ROUTES.PROJECT.CREATE, data),
     onSuccess() {
       reset();
+      Notify.success("Created project");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY.PROJECT.ALL] });
     },
   });

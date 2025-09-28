@@ -5,6 +5,7 @@ import { HeaderWrapper } from "@/app/components/Wrapper/Header/HeaderWrapper";
 import { AuthWrapper } from "@/app/components/Wrapper/Auth/AuthWrapper";
 import { ModalWrapper } from "@/app/components/Wrapper/Modal/ModalWrapper";
 import { QueryWrapper } from "@/app/components/Wrapper/QueryClient/QueryWrapper";
+import { ToastContainer } from "react-toastify";
 
 export const baloo2 = Baloo_2({
   subsets: ["latin", "vietnamese"],
@@ -32,6 +33,7 @@ export default function RootLayout({
             </AuthWrapper>
           </ModalWrapper>
         </QueryWrapper>
+        <ToastContainer position="bottom-right" />
 
         <footer className="flex mb-4 mt-24 justify-center text-sm text-gray-500">
           <p>© 2025 Fake API. All rights reserved.</p>

@@ -11,6 +11,7 @@ import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.mode
 import api from "@/app/libs/helpers/api_call";
 import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/Constants";
 import buildUrl from "@/app/libs/helpers/url_builder";
+import Notify from "@/app/components/Notify";
 
 export interface UpdateProjectFormHandles {
   submit: () => Promise<boolean>;
@@ -41,6 +42,7 @@ export const UpdateProjectForm = forwardRef<UpdateProjectFormHandles, UpdateProj
         api.put(buildUrl(API_ROUTES.PROJECT.UPDATE_BY_ID, { projectId: props.public_id }), data),
       onSuccess() {
         reset();
+        Notify.success("Updated project");
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY.PROJECT.ALL] });
       },
     });

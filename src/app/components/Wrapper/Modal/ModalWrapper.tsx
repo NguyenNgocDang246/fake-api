@@ -18,6 +18,9 @@ const ModalContext = createContext<ModalContextType | null>(null);
 export const ModalWrapper = ({ children }: { children: React.ReactNode }) => {
   const [modals, setModals] = useState<ModalState[]>([]);
   const openModal = (modal: Omit<ModalState, "id">) => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     const id = `modal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setModals((prev) => [...prev, { id, ...modal } as ModalState]);
     return id;

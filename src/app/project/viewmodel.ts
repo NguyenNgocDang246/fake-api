@@ -1,5 +1,6 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Notify from "@/app/components/Notify";
 import api from "@/app/libs/helpers/api_call";
 import { API_ROUTES } from "@/app/libs/routes";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
@@ -27,6 +28,7 @@ export function useProjectViewModel() {
   const deleteAllProjectMutation = useMutation<ApiSuccessResponse, ApiErrorResponse>({
     mutationFn: () => api.delete(API_ROUTES.PROJECT.DELETE_ALL),
     onSuccess: () => {
+      Notify.success("Deleted all projects");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY.PROJECT.ALL] });
     },
   });

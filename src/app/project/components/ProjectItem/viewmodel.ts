@@ -8,6 +8,7 @@ import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.mode
 import buildUrl from "@/app/libs/helpers/url_builder";
 import { useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/Constants";
+import Notify from "@/app/components/Notify";
 export const useProjectItemViewModel = () => {
   const router = useRouter();
   const modal = useModal();
@@ -24,6 +25,7 @@ export const useProjectItemViewModel = () => {
     mutationFn: (data) =>
       api.delete(buildUrl(API_ROUTES.PROJECT.DELETE_BY_ID, { projectId: data.public_id })),
     onSuccess: () => {
+      Notify.success("Deleted project");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY.PROJECT.ALL] });
     },
   });
