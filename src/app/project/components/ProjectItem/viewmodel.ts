@@ -48,7 +48,10 @@ export const useProjectItemViewModel = () => {
     });
   };
 
-  const copyToClipboard = (text: string) => navigator.clipboard.writeText(text);
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    Notify.success("Copied to clipboard");
+  };
 
   return { handleOnclickProject, openDeleteProjectModal, copyToClipboard };
 };
