@@ -16,7 +16,13 @@ export default function LoginPage() {
         <div className="text-center mt-1">{message && <ErrorText message={message} />}</div>
         <form onSubmit={handleSubmit}>
           <div>
-            <FloatingInput label="Email" register={register("email")} type="email" id="email" />
+            <FloatingInput
+              label="Email"
+              register={register("email")}
+              type="email"
+              id="email"
+              required
+            />
             {errors.email && <ErrorText className="text-end mt-1" message={errors.email.message} />}
           </div>
 
@@ -26,6 +32,7 @@ export default function LoginPage() {
               register={register("password")}
               type="password"
               id="password"
+              required
             />
 
             {errors.password && (

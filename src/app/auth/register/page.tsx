@@ -17,7 +17,13 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="my-4">
-            <FloatingInput label="Name" register={register("name")} type="text" id="name" />
+            <FloatingInput
+              label="Name"
+              register={register("name")}
+              type="text"
+              id="name"
+              required
+            />
 
             {errors.password && (
               <ErrorText className="text-end mt-1" message={errors.password.message} />
@@ -25,7 +31,13 @@ export default function RegisterPage() {
           </div>
 
           <div className="my-4">
-            <FloatingInput label="Email" register={register("email")} type="email" id="email" />
+            <FloatingInput
+              label="Email"
+              register={register("email")}
+              type="email"
+              id="email"
+              required
+            />
             {errors.email && <ErrorText className="text-end mt-1" message={errors.email.message} />}
           </div>
 
@@ -35,6 +47,7 @@ export default function RegisterPage() {
               register={register("password")}
               type="password"
               id="password"
+              required
             />
             {errors.password && (
               <ErrorText className="text-end mt-1" message={errors.password.message} />
