@@ -1,6 +1,6 @@
 "use client";
 import { useEndpointGroupViewModel } from "@/app/project/[id]/viewmodel";
-import { EndpointGroupItem } from "@/app/project/[id]/components/EndpointGroupItem";
+import { EndpointGroupItem } from "@/app/project/[id]/components/EndpointGroupItem/EndpointGroupItem";
 import { EndpointItem } from "@/app/project/[id]/components/EndpointItem";
 import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
 import { LoadingDots } from "@/app/components/Loading/LoadingDots";
@@ -85,10 +85,17 @@ export default function Project() {
         <div className="grow flex flex-col">
           <div className="mb-4 flex items-center justify-end">
             <ActionButton label="Create new" type="create" className="ml-4" onClick={() => {}} />
-            <ActionButton label="Delete all" type="delete" className="ml-4" onClick={() => {}} />
+            <ActionButton
+              label="Delete all"
+              type="delete"
+              className="ml-4"
+              onClick={() => {}}
+              disabled={!hasEndpoints}
+            />
           </div>
           <div className="overflow-auto min-h-64 max-h-96 pr-4">
-            {endpointsState.isFetching || endpointGroupsState.isFetching ? (
+            {endpointGroupsState.isFetching ||
+            (endpointGroupsState.isFetched && hasEndpointGroups && !endpointsState.isFetched) ? (
               <div className="flex justify-center mt-24">
                 <Spinner size={40} />
               </div>
