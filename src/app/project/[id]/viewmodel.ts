@@ -42,10 +42,15 @@ export function useEndpointGroupViewModel() {
   });
 
   useEffect(() => {
-    if (endpointGroupsState.data && endpointGroupsState.data.length > 0) {
+    if (
+      (!selectedGroupId && endpointGroupsState.data && endpointGroupsState.data.length > 0) ||
+      (selectedGroupId &&
+        endpointGroupsState.data &&
+        !endpointGroupsState.data.find((group) => group.public_id === selectedGroupId))
+    ) {
       setSelectedGroupId(endpointGroupsState.data[0].public_id);
     }
-  }, [endpointGroupsState.data]);
+  }, [endpointGroupsState.data, selectedGroupId]);
 
   const fetchEndpoints = async (): Promise<EndpointInfoDTO[]> => {
     if (!selectedGroupId) return [];

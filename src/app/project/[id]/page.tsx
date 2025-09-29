@@ -8,6 +8,7 @@ import { ActionButton } from "@/app/components/Button/ActionButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 import { Spinner } from "@/app/components/Loading/Spinner";
 import { NoContentText } from "@/app/components/Text/NoContentText";
+import { useCreateEndpointGroupViewModel } from "@/app/project/[id]/components/CreateEndpointGroupFrom/viewmodel";
 export default function Project() {
   const {
     projectInfoState,
@@ -16,6 +17,7 @@ export default function Project() {
     setSelectedGroupId,
     selectedGroupId,
   } = useEndpointGroupViewModel();
+  const { openCreateEndpointGroupModal } = useCreateEndpointGroupViewModel();
 
   const hasEndpointGroups = endpointGroupsState.data && endpointGroupsState.data.length > 0;
   const hasEndpoints = endpointsState.data && endpointsState.data.length > 0;
@@ -56,10 +58,12 @@ export default function Project() {
               label="Create new"
               className="mb-4 w-full"
               type="create"
-              onClick={() => {}}
+              onClick={() => {
+                openCreateEndpointGroupModal();
+              }}
             />
             <div className="space-y-1">
-              {endpointGroupsState.isFetching ? (
+              {!endpointGroupsState.isFetched ? (
                 <div className="flex justify-center">
                   <Spinner size={40} />
                 </div>
@@ -94,7 +98,7 @@ export default function Project() {
             />
           </div>
           <div className="overflow-auto min-h-64 max-h-96 pr-4">
-            {endpointGroupsState.isFetching ||
+            {(endpointGroupsState.isFetching && selectedGroupId.length == 0) ||
             (endpointGroupsState.isFetched && hasEndpointGroups && !endpointsState.isFetched) ? (
               <div className="flex justify-center mt-24">
                 <Spinner size={40} />

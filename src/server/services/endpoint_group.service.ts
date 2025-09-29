@@ -1,6 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import { AppError } from "@/server/core/errors";
-import { GetProjectByIdDTO } from "@/models/project.model";
+import {
+  GetProjectByIdDTO,
+  DeleteProjectByIdDTO,
+  UpdateProjectByIdDTO,
+} from "@/models/project.model";
 import { CreateEndpointGroupDTO, GetEndpointGroupByIdDTO } from "@/models/endpoint_group.model";
 
 const prisma = new PrismaClient();
@@ -17,6 +21,22 @@ class EndpointGroupService {
   async getEndpointGroupById({ id }: GetEndpointGroupByIdDTO) {
     try {
       return await prisma.endpoint_groups.findUnique({ where: { id } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async deleteEndpointGroupById({ id }: DeleteProjectByIdDTO) {
+    try {
+      return await prisma.endpoint_groups.delete({ where: { id } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async updateEndpointGroupById({ id, ...rest }: UpdateProjectByIdDTO) {
+    try {
+      return await prisma.endpoint_groups.update({ where: { id }, data: rest });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

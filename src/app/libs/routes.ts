@@ -24,8 +24,8 @@ export const API_ROUTES = {
     GET_ALL: "/api/project/:projectId/endpoint-group",
     GET_BY_ID: "/api/project/:projectId/endpoint-group/:endpointGroupId",
     CREATE: "/api/project/:projectId/endpoint-group",
-    // UPDATE: "/api/endpoints/:id",
-    // DELETE: "/api/endpoints/:id",
+    UPDATE_BY_ID: "/api/project/:projectId/endpoint-group/:endpointGroupId",
+    DELETE_BY_ID: "/api/project/:projectId/endpoint-group/:endpointGroupId",
   },
   ENDPOINT: {
     GET_ALL: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint",

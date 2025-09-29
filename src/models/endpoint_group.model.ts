@@ -16,6 +16,11 @@ export const EndpointGroupInfoSchema = EndpointGroupSchema.pick({ name: true })
   .strict();
 export type EndpointGroupInfoDTO = z.infer<typeof EndpointGroupInfoSchema>;
 
+export const ClientCreateEndpointGroupSchema = EndpointGroupSchema.pick({
+  name: true,
+}).strict();
+export type ClientCreateEndpointGroupDTO = z.infer<typeof ClientCreateEndpointGroupSchema>;
+
 export const CreateEndpointGroupSchema = EndpointGroupSchema.pick({
   project_id: true,
   name: true,
@@ -24,3 +29,22 @@ export type CreateEndpointGroupDTO = z.infer<typeof CreateEndpointGroupSchema>;
 
 export const GetEndpointGroupByIdSchema = EndpointGroupSchema.pick({ id: true }).strict();
 export type GetEndpointGroupByIdDTO = z.infer<typeof GetEndpointGroupByIdSchema>;
+
+export const ClientDeleteEndpointGroupByIdSchema = EndpointGroupInfoSchema.pick({
+  public_id: true,
+}).strict();
+export type ClientDeleteEndpointGroupByIdDTO = z.infer<typeof ClientDeleteEndpointGroupByIdSchema>;
+
+export const DeleteEndpointGroupByIdChema = EndpointGroupSchema.pick({ id: true }).strict();
+export type DeleteEndpointGroupByIdDTO = z.infer<typeof DeleteEndpointGroupByIdChema>;
+
+export const ClientUpdateProjectByIdSchema = EndpointGroupInfoSchema.pick({
+  name: true,
+}).strict();
+export type ClientUpdateProjectByIdDTO = z.infer<typeof ClientUpdateProjectByIdSchema>;
+
+export const UpdateEndpointGroupByIdSchema = EndpointGroupSchema.pick({
+  id: true,
+  name: true,
+}).strict();
+export type UpdateEndpointGroupByIdDTO = z.infer<typeof UpdateEndpointGroupByIdSchema>;
