@@ -46,6 +46,7 @@ export function useEndpointGroupViewModel() {
       (!selectedGroupId && endpointGroupsState.data && endpointGroupsState.data.length > 0) ||
       (selectedGroupId &&
         endpointGroupsState.data &&
+        endpointGroupsState.data.length > 0 &&
         !endpointGroupsState.data.find((group) => group.public_id === selectedGroupId))
     ) {
       setSelectedGroupId(endpointGroupsState.data[0].public_id);
