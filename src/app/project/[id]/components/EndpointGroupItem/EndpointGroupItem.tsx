@@ -1,6 +1,7 @@
 import { MoreVertical } from "lucide-react";
 import { DropdownButton } from "@/app/components/Button/DropdownButton";
 import { useEndpointGroupViewModel } from "./viewmodel";
+import { useUpdateEndpointGroupViewModel } from "@/app/project/[id]/components/UpdateEndpointGroupForm/viewmodel";
 interface EndpointGroupItemProps {
   public_id: string;
   name: string;
@@ -15,6 +16,10 @@ export const EndpointGroupItem: React.FC<EndpointGroupItemProps> = ({
   onclick,
 }) => {
   const { openDeleteEndpointGroupModal } = useEndpointGroupViewModel();
+  const { openUpdateEndpointGroupModal } = useUpdateEndpointGroupViewModel({
+    public_id,
+    old_data: { name },
+  });
   return (
     <div
       onClick={() => onclick(public_id)}
@@ -36,6 +41,7 @@ export const EndpointGroupItem: React.FC<EndpointGroupItemProps> = ({
           title="Endpoint Group Action"
           options={["Edit", "Delete"]}
           onSelect={(index) => {
+            if (index === 0) openUpdateEndpointGroupModal();
             if (index === 1) openDeleteEndpointGroupModal({ public_id });
           }}
         >
