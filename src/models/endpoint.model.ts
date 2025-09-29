@@ -1,15 +1,15 @@
 import { z } from "zod";
 
-type Json = string | number | Json[] | { [key: string]: Json };
+type Json = string | bigint | Json[] | { [key: string]: Json };
 
 const JsonSchema: z.ZodType<Json> = z.lazy(() =>
-  z.union([z.string(), z.number(), z.array(JsonSchema), z.record(z.string(), JsonSchema)])
+  z.union([z.string(), z.bigint(), z.array(JsonSchema), z.record(z.string(), JsonSchema)])
 );
 
 export const EndpointSchema = z
   .object({
-    id: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
-    endpoint_groups_id: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
+    id: z.union([z.bigint(), z.string().transform((str) => BigInt(str))]),
+    endpoint_groups_id: z.union([z.bigint(), z.string().transform((str) => BigInt(str))]),
     method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
     path: z
       .string()

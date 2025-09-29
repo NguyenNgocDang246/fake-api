@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const UserSchema = z
   .object({
-    id: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
+    id: z.union([z.bigint(), z.string().transform((str) => BigInt(str))]),
     name: z
       .string()
       .nonempty("Tên người dùng không được để trống")

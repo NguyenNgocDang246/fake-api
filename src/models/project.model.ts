@@ -1,8 +1,8 @@
 import { z } from "zod";
 export const ProjectSchema = z
   .object({
-    id: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
-    user_id: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
+    id: z.union([z.bigint(), z.string().transform((str) => BigInt(str))]),
+    user_id: z.union([z.bigint(), z.string().transform((str) => BigInt(str))]),
     name: z
       .string()
       .nonempty("Tên project không được để trống")

@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE "public"."endpoint_groups" (
-    "id" SERIAL NOT NULL,
-    "project_id" INTEGER NOT NULL,
+    "id" BIGSERIAL NOT NULL,
+    "project_id" BIGINT NOT NULL,
     "name" VARCHAR(100) NOT NULL,
 
     CONSTRAINT "endpoint_groups_pkey" PRIMARY KEY ("id")
@@ -9,8 +9,8 @@ CREATE TABLE "public"."endpoint_groups" (
 
 -- CreateTable
 CREATE TABLE "public"."endpoints" (
-    "id" SERIAL NOT NULL,
-    "endpoint_groups_id" INTEGER NOT NULL,
+    "id" BIGSERIAL NOT NULL,
+    "endpoint_groups_id" BIGINT NOT NULL,
     "method" VARCHAR(10) NOT NULL,
     "path" VARCHAR(255) NOT NULL,
     "status_code" INTEGER DEFAULT 200,
@@ -22,8 +22,8 @@ CREATE TABLE "public"."endpoints" (
 
 -- CreateTable
 CREATE TABLE "public"."projects" (
-    "id" SERIAL NOT NULL,
-    "user_id" INTEGER NOT NULL,
+    "id" BIGSERIAL NOT NULL,
+    "user_id" BIGINT NOT NULL,
     "name" VARCHAR(100) NOT NULL,
     "description" TEXT,
     "created_at" TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
@@ -33,12 +33,13 @@ CREATE TABLE "public"."projects" (
 
 -- CreateTable
 CREATE TABLE "public"."users" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "email" VARCHAR(100) NOT NULL,
     "password" VARCHAR(255) NOT NULL,
     "name" VARCHAR(255) NOT NULL,
-    "token_version" INTEGER NOT NULL DEFAULT 0,
+    "token_version" BIGINT NOT NULL DEFAULT 0,
     "created_at" TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
+    "role" VARCHAR(50) NOT NULL DEFAULT 'USER',
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );

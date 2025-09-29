@@ -23,7 +23,7 @@ const REFRESH_SECRET = new TextEncoder().encode(process.env.REFRESH_SECRET || "r
 
 class TokenService {
   async createAccessToken({ id }: UserToAccessTokenDTO): Promise<string> {
-    return new SignJWT({ id })
+    return new SignJWT({ id: id.toString() })
       .setProtectedHeader({ alg: "HS256" })
       .setExpirationTime(ACCESS_TOKEN_EXPIRATION_TIME_IN_STRING)
       .sign(ACCESS_SECRET);
@@ -32,7 +32,7 @@ class TokenService {
   async verifyAccessToken(token: string): Promise<AccessTokenPayloadDTO> {
     try {
       const { payload } = await jwtVerify(token, ACCESS_SECRET);
-      return AccessTokenPayloadSchema.parse({ id: payload.id });
+      return AccessTokenPayloadSchema.parse({ id: BigInt(payload.id as string) });
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError({
@@ -43,7 +43,7 @@ class TokenService {
   }
 
   async createRefreshToken({ id, token_version }: UserToRefreshTokenDTO): Promise<string> {
-    return new SignJWT({ id, token_version })
+    return new SignJWT({ id: id.toString(), token_version: token_version.toString() })
       .setProtectedHeader({ alg: "HS256" })
       .setExpirationTime(REFRESH_TOKEN_EXPIRATION_TIME_IN_STRING)
       .sign(REFRESH_SECRET);
@@ -53,8 +53,8 @@ class TokenService {
     try {
       const { payload } = await jwtVerify(token, REFRESH_SECRET);
       const result = RefreshTokenPayloadSchema.parse({
-        id: payload.id,
-        token_version: payload.token_version,
+        id: BigInt(payload.id as string),
+        token_version: BigInt(payload.token_version as string),
       });
       const user = await userService.getUserById({ id: result.id });
       if (!user) {

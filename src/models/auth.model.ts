@@ -29,7 +29,7 @@ export const UserToAccessTokenSchema = UserSchema.pick({ id: true }).strict();
 export type UserToAccessTokenDTO = z.infer<typeof UserToAccessTokenSchema>;
 
 export const UserToRefreshTokenSchema = UserSchema.pick({ id: true })
-  .extend({ token_version: z.number() })
+  .extend({ token_version: z.bigint() })
   .strict();
 export type UserToRefreshTokenDTO = z.infer<typeof UserToRefreshTokenSchema>;
 
@@ -37,6 +37,6 @@ export const AccessTokenPayloadSchema = UserSchema.pick({ id: true }).strict();
 export type AccessTokenPayloadDTO = z.infer<typeof AccessTokenPayloadSchema>;
 
 export const RefreshTokenPayloadSchema = UserSchema.pick({ id: true })
-  .extend({ token_version: z.number() })
+  .extend({ token_version: z.bigint() })
   .strict();
 export type RefreshTokenPayloadDTO = z.infer<typeof RefreshTokenPayloadSchema>;

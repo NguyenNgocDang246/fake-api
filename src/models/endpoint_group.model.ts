@@ -1,8 +1,8 @@
 import { z } from "zod";
 export const EndpointGroupSchema = z
   .object({
-    id: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
-    project_id: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
+    id: z.union([z.bigint(), z.string().transform((str) => BigInt(str))]),
+    project_id: z.union([z.bigint(), z.string().transform((str) => BigInt(str))]),
     name: z
       .string()
       .nonempty("Tên nhóm endpoint không được để trống")
