@@ -35,13 +35,13 @@ export const ClientDeleteEndpointGroupByIdSchema = EndpointGroupInfoSchema.pick(
 }).strict();
 export type ClientDeleteEndpointGroupByIdDTO = z.infer<typeof ClientDeleteEndpointGroupByIdSchema>;
 
-export const DeleteEndpointGroupByIdChema = EndpointGroupSchema.pick({ id: true }).strict();
-export type DeleteEndpointGroupByIdDTO = z.infer<typeof DeleteEndpointGroupByIdChema>;
+export const DeleteEndpointGroupByIdSchema = EndpointGroupSchema.pick({ id: true }).strict();
+export type DeleteEndpointGroupByIdDTO = z.infer<typeof DeleteEndpointGroupByIdSchema>;
 
-export const ClientUpdateProjectByIdSchema = EndpointGroupInfoSchema.pick({
+export const ClientUpdateEndpointGroupByIdSchema = EndpointGroupInfoSchema.pick({
   name: true,
 }).strict();
-export type ClientUpdateProjectByIdDTO = z.infer<typeof ClientUpdateProjectByIdSchema>;
+export type ClientUpdateEndpointGroupByIdDTO = z.infer<typeof ClientUpdateEndpointGroupByIdSchema>;
 
 export const UpdateEndpointGroupByIdSchema = EndpointGroupSchema.pick({
   id: true,

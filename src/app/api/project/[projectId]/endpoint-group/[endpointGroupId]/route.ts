@@ -9,7 +9,6 @@ import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import EndpointGroupService from "@/server/services/endpoint_group.service";
 import {
   GetEndpointGroupByIdSchema,
-  DeleteEndpointGroupByIdChema,
   UpdateEndpointGroupByIdSchema,
   EndpointGroupInfoSchema,
 } from "@/models/endpoint_group.model";
@@ -120,7 +119,7 @@ export async function DELETE(
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
       { id: IdConverter.decode(endpointGroupIdRaw) },
-      DeleteEndpointGroupByIdChema
+      GetEndpointGroupByIdSchema
     );
 
     if (!endpointGroupIdValidation.success) {
@@ -186,7 +185,7 @@ export async function PUT(
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
       { id: IdConverter.decode(endpointGroupIdRaw) },
-      UpdateEndpointGroupByIdSchema
+      GetEndpointGroupByIdSchema
     );
 
     if (!endpointGroupIdValidation.success) {
