@@ -213,7 +213,7 @@ export async function DELETE(
     const result = await EndpointService.deleteAllEndpoints({
       endpoint_groups_id: endpointGroupId,
     });
-    if (!result) {
+    if (result.count === 0) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.NO_CONTENT,
         statusCode: STATUS_CODE.NO_CONTENT,
