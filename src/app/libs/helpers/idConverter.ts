@@ -8,10 +8,14 @@ class IdConverter {
 
   public static decode(public_id: string): bigint {
     const hex = hashids.decodeHex(public_id);
-    if (!hex) {
-      throw new Error("Invalid id");
+    if (!hex) return BigInt(-1);
+    try {
+      return BigInt("0x" + hex);
+    } catch (error) {
+      void error;
+      return BigInt(-1);
     }
-    return BigInt("0x" + hex);
+    
   }
 }
 export default IdConverter;
