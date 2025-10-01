@@ -60,8 +60,8 @@ export async function GET(
     const endpointgroup = await EndpointGroupService.getEndpointGroupById({ id: endpointGroupId });
     if (endpointgroup === null) {
       return ApiResponse.error({
-        message: ERROR_MESSAGES.NO_CONTENT,
-        statusCode: STATUS_CODE.NO_CONTENT,
+        message: ERROR_MESSAGES.NOT_FOUND,
+        statusCode: STATUS_CODE.NOT_FOUND,
       });
     }
     const endpointGroupInfoValidation = validateData(

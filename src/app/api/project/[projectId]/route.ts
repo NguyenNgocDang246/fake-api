@@ -24,8 +24,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
     const project = await projectService.getProjectById({ id: projectId });
     if (project === null) {
       return ApiResponse.error({
-        message: ERROR_MESSAGES.NO_CONTENT,
-        statusCode: STATUS_CODE.NO_CONTENT,
+        message: ERROR_MESSAGES.NOT_FOUND,
+        statusCode: STATUS_CODE.NOT_FOUND,
       });
     }
     if (userId !== project.user_id) {

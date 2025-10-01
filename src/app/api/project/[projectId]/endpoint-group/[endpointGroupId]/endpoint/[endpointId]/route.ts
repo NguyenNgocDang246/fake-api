@@ -71,8 +71,8 @@ export async function GET(
     const endpoint = await EndpointService.getEndpointById({ id: endpointId });
     if (!endpoint) {
       return ApiResponse.error({
-        message: ERROR_MESSAGES.NO_CONTENT,
-        statusCode: STATUS_CODE.NO_CONTENT,
+        message: ERROR_MESSAGES.NOT_FOUND,
+        statusCode: STATUS_CODE.NOT_FOUND,
       });
     }
     if (endpoint.endpoint_groups_id !== endpointGroupId) {
