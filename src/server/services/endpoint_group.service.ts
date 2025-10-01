@@ -6,10 +6,30 @@ import {
   UpdateProjectByIdDTO,
 } from "@/models/project.model";
 import { CreateEndpointGroupDTO, GetEndpointGroupByIdDTO } from "@/models/endpoint_group.model";
+import { GetUserByIdDTO } from "@/models/user.model";
 
 const prisma = new PrismaClient();
 
 class EndpointGroupService {
+  async checkPermission({
+    userProps,
+    projectProps,
+    endpointGroupProps,
+  }: {
+    userProps: GetUserByIdDTO;
+    projectProps: GetProjectByIdDTO;
+    endpointGroupProps: GetEndpointGroupByIdDTO;
+  }) {
+    const endpointGroup = await prisma.endpoint_groups.findUnique({
+      where: {
+        id: endpointGroupProps.id,
+        project_id: projectProps.id,
+        projects: { user_id: userProps.id },
+      },
+    });
+
+    return !!endpointGroup;
+  }
   async getAllEndpointGroups({ id }: GetProjectByIdDTO) {
     try {
       return await prisma.endpoint_groups.findMany({ where: { project_id: id } });

@@ -4,7 +4,6 @@ import { GetUserByIdSchema } from "@/models/user.model";
 import { validateData } from "@/server/core/validation";
 import IdConverter from "@/app/libs/helpers/idConverter";
 import { GetProjectByIdSchema } from "@/models/project.model";
-import checkProjectPermission from "@/app/api/project/helpers/checkProjectPermission";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import EndpointGroupService from "@/server/services/endpoint_group.service";
 import {
@@ -13,6 +12,7 @@ import {
   EndpointGroupInfoSchema,
 } from "@/models/endpoint_group.model";
 import { AppError } from "@/server/core/errors";
+import endpointGroupService from "@/server/services/endpoint_group.service";
 
 export async function GET(
   req: NextRequest,
@@ -34,13 +34,6 @@ export async function GET(
     }
     const projectId = projectIdValidation.data.id;
 
-    const hasPermission = await checkProjectPermission({ projectId, userId });
-    if (!hasPermission) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.FORBIDDEN,
-        statusCode: STATUS_CODE.FORBIDDEN,
-      });
-    }
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
       { id: IdConverter.decode(endpointGroupIdRaw) },
@@ -52,24 +45,30 @@ export async function GET(
     }
     const endpointGroupId = endpointGroupIdValidation.data.id;
 
-    const endpoint = await EndpointGroupService.getEndpointGroupById({ id: endpointGroupId });
-    if (endpoint === null) {
+    const hasPermission = await endpointGroupService.checkPermission({
+      userProps: { id: userId },
+      projectProps: { id: projectId },
+      endpointGroupProps: { id: endpointGroupId },
+    });
+    if (!hasPermission) {
+      return ApiResponse.error({
+        message: ERROR_MESSAGES.FORBIDDEN,
+        statusCode: STATUS_CODE.FORBIDDEN,
+      });
+    }
+
+    const endpointgroup = await EndpointGroupService.getEndpointGroupById({ id: endpointGroupId });
+    if (endpointgroup === null) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.NO_CONTENT,
         statusCode: STATUS_CODE.NO_CONTENT,
       });
     }
-    if (projectId !== endpoint.project_id) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.NOT_FOUND,
-        statusCode: STATUS_CODE.NOT_FOUND,
-      });
-    }
     const endpointGroupInfoValidation = validateData(
       {
-        public_id: IdConverter.encode(endpoint.id),
-        name: endpoint.name,
-        project_id: IdConverter.encode(endpoint.project_id),
+        public_id: IdConverter.encode(endpointgroup.id),
+        name: endpointgroup.name,
+        project_id: IdConverter.encode(endpointgroup.project_id),
       },
       EndpointGroupInfoSchema
     );
@@ -109,13 +108,6 @@ export async function DELETE(
     }
     const projectId = projectIdValidation.data.id;
 
-    const hasPermission = await checkProjectPermission({ projectId, userId });
-    if (!hasPermission) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.FORBIDDEN,
-        statusCode: STATUS_CODE.FORBIDDEN,
-      });
-    }
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
       { id: IdConverter.decode(endpointGroupIdRaw) },
@@ -127,22 +119,24 @@ export async function DELETE(
     }
     const endpointGroupId = endpointGroupIdValidation.data.id;
 
-    const endpoint = await EndpointGroupService.getEndpointGroupById({ id: endpointGroupId });
-    if (endpoint === null) {
+    const hasPermission = await endpointGroupService.checkPermission({
+      userProps: { id: userId },
+      projectProps: { id: projectId },
+      endpointGroupProps: { id: endpointGroupId },
+    });
+    if (!hasPermission) {
+      return ApiResponse.error({
+        message: ERROR_MESSAGES.FORBIDDEN,
+        statusCode: STATUS_CODE.FORBIDDEN,
+      });
+    }
+
+    const result = await EndpointGroupService.deleteEndpointGroupById({ id: endpointGroupId });
+    if (!result)
       return ApiResponse.error({
         message: ERROR_MESSAGES.NO_CONTENT,
         statusCode: STATUS_CODE.NO_CONTENT,
       });
-    }
-
-    if (projectId !== endpoint.project_id) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.NOT_FOUND,
-        statusCode: STATUS_CODE.NOT_FOUND,
-      });
-    }
-
-    await EndpointGroupService.deleteEndpointGroupById({ id: endpointGroupId });
     return ApiResponse.success();
   } catch (error) {
     if (error instanceof AppError) {
@@ -175,13 +169,6 @@ export async function PUT(
     }
     const projectId = projectIdValidation.data.id;
 
-    const hasPermission = await checkProjectPermission({ projectId, userId });
-    if (!hasPermission) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.FORBIDDEN,
-        statusCode: STATUS_CODE.FORBIDDEN,
-      });
-    }
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
       { id: IdConverter.decode(endpointGroupIdRaw) },
@@ -193,18 +180,15 @@ export async function PUT(
     }
     const endpointGroupId = endpointGroupIdValidation.data.id;
 
-    const endpoint = await EndpointGroupService.getEndpointGroupById({ id: endpointGroupId });
-    if (endpoint === null) {
+    const hasPermission = await endpointGroupService.checkPermission({
+      userProps: { id: userId },
+      projectProps: { id: projectId },
+      endpointGroupProps: { id: endpointGroupId },
+    });
+    if (!hasPermission) {
       return ApiResponse.error({
-        message: ERROR_MESSAGES.NO_CONTENT,
-        statusCode: STATUS_CODE.NO_CONTENT,
-      });
-    }
-
-    if (projectId !== endpoint.project_id) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.NOT_FOUND,
-        statusCode: STATUS_CODE.NOT_FOUND,
+        message: ERROR_MESSAGES.FORBIDDEN,
+        statusCode: STATUS_CODE.FORBIDDEN,
       });
     }
 
@@ -221,6 +205,12 @@ export async function PUT(
     const endpointGroupUpdated = await EndpointGroupService.updateEndpointGroupById(
       endpointGroupInfo
     );
+    if (!endpointGroupUpdated) {
+      return ApiResponse.error({
+        message: ERROR_MESSAGES.NO_CONTENT,
+        statusCode: STATUS_CODE.NO_CONTENT,
+      });
+    }
     const endpointGroupInfoValidation = validateData(
       {
         public_id: IdConverter.encode(endpointGroupUpdated.id),

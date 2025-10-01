@@ -6,12 +6,29 @@ import {
   UpdateProjectByIdDTO,
   GetProjectByUserIdDTO,
 } from "@/models/project.model";
+import { GetUserByIdDTO } from "@/models/user.model";
 import { PrismaClient } from "@prisma/client";
 import { AppError } from "@/server/core/errors";
 
 const prisma = new PrismaClient();
 
 class ProjectService {
+  async checkPermission({
+    userProps,
+    projectProps,
+  }: {
+    userProps: GetUserByIdDTO;
+    projectProps: GetProjectByIdDTO;
+  }) {
+    const project = await prisma.projects.findUnique({
+      where: {
+        id: projectProps.id,
+        user_id: userProps.id,
+      },
+    });
+    return !!project;
+  }
+
   async getAllProjects() {
     try {
       return await prisma.projects.findMany();

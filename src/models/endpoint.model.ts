@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-type Json = string | bigint | Json[] | { [key: string]: Json };
+type Json = string | number | Json[] | { [key: string]: Json };
 
 const JsonSchema: z.ZodType<Json> = z.lazy(() =>
-  z.union([z.string(), z.bigint(), z.array(JsonSchema), z.record(z.string(), JsonSchema)])
+  z.union([z.string(), z.number(), z.array(JsonSchema), z.record(z.string(), JsonSchema)])
 );
 
 export const EndpointSchema = z
@@ -42,6 +42,26 @@ export const CreateEndpointSchema = EndpointSchema.pick({
   delay_ms: true,
 }).strict();
 export type CreateEndpointDTO = z.infer<typeof CreateEndpointSchema>;
+
+export const DeleteAllEndpointSchema = EndpointSchema.pick({
+  endpoint_groups_id: true,
+}).strict();
+export type DeleteAllEndpointDTO = z.infer<typeof DeleteAllEndpointSchema>;
+
+export const UpdateEndpointByIdSchema = EndpointSchema.pick({
+  id: true,
+  method: true,
+  path: true,
+  status_code: true,
+  response_body: true,
+  delay_ms: true,
+}).strict();
+export type UpdateEndpointByIdDTO = z.infer<typeof UpdateEndpointByIdSchema>;
+
+export const DeleteEndpointByIdSchema = EndpointSchema.pick({
+  id: true,
+}).strict();
+export type DeleteEndpointByIdDTO = z.infer<typeof DeleteEndpointByIdSchema>;
 
 export const GetEndpointByIdSchema = EndpointSchema.pick({
   id: true,

@@ -86,7 +86,13 @@ export async function DELETE(req: NextRequest) {
   try {
     const id = req.headers.get("x-userId");
     const userId = GetUserByIdSchema.parse({ id }).id;
-    await projectService.deleteAllProjectsByUserId({ user_id: userId });
+    const deleted = await projectService.deleteAllProjectsByUserId({ user_id: userId });
+    if (deleted.count === 0) {
+      return ApiResponse.error({
+        message: ERROR_MESSAGES.NO_CONTENT,
+        statusCode: STATUS_CODE.NO_CONTENT,
+      });
+    }
     return ApiResponse.success();
   } catch (error) {
     if (error instanceof AppError) {

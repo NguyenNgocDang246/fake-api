@@ -1,13 +1,13 @@
 import { NextRequest } from "next/server";
 import ApiResponse from "@/server/core/api_response";
 import EndpointGroupService from "@/server/services/endpoint_group.service";
+import ProjectService from "@/server/services/project.service";
 import { AppError } from "@/server/core/errors";
 import { validateData } from "@/server/core/validation";
 import { GetUserByIdSchema } from "@/models/user.model";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import { CreateEndpointGroupSchema, EndpointGroupInfoSchema } from "@/models/endpoint_group.model";
 import { STATUS_CODE, ERROR_MESSAGES } from "@/server/core/constants";
-import checkProjectPermission from "@/app/api/project/helpers/checkProjectPermission";
 import IdConverter from "@/app/libs/helpers/idConverter";
 
 export async function GET(req: NextRequest, props: { params: Promise<{ projectId: string }> }) {
@@ -24,7 +24,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
     }
     const projectId = validation.data.id;
 
-    const hasPermission = await checkProjectPermission({ projectId, userId });
+    const hasPermission = await ProjectService.checkPermission({
+      userProps: { id: userId },
+      projectProps: { id: projectId },
+    });
     if (!hasPermission) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.FORBIDDEN,
@@ -78,7 +81,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ projectI
     }
     const projectId = projectIdValidation.data.id;
 
-    const hasPermission = await checkProjectPermission({ projectId, userId });
+    const hasPermission = await ProjectService.checkPermission({
+      userProps: { id: userId },
+      projectProps: { id: projectId },
+    });
     if (!hasPermission) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.FORBIDDEN,
