@@ -124,6 +124,7 @@ export default function Project() {
                 onClick={() => {
                   openCreateEndpointModal(selectedGroupId);
                 }}
+                disabled={!hasEndpointGroups}
               />
               <ActionButton
                 label="Delete all"
