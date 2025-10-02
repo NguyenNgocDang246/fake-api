@@ -28,6 +28,9 @@ export const useProjectItemViewModel = () => {
       Notify.success("Deleted project");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY.PROJECT.ALL] });
     },
+    onError: (error) => {
+      Notify.error(error.message);
+    },
   });
 
   const openDeleteProjectModal = ({ public_id }: ClientDeleteProjectByIdDTO) => {

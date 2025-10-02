@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Trash2, Copy } from "lucide-react";
 import { useEndpointViewmodel } from "./viewmodel";
 import { useUpdateEndpointViewModel } from "@/app/project/[id]/components/UpdateEndpointForm/viewmodel";
 interface EndpointItemProps {
@@ -37,7 +37,10 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
       ? "bg-red-100 text-red-700"
       : "bg-gray-100 text-gray-700";
 
-  const { openDeleteEndpointModal } = useEndpointViewmodel(project_id, endpoint_groups_id);
+  const { openDeleteEndpointModal, copyPathToClipboard } = useEndpointViewmodel(
+    project_id,
+    endpoint_groups_id
+  );
   const { openUpdateEndpointModal } = useUpdateEndpointViewModel();
   return (
     <div
@@ -72,16 +75,30 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
         <span className={`px-2 py-1 text-xs font-semibold rounded ${statusColor}`}>
           {status_code}
         </span>
-        <span className="text-red-700 rounded-full p-2 hover:bg-gray-200">
+        <div className="flex">
           <button
+            className="text-red-700 rounded-full w-9 h-9 flex justify-center items-center p-2 hover:bg-gray-200 cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               openDeleteEndpointModal({ public_id });
             }}
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-4 h-4 cursor-pointer" />
           </button>
-        </span>
+          <button
+            className="hover:bg-gray-200 cursor-pointer rounded-full w-9 h-9 flex justify-center items-center p-2"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              copyPathToClipboard(project_id, path);
+            }}
+            title="Copy Endpoint's Path"
+          >
+            <div className="flex items-center cursor-pointer">
+              <Copy size={16} />
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   );

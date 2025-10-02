@@ -8,6 +8,7 @@ import { ProjectInfoDTO } from "@/models/project.model";
 import { useCreateProjectViewModel } from "@/app/project/components/CreateProjectForm/viewmodel";
 import { QUERY_KEY, STALETIME } from "@/app/components/Wrapper/QueryClient/Constants";
 import { useModal } from "@/app/components/Wrapper/Modal/ModalWrapper";
+import { useEffect } from "react";
 
 async function fetchProjects(): Promise<ProjectInfoDTO[]> {
   const res = (await api.get(API_ROUTES.PROJECT.GET_ALL)).data as ApiSuccessResponse;
@@ -31,6 +32,9 @@ export function useProjectViewModel() {
       Notify.success("Deleted all projects");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY.PROJECT.ALL] });
     },
+    onError: (error) => {
+      Notify.error(error.message);
+    },
   });
   const openDeleteAllProjectModal = () => {
     modal?.openModal({
@@ -43,13 +47,19 @@ export function useProjectViewModel() {
             await deleteAllProjectMutation.mutateAsync();
             return true;
           } catch (error) {
-            console.error("Delete project failed:", error);
+            void error;
             return false;
           }
         },
       },
     });
   };
+
+  useEffect(() => {
+    if (projectsState.error?.message) {
+      Notify.error(projectsState.error.message);
+    }
+  }, [projectsState.error]);
 
   return { projectsState, openCreateProjectModal, openDeleteAllProjectModal };
 }

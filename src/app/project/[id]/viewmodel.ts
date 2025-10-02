@@ -86,6 +86,9 @@ export function useEndpointGroupViewModel() {
       Notify.success("Deleted all endpoints");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT.ALL] });
     },
+    onError: (error) => {
+      Notify.error(error.message);
+    },
   });
 
   const openDeleteAllEndpointModal = () => {
@@ -106,6 +109,18 @@ export function useEndpointGroupViewModel() {
       },
     });
   };
+
+  useEffect(() => {
+    if (projectInfoState.error?.message) Notify.error(projectInfoState.error.message);
+  }, [projectInfoState.error?.message]);
+
+  useEffect(() => {
+    if (endpointGroupsState.error?.message) Notify.error(endpointGroupsState.error.message);
+  }, [endpointGroupsState.error?.message]);
+
+  useEffect(() => {
+    if (endpointsState.error?.message) Notify.error(endpointsState.error.message);
+  }, [endpointsState.error?.message]);
 
   return {
     projectInfoState,

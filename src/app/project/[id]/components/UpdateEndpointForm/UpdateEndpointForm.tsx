@@ -70,8 +70,8 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
         Notify.success("Updated endpoint");
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT.ALL] });
       },
-      onError(error) {
-        console.log(error);
+      onError: (error) => {
+        Notify.error(error.message);
       },
     });
 
@@ -95,7 +95,7 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
             isValid = await onSubmit(data); // onSubmit trả về true/false
           },
           (errors) => {
-            console.log("Validation failed:", errors);
+            void errors;
             isValid = false;
           }
         )();

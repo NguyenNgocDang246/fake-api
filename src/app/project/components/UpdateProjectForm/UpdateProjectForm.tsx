@@ -45,6 +45,9 @@ export const UpdateProjectForm = forwardRef<UpdateProjectFormHandles, UpdateProj
         Notify.success("Updated project");
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY.PROJECT.ALL] });
       },
+      onError: (error) => {
+        Notify.error(error.message);
+      },
     });
     const onSubmit = async (data: ClientUpdateProjectDTO): Promise<boolean> => {
       try {
@@ -66,7 +69,7 @@ export const UpdateProjectForm = forwardRef<UpdateProjectFormHandles, UpdateProj
             isValid = await onSubmit(data); // onSubmit trả về true/false
           },
           (errors) => {
-            console.log("Validation failed:", errors);
+            void errors;
             isValid = false;
           }
         )();

@@ -61,6 +61,9 @@ export const UpdateEndpointGroupForm = forwardRef<
       Notify.success("Updated endpoint group");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT_GROUP.ALL] });
     },
+    onError: (error) => {
+      Notify.error(error.message);
+    },
   });
   const onSubmit = async (data: ClientUpdateEndpointGroupByIdDTO): Promise<boolean> => {
     try {
@@ -82,7 +85,7 @@ export const UpdateEndpointGroupForm = forwardRef<
           isValid = await onSubmit(data); // onSubmit trả về true/false
         },
         (errors) => {
-          console.log("Validation failed:", errors);
+          void errors;
           isValid = false;
         }
       )();

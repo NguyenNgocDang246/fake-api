@@ -38,6 +38,9 @@ export const CreateProjectForm = forwardRef<CreateProjectFormHandles>((props, re
       Notify.success("Created project");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY.PROJECT.ALL] });
     },
+    onError: (error) => {
+      Notify.error(error.message);
+    },
   });
   const onSubmit = async (data: ClientCreateProjectDTO): Promise<boolean> => {
     try {
@@ -59,7 +62,7 @@ export const CreateProjectForm = forwardRef<CreateProjectFormHandles>((props, re
           isValid = await onSubmit(data); // onSubmit trả về true/false
         },
         (errors) => {
-          console.log("Validation failed:", errors);
+          void errors;
           isValid = false;
         }
       )();

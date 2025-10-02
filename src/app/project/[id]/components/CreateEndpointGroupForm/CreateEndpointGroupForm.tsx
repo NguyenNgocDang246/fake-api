@@ -46,6 +46,9 @@ export const CreateEndpointGroupForm = forwardRef<CreateEndpointGroupFormHandles
       Notify.success("Created endpoint group");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT_GROUP.ALL] });
     },
+    onError: (error) => {
+      Notify.error(error.message);
+    },
   });
   const onSubmit = async (data: ClientCreateEndpointGroupDTO): Promise<boolean> => {
     try {
@@ -67,7 +70,7 @@ export const CreateEndpointGroupForm = forwardRef<CreateEndpointGroupFormHandles
           isValid = await onSubmit(data); // onSubmit trả về true/false
         },
         (errors) => {
-          console.log("Validation failed:", errors);
+          void errors;
           isValid = false;
         }
       )();

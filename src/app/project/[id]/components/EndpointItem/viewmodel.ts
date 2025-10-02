@@ -27,7 +27,9 @@ export const useEndpointViewmodel = (project_id: string, endpoint_groups_id: str
       Notify.success("Deleted endpoint");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT.ALL] });
     },
-    onError: (error) => console.log(error),
+    onError: (error) => {
+      Notify.error(error.message);
+    },
   });
   const openDeleteEndpointModal = ({ public_id }: ClientDeleteEndpointByIdDTO) => {
     modal?.openModal({
@@ -46,5 +48,10 @@ export const useEndpointViewmodel = (project_id: string, endpoint_groups_id: str
       },
     });
   };
-  return { openDeleteEndpointModal };
+
+  const copyPathToClipboard = (projectId: string, path: string) => {
+    navigator.clipboard.writeText(`http://localhost:3000/${projectId}${path}`);
+    Notify.success("Copied to clipboard");
+  };
+  return { openDeleteEndpointModal, copyPathToClipboard };
 };

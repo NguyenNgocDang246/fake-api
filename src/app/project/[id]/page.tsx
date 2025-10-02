@@ -3,6 +3,7 @@ import { useEndpointGroupViewModel } from "@/app/project/[id]/viewmodel";
 import { EndpointGroupItem } from "@/app/project/[id]/components/EndpointGroupItem/EndpointGroupItem";
 import { EndpointItem } from "@/app/project/[id]/components/EndpointItem/EndpointItem";
 import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
+import { Tooltip } from "@/app/components/Tooltip";
 import { LoadingDots } from "@/app/components/Loading/LoadingDots";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
@@ -10,6 +11,7 @@ import { Spinner } from "@/app/components/Loading/Spinner";
 import { NoContentText } from "@/app/components/Text/NoContentText";
 import { useCreateEndpointGroupViewModel } from "@/app/project/[id]/components/CreateEndpointGroupForm/viewmodel";
 import { useCreateEndpointViewModel } from "@/app/project/[id]/components/CreateEndpointForm/viewmodel";
+import { usePathname } from "next/navigation";
 export default function Project() {
   const {
     projectInfoState,
@@ -19,6 +21,10 @@ export default function Project() {
     selectedGroupId,
     openDeleteAllEndpointModal,
   } = useEndpointGroupViewModel();
+  const pathname = usePathname();
+  const pathnameSplit = pathname.split("/");
+  const projectId = pathnameSplit[pathnameSplit.length - 1];
+
   const { openCreateEndpointGroupModal } = useCreateEndpointGroupViewModel();
   const { openCreateEndpointModal } = useCreateEndpointViewModel();
 
@@ -90,24 +96,45 @@ export default function Project() {
         </div>
 
         <div className="grow flex flex-col">
-          <div className="mb-4 flex items-center justify-end">
-            <ActionButton
-              label="Create new"
-              type="create"
-              className="ml-4"
-              onClick={() => {
-                openCreateEndpointModal(selectedGroupId);
-              }}
-            />
-            <ActionButton
-              label="Delete all"
-              type="delete"
-              className="ml-4"
-              onClick={() => {
-                openDeleteAllEndpointModal();
-              }}
-              disabled={!hasEndpoints}
-            />
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex flex-col">
+              <div className="font-semibold text-lg">API Endpoint: </div>
+              <div className="text-blue-800 ">
+                <span>https://fakeapi.com/</span>
+                <Tooltip
+                  tooltip="Your project Id"
+                  className="mx-0.5 px-2 font-medium rounded-xl hover:bg-blue-200 bg-blue-100"
+                >
+                  {projectId}
+                </Tooltip>
+                <span>/</span>
+                <Tooltip
+                  tooltip="Your endpoint's path"
+                  className="mx-0.5 px-2 font-medium rounded-xl hover:bg-blue-200 bg-blue-100"
+                >
+                  :path
+                </Tooltip>
+              </div>
+            </div>
+            <div className="">
+              <ActionButton
+                label="Create new"
+                type="create"
+                className="ml-4"
+                onClick={() => {
+                  openCreateEndpointModal(selectedGroupId);
+                }}
+              />
+              <ActionButton
+                label="Delete all"
+                type="delete"
+                className="ml-4"
+                onClick={() => {
+                  openDeleteAllEndpointModal();
+                }}
+                disabled={!hasEndpoints}
+              />
+            </div>
           </div>
           <div className="overflow-auto min-h-64 max-h-96 pr-4">
             {(endpointGroupsState.isFetching && selectedGroupId.length == 0) ||

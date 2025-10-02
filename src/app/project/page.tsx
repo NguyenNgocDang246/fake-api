@@ -44,7 +44,9 @@ export default function Project() {
             <Spinner />
           </div>
         ) : projectsState.isError ? (
-          <div className="text-center mt-24 text-red-500">{String(projectsState.error)}</div>
+          <div className="text-center mt-24 text-red-500">
+            {String(projectsState.error.message)}
+          </div>
         ) : (
           <div>
             {hasProjects ? (

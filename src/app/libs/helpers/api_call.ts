@@ -16,7 +16,7 @@ export function createApi() {
     (res) => res,
     async (error: AxiosError) => {
       if (error.response?.status !== 401) {
-        return Promise.reject(error);
+        return Promise.reject(error.response?.data);
       }
 
       if (
@@ -24,7 +24,7 @@ export function createApi() {
         error.config?.url === API_ROUTES.AUTH.LOGIN ||
         error.config?.url === API_ROUTES.AUTH.REGISTER
       ) {
-        return Promise.reject(error.response);
+        return Promise.reject(error.response.data);
       }
 
       try {

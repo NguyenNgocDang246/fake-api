@@ -31,6 +31,9 @@ export const useEndpointGroupViewModel = () => {
       Notify.success("Deleted endpoint group");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT_GROUP.ALL] });
     },
+    onError: (error) => {
+      Notify.error(error.message);
+    },
   });
 
   const openDeleteEndpointGroupModal = ({ public_id }: ClientDeleteEndpointGroupByIdDTO) => {
