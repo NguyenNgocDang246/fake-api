@@ -7,8 +7,10 @@ import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.mode
 import { EndpointGroupInfoDTO } from "@/models/endpoint_group.model";
 import { EndpointInfoDTO } from "@/models/endpoint.model";
 import { ProjectInfoDTO } from "@/models/project.model";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEY, STALETIME } from "@/app/components/Wrapper/QueryClient/Constants";
+import Notify from "@/app/components/Notify";
+import { useModal } from "@/app/components/Wrapper/Modal/ModalWrapper";
 
 export function useEndpointGroupViewModel() {
   const pathname = usePathname();
@@ -73,11 +75,44 @@ export function useEndpointGroupViewModel() {
     staleTime: STALETIME,
   });
 
+  const modal = useModal();
+  const queryClient = useQueryClient();
+  const deleteAllEndpointsMutation = useMutation<ApiSuccessResponse, ApiErrorResponse>({
+    mutationFn: () =>
+      api.delete(
+        url_builder(API_ROUTES.ENDPOINT.DELETE_ALL, { projectId, endpointGroupId: selectedGroupId })
+      ),
+    onSuccess: () => {
+      Notify.success("Deleted all endpoints");
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT.ALL] });
+    },
+  });
+
+  const openDeleteAllEndpointModal = () => {
+    modal?.openModal({
+      type: "confirm",
+      props: {
+        question: "Delete all endpoints?",
+        critical: true,
+        onConfirm: async () => {
+          try {
+            await deleteAllEndpointsMutation.mutateAsync();
+            return true;
+          } catch (error) {
+            console.error("Delete endpoints failed:", error);
+            return false;
+          }
+        },
+      },
+    });
+  };
+
   return {
     projectInfoState,
     endpointGroupsState,
     selectedGroupId,
     setSelectedGroupId,
     endpointsState,
+    openDeleteAllEndpointModal,
   };
 }

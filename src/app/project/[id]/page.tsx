@@ -1,14 +1,15 @@
 "use client";
 import { useEndpointGroupViewModel } from "@/app/project/[id]/viewmodel";
 import { EndpointGroupItem } from "@/app/project/[id]/components/EndpointGroupItem/EndpointGroupItem";
-import { EndpointItem } from "@/app/project/[id]/components/EndpointItem";
+import { EndpointItem } from "@/app/project/[id]/components/EndpointItem/EndpointItem";
 import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
 import { LoadingDots } from "@/app/components/Loading/LoadingDots";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 import { Spinner } from "@/app/components/Loading/Spinner";
 import { NoContentText } from "@/app/components/Text/NoContentText";
-import { useCreateEndpointGroupViewModel } from "@/app/project/[id]/components/CreateEndpointGroupFrom/viewmodel";
+import { useCreateEndpointGroupViewModel } from "@/app/project/[id]/components/CreateEndpointGroupForm/viewmodel";
+import { useCreateEndpointViewModel } from "@/app/project/[id]/components/CreateEndpointForm/viewmodel";
 export default function Project() {
   const {
     projectInfoState,
@@ -16,8 +17,10 @@ export default function Project() {
     endpointsState,
     setSelectedGroupId,
     selectedGroupId,
+    openDeleteAllEndpointModal,
   } = useEndpointGroupViewModel();
   const { openCreateEndpointGroupModal } = useCreateEndpointGroupViewModel();
+  const { openCreateEndpointModal } = useCreateEndpointViewModel();
 
   const hasEndpointGroups = endpointGroupsState.data && endpointGroupsState.data.length > 0;
   const hasEndpoints = endpointsState.data && endpointsState.data.length > 0;
@@ -88,12 +91,21 @@ export default function Project() {
 
         <div className="grow flex flex-col">
           <div className="mb-4 flex items-center justify-end">
-            <ActionButton label="Create new" type="create" className="ml-4" onClick={() => {}} />
+            <ActionButton
+              label="Create new"
+              type="create"
+              className="ml-4"
+              onClick={() => {
+                openCreateEndpointModal(selectedGroupId);
+              }}
+            />
             <ActionButton
               label="Delete all"
               type="delete"
               className="ml-4"
-              onClick={() => {}}
+              onClick={() => {
+                openDeleteAllEndpointModal();
+              }}
               disabled={!hasEndpoints}
             />
           </div>
@@ -106,7 +118,18 @@ export default function Project() {
             ) : hasEndpoints ? (
               endpointsState.data.map((endpoint) => (
                 <div key={endpoint.public_id} className="mb-2">
-                  <EndpointItem {...endpoint} onclick={() => {}} />
+                  <EndpointItem
+                    {...{
+                      public_id: endpoint.public_id,
+                      path: endpoint.path,
+                      delay_ms: endpoint.delay_ms,
+                      method: endpoint.method,
+                      status_code: endpoint.status_code,
+                      response_body: JSON.stringify(endpoint.response_body),
+                      endpoint_groups_id: endpoint.endpoint_groups_id,
+                      project_id: projectInfoState.data?.public_id ?? "",
+                    }}
+                  />
                 </div>
               ))
             ) : (

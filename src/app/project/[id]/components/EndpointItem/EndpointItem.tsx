@@ -1,10 +1,15 @@
+import { Trash2 } from "lucide-react";
+import { useEndpointViewmodel } from "./viewmodel";
+import { useUpdateEndpointViewModel } from "@/app/project/[id]/components/UpdateEndpointForm/viewmodel";
 interface EndpointItemProps {
   public_id: string;
   path: string;
   delay_ms: number;
-  method: string;
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  response_body: string;
   status_code: number;
-  onclick: () => void;
+  project_id: string;
+  endpoint_groups_id: string;
 }
 
 export const EndpointItem: React.FC<EndpointItemProps> = ({
@@ -12,8 +17,10 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
   path,
   delay_ms,
   method,
+  response_body,
   status_code,
-  onclick,
+  project_id,
+  endpoint_groups_id,
 }) => {
   const methodColor: Record<string, string> = {
     GET: "bg-green-100 text-green-700",
@@ -30,9 +37,23 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
       ? "bg-red-100 text-red-700"
       : "bg-gray-100 text-gray-700";
 
+  const { openDeleteEndpointModal } = useEndpointViewmodel(project_id, endpoint_groups_id);
+  const { openUpdateEndpointModal } = useUpdateEndpointViewModel();
   return (
     <div
-      onClick={onclick}
+      onClick={() => {
+        openUpdateEndpointModal({
+          endpointGroupId: endpoint_groups_id,
+          endpointId: public_id,
+          old_data: {
+            path,
+            delay_ms: String(delay_ms),
+            method,
+            response_body,
+            status_code: String(status_code),
+          },
+        });
+      }}
       className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md cursor-pointer"
     >
       <div className="flex items-center gap-3">
@@ -51,7 +72,16 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
         <span className={`px-2 py-1 text-xs font-semibold rounded ${statusColor}`}>
           {status_code}
         </span>
-        <span className="text-gray-400">&gt;</span>
+        <span className="text-red-700 rounded-full p-2 hover:bg-gray-200">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openDeleteEndpointModal({ public_id });
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </span>
       </div>
     </div>
   );

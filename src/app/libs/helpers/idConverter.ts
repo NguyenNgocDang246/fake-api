@@ -3,7 +3,7 @@ const SECRET_SALT = process.env.SECRET_SALT || "SECRET SALT";
 const hashids = new Hashids(SECRET_SALT, 11);
 class IdConverter {
   public static encode(id: bigint): string {
-    return hashids.encodeHex(id.toString());
+    return hashids.encodeHex(id.toString(16));
   }
 
   public static decode(public_id: string): bigint {

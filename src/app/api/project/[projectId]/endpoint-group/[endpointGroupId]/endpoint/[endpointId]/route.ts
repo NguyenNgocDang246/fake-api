@@ -197,6 +197,7 @@ export async function PUT(
     }
     return ApiResponse.success({ data: endpointInfoValidation.data });
   } catch (error) {
+    console.log(error);
     if (error instanceof AppError) {
       return ApiResponse.error({
         message: error.message,
