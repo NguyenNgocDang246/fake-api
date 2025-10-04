@@ -7,9 +7,9 @@ class IdConverter {
   }
 
   public static decode(public_id: string): bigint {
-    const hex = hashids.decodeHex(public_id);
-    if (!hex) return BigInt(-1);
     try {
+      const hex = hashids.decodeHex(public_id);
+      if (!hex) return BigInt(-1);
       return BigInt("0x" + hex);
     } catch (error) {
       void error;

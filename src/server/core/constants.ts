@@ -4,13 +4,13 @@ export const REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS = 7 * 24 * 60 * 60;
 export const REFRESH_TOKEN_EXPIRATION_TIME_IN_STRING = "7d";
 
 export enum ERROR_MESSAGES {
-  VALIDATION_FAILED = "Validation failed",
-  UNAUTHORIZED = "Unauthorized",
-  FORBIDDEN = "Forbidden",
-  NOT_FOUND = "Resource not found",
-  NO_CONTENT = "No content",
-  SERVER_ERROR = "Internal server error",
-  UNEXPECTED_ERROR = "Unexpected error",
+  VALIDATION_FAILED = "Some information seems incorrect. Please check and try again.",
+  UNAUTHORIZED = "You need to log in to continue.",
+  FORBIDDEN = "You don't have permission to perform this action.",
+  NOT_FOUND = "We couldn't find what you were looking for.",
+  NO_CONTENT = "There's no data to display right now.",
+  SERVER_ERROR = "Something went wrong on our side. Please try again later.",
+  UNEXPECTED_ERROR = "An unexpected error occurred. Please try again.",
 }
 
 export enum SUCCESS_MESSAGES {
