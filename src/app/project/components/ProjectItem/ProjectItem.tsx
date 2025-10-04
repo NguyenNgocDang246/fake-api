@@ -50,7 +50,7 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({ public_id, name, descr
 
         <DropdownButton
           btnClassName="p-2 rounded-full bg-inherit hover:bg-gray-200"
-          boxClassName="w-52 bg-gray-200"
+          boxClassName="w-52"
           position="left"
           title="Project Action"
           options={["Edit", "Delete"]}

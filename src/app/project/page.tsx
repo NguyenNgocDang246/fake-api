@@ -28,7 +28,7 @@ export default function Project() {
           <ActionButton
             label="Create new"
             type="create"
-            className="ml-4"
+            className="ml-4 "
             onClick={() => openCreateProjectModal()}
           />
           <ActionButton

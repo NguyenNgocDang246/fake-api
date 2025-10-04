@@ -18,7 +18,8 @@ export function UserHeader() {
         <NavigationButton href="" label="Docs" />
         <DropdownButton
           position="left"
-          boxClassName="w-52 bg-gray-200"
+          btnClassName="py-3"
+          boxClassName="w-52"
           title={`Hello, ${user?.name}`}
           options={[<LogoutButton key="logout" />]}
           onSelect={() => {}}

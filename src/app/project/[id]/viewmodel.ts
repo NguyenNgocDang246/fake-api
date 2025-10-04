@@ -126,8 +126,8 @@ export function useEndpointGroupViewModel() {
     projectInfoState,
     endpointGroupsState,
     selectedGroupId,
-    setSelectedGroupId,
     endpointsState,
+    setSelectedGroupId,
     openDeleteAllEndpointModal,
   };
 }

@@ -115,6 +115,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
           </div>
           <div className="flex-1 flex flex-col gap-1">
             <DefaultInput
+              className="w-full"
               label="Path"
               register={register("path")}
               type="text"

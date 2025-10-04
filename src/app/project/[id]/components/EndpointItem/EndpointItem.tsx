@@ -57,7 +57,7 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
           },
         });
       }}
-      className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md cursor-pointer"
+      className="flex flex-wrap gap-4 items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md cursor-pointer"
     >
       <div className="flex items-center gap-3">
         <span
@@ -67,10 +67,10 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
         >
           {method}
         </span>
-        <h3 className="font-medium text-gray-800">{path}</h3>
+        <h3 className="font-medium text-gray-800 truncate">{path}</h3>
       </div>
 
-      <div className="flex items-center gap-3 text-sm">
+      <div className="flex items-center justify-end gap-3 text-sm">
         <span className="text-gray-500">{delay_ms}ms</span>
         <span className={`px-2 py-1 text-xs font-semibold rounded ${statusColor}`}>
           {status_code}
@@ -78,6 +78,7 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
         <div className="flex">
           <button
             className="text-red-700 rounded-full w-9 h-9 flex justify-center items-center p-2 hover:bg-gray-200 cursor-pointer"
+            title="Delete Endpoint"
             onClick={(e) => {
               e.stopPropagation();
               openDeleteEndpointModal({ public_id });

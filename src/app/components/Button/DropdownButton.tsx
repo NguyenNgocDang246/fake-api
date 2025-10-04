@@ -12,6 +12,7 @@ interface DropdownProps {
   btnClassName?: string;
   dividerClassName?: string;
   boxClassName?: string;
+  optionClassName?: string;
   position?: "left" | "right" | "center";
 }
 
@@ -24,6 +25,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
   btnClassName,
   dividerClassName,
   boxClassName,
+  optionClassName,
   position = "left",
 }: DropdownProps) => {
   const [open, setOpen] = useState(false);
@@ -66,7 +68,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
       <div
         onClick={(e) => e.stopPropagation()}
         className={twMerge(
-          "absolute mt-2 p-2 bg-white border border-gray-300 rounded-md shadow-lg z-10 transition-all duration-200 ease-out",
+          "absolute mt-2 p-2 bg-gray-100 border border-gray-300 rounded-md shadow-lg z-10 transition-all duration-200 ease-out",
           positionClass,
           boxClassName,
           open
@@ -80,17 +82,20 @@ export const DropdownButton: React.FC<DropdownProps> = ({
         </div>
 
         {options.map((option, index) => (
-          <button
+          <div
             key={index}
             onClick={(e) => {
               e.stopPropagation();
               onSelect?.(index);
               setOpen(false);
             }}
-            className="cursor-pointer block w-full text-left px-3 rounded-lg py-1 hover:bg-blue-300"
+            className={twMerge(
+              "cursor-pointer block w-full text-left px-3 rounded-lg py-1 hover:bg-blue-300",
+              optionClassName
+            )}
           >
             {option}
-          </button>
+          </div>
         ))}
       </div>
     </div>

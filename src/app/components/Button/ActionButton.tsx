@@ -19,7 +19,8 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   type,
 }) => {
   const typeClasses: Record<string, string> = {
-    create: "bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400",
+    create:
+      "bg-linear-to-r from-indigo-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-800 disabled:from-blue-400 disabled:to-blue-400",
     delete: "bg-red-600 text-white hover:bg-red-700 disabled:bg-red-400",
     update: "bg-yellow-500 text-white hover:bg-yellow-600 disabled:bg-yellow-300",
     view: "bg-green-600 text-white hover:bg-green-700 disabled:bg-green-400",

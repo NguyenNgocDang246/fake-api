@@ -22,7 +22,7 @@ export const Tooltip: React.FC<tooltipProps> = ({
   return (
     <div
       className={twMerge("relative cursor-pointer inline-block", className)}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => setIsHovered(true && tooltip.length > 0)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {children}
