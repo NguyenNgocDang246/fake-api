@@ -133,9 +133,9 @@ export default function Project() {
             ) : (
               <div className="flex justify-center">
                 {hasEndpointGroups ? (
-                  <NoContentText message="No endpoint" />
+                  <NoContentText message="No endpoints" />
                 ) : (
-                  <NoContentText message="No endpoint group" />
+                  <NoContentText message="No endpoint groups" />
                 )}
               </div>
             )}
