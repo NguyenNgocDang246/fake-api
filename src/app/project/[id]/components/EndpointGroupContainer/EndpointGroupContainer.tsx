@@ -23,7 +23,7 @@ export const EndpointGroupContainer = ({
   const hasEndpointGroups = endpointGroupsState.data && endpointGroupsState.data.length > 0;
   return (
     <div>
-      <div className="xl:hidden flex gap-2 items-center relative">
+      <div className="xl:hidden flex gap-2 items-center relative flex-wrap">
         <div className="sm:block hidden font-semibold">Current group: </div>
         <div className="grow">
           {!endpointGroupsState.isFetched ? (
@@ -36,30 +36,28 @@ export const EndpointGroupContainer = ({
                 (group) => group.public_id === selectedGroupId
               );
               return selectedGroup ? (
-                <div>
-                  <DropdownButton
-                    title="Choose endpoint group"
-                    options={endpointGroupsState.data.map((group) => (
-                      <EndpointGroupItem
-                        key={group.public_id}
-                        {...group}
-                        isChosen={false}
-                        onclick={() => {}}
-                      />
-                    ))}
-                    className="w-full border border-gray-300 bg-white shadow-sm rounded-xl"
-                    btnClassName="bg-inherit rounded-xl w-full hover:bg-blue-200 cursor-pointer"
-                    boxClassName="w-full bg-white text-black"
-                    optionClassName="hover:bg-inherit"
-                    onSelect={(index) =>
-                      setSelectedGroupId(endpointGroupsState.data[index].public_id)
-                    }
-                  >
-                    <div className="flex items-center justify-between">
-                      {selectedGroup.name} <ChevronDown />
-                    </div>
-                  </DropdownButton>
-                </div>
+                <DropdownButton
+                  title="Choose endpoint group"
+                  options={endpointGroupsState.data.map((group) => (
+                    <EndpointGroupItem
+                      key={group.public_id}
+                      {...group}
+                      isChosen={false}
+                      onclick={() => {}}
+                    />
+                  ))}
+                  className="w-full flex-[7_1_0%] min-w-[10rem] border border-gray-300 bg-white shadow-sm rounded-xl"
+                  btnClassName="bg-inherit rounded-xl w-full hover:bg-blue-200 cursor-pointer"
+                  boxClassName="w-full bg-white text-black"
+                  optionClassName="hover:bg-inherit"
+                  onSelect={(index) =>
+                    setSelectedGroupId(endpointGroupsState.data[index].public_id)
+                  }
+                >
+                  <div className="flex items-center justify-between">
+                    {selectedGroup.name} <ChevronDown />
+                  </div>
+                </DropdownButton>
               ) : (
                 <NoContentText message="No selected endpoint group" className="text-center" />
               );
@@ -70,7 +68,7 @@ export const EndpointGroupContainer = ({
         </div>
         <ActionButton
           label="Create new"
-          className="min-w-1/5 max-w-1/2"
+          className="flex-[3_1_0%] min-w-[5rem]"
           type="create"
           onClick={() => {
             openCreateEndpointGroupModal();
