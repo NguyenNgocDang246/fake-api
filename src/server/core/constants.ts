@@ -9,6 +9,7 @@ export enum ERROR_MESSAGES {
   FORBIDDEN = "You don't have permission to perform this action.",
   NOT_FOUND = "We couldn't find what you were looking for.",
   NO_CONTENT = "There's no data to display right now.",
+  METHOD_NOT_ALLOWED = "This method is not allowed for this resource.",
   SERVER_ERROR = "Something went wrong on our side. Please try again later.",
   UNEXPECTED_ERROR = "An unexpected error occurred. Please try again.",
 }
@@ -32,6 +33,7 @@ export enum STATUS_CODE {
   UNAUTHORIZED = 401,
   FORBIDDEN = 403,
   NOT_FOUND = 404,
+  METHOD_NOT_ALLOWED = 405,
   SERVER_ERROR = 500,
 }
 
@@ -41,6 +43,10 @@ export enum AUTH_MESSAGES {
 
   USER_ALREADY_EXISTS = "User already exists",
   INVALID_CREDENTIALS = "Invalid credentials",
+}
+
+export enum ENDPOINT_MESSAGES {
+  PATH_DUPLICATED = "Path already exists",
 }
 
 export enum TOKEN_MESSAGE {

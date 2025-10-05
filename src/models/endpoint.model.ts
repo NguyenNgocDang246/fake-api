@@ -105,3 +105,6 @@ export const GetEndpointByIdSchema = EndpointSchema.pick({
   id: true,
 }).strict();
 export type GetEndpointByIdDTO = z.infer<typeof GetEndpointByIdSchema>;
+
+export const getEndpointByPathSchema = EndpointSchema.pick({ path: true }).strict();
+export type GetEndpointByPathDTO = z.infer<typeof getEndpointByPathSchema>;

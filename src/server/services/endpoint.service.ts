@@ -6,6 +6,7 @@ import { GetEndpointGroupByIdDTO } from "@/models/endpoint_group.model";
 import {
   CreateEndpointDTO,
   GetEndpointByIdDTO,
+  GetEndpointByPathDTO,
   DeleteAllEndpointDTO,
   DeleteEndpointByIdDTO,
   UpdateEndpointByIdDTO,
@@ -56,6 +57,19 @@ class EndpointService {
       return await prisma.endpoints.findUnique({ where: { id } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async getEndpointByPath({
+    project_id,
+    path,
+  }: GetEndpointByPathDTO & {
+    project_id: GetProjectByIdDTO["id"];
+  }) {
+    try {
+      return await prisma.endpoints.findFirst({ where: { path, endpoint_groups: { project_id } } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();   
     }
   }
 
