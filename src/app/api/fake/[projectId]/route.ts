@@ -3,12 +3,13 @@ import ApiResponse from "@/server/core/api_response";
 import IdConverter from "@/app/libs/helpers/idConverter";
 import EndpointService from "@/server/services/endpoint.service";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { EndpointMethod } from "@/models/endpoint.model";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function handle(req: NextRequest, method: string) {
+async function handle(req: NextRequest, method: EndpointMethod["method"]) {
   const segments = req.nextUrl.pathname.split("/").filter(Boolean);
   const publicId = segments[0];
   const projectId = IdConverter.decode(publicId);
@@ -17,6 +18,7 @@ async function handle(req: NextRequest, method: string) {
   const endpoint = await EndpointService.getEndpointByPath({
     project_id: projectId,
     path: pathname,
+    method,
   });
   if (!endpoint)
     return ApiResponse.error({

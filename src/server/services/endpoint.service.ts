@@ -63,13 +63,16 @@ class EndpointService {
   async getEndpointByPath({
     project_id,
     path,
+    method,
   }: GetEndpointByPathDTO & {
     project_id: GetProjectByIdDTO["id"];
   }) {
     try {
-      return await prisma.endpoints.findFirst({ where: { path, endpoint_groups: { project_id } } });
+      return await prisma.endpoints.findFirst({
+        where: { path, method, endpoint_groups: { project_id } },
+      });
     } catch (error) {
-      throw error instanceof AppError ? error : new AppError();   
+      throw error instanceof AppError ? error : new AppError();
     }
   }
 
