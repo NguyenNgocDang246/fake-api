@@ -41,6 +41,13 @@ class AuthService {
         });
       }
 
+      if (!user.is_verified) {
+        throw new AppError({
+          statusCode: STATUS_CODE.FORBIDDEN,
+          message: AUTH_MESSAGES.EMAIL_NOT_VERIFIED,
+        });
+      }
+
       const refreshToken = await tokenService.createRefreshToken({
         id: user.id,
         token_version: user.token_version,

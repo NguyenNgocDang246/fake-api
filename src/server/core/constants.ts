@@ -39,12 +39,15 @@ export enum STATUS_CODE {
 }
 
 export enum AUTH_MESSAGES {
-  EMAIL_NOT_FOUND = "Email not found",
-  EMAIL_DUPLICATED = "Email already exists",
+  EMAIL_NOT_VERIFIED = "Please verify your email.",
 
-  USER_ALREADY_EXISTS = "User already exists",
-  INVALID_CREDENTIALS = "Invalid credentials",
+  EMAIL_NOT_FOUND = "We couldn't find an account with that email.",
+  EMAIL_DUPLICATED = "This email is already registered. Try signing in instead.",
+
+  USER_ALREADY_EXISTS = "An account with this information already exists.",
+  INVALID_CREDENTIALS = "Incorrect email or password. Please try again.",
 }
+
 
 export enum GOOGLE_AUTH_MESSAGES {
   NO_CODE = "Missing code",

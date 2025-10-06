@@ -15,6 +15,7 @@ export const UserSchema = z
       .string()
       .min(6, "Mật khẩu phải có ít nhất 6 ký tự")
       .max(255, "Mật khẩu không được quá 255 ký tự"),
+    is_verified: z.boolean().default(false),
   })
   .strict();
 export type UserDTO = z.infer<typeof UserSchema>;

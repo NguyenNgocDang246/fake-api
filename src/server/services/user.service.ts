@@ -35,6 +35,14 @@ class UserService {
       throw error instanceof AppError ? error : new AppError();
     }
   }
+
+  async verifyUserEmail({ id }: GetUserByIdDTO) {
+    try {
+      return await prisma.users.update({ where: { id }, data: { is_verified: true } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
 }
 const userService = new UserService();
 export default userService;
