@@ -7,6 +7,7 @@ import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.mode
 import { PAGE_ROUTES, API_ROUTES } from "@/app/libs/routes";
 import api from "@/app/libs/helpers/api_call";
 import { useQueryClient } from "@tanstack/react-query";
+import Notify from "@/app/components/Notify";
 
 export function useLoginViewModel() {
   const [message, setMessage] = useState<string>("");
@@ -27,8 +28,9 @@ export function useLoginViewModel() {
       queryClient.clear();
       router.replace(PAGE_ROUTES.PROJECT);
     } catch (error) {
-      const data = (error as { data: ApiErrorResponse }).data;
+      const data = error as ApiErrorResponse;
       setMessage(data.message);
+      Notify.error(data.message);
     }
   };
 

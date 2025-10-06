@@ -4,8 +4,10 @@ import { validateData } from "@/server/core/validation";
 import ApiResponse from "@/server/core/api_response";
 import { NextRequest } from "next/server";
 import authService from "@/server/services/auth/auth.service";
+import UserService from "@/server/services/user.service";
 import { UserInfoSchema } from "@/models/user.model";
 import IdConverter from "@/app/libs/helpers/idConverter";
+import { STATUS_CODE, AUTH_MESSAGES } from "@/server/core/constants";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +17,13 @@ export async function POST(req: NextRequest) {
       return validation.response;
     }
     const user = validation.data;
+    const existingUser = await UserService.getUserByEmail({ email: user.email });
+    if (existingUser) {
+      return ApiResponse.error({
+        message: AUTH_MESSAGES.EMAIL_DUPLICATED,
+        statusCode: STATUS_CODE.CONFLICT,
+      });
+    }
     const registeredUser = await authService.register(user);
     const userInfoValidation = validateData(
       {
