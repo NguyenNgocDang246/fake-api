@@ -47,7 +47,7 @@ export enum AUTH_MESSAGES {
 }
 
 export enum ENDPOINT_MESSAGES {
-  PATH_DUPLICATED = "Path already exists",
+  ENDPOINT_DUPLICATED = "Endpoint already exists",
 }
 
 export enum TOKEN_MESSAGE {

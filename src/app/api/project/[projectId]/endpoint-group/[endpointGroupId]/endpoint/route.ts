@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import ApiResponse from "@/server/core/api_response";
 import { GetUserByIdSchema } from "@/models/user.model";
 import { AppError } from "@/server/core/errors";
-import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { ERROR_MESSAGES, STATUS_CODE, ENDPOINT_MESSAGES } from "@/server/core/constants";
 import { validateData } from "@/server/core/validation";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import IdConverter from "@/app/libs/helpers/idConverter";
@@ -138,6 +138,17 @@ export async function POST(
       return endpointValidation.response;
     }
     const endpoint = endpointValidation.data;
+    const endpointExists = await EndpointService.getEndpointByPath({
+      project_id: projectId,
+      path: endpoint.path,
+      method: endpoint.method,
+    });
+    if (endpointExists) {
+      return ApiResponse.error({
+        message: ENDPOINT_MESSAGES.ENDPOINT_DUPLICATED,
+        statusCode: STATUS_CODE.CONFLICT,
+      });
+    }
     const endpointCreate = await EndpointService.createEndpoint(endpoint);
     const endpointInfoValidation = validateData(
       {
