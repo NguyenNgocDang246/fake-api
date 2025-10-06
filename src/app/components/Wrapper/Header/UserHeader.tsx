@@ -1,5 +1,6 @@
 "use client";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
+import Image from "next/image";
 import { User } from "lucide-react";
 import { DropdownButton } from "@/app/components/Button/DropdownButton";
 import { LogoutButton } from "@/app/components/Button/LogoutButton";
@@ -11,10 +12,21 @@ export function UserHeader() {
   const { user } = useAuth();
   return (
     <div className="flex justify-between lg:px-24 md:px-16 sm:px-8 px-4 py-4">
-      <TextLink href={PAGE_ROUTES.HOME} className="font-bold sm:text-[2.7rem] text-3xl">
+      <TextLink
+        href={PAGE_ROUTES.HOME}
+        className="flex items-center font-bold sm:text-[2rem] text-2xl text-center"
+      >
+        <Image
+          src="/assets/logo.ico"
+          alt="Fake API"
+          width={60}
+          height={60}
+          className="cursor-pointer mr-4"
+        />
         Fake API
       </TextLink>
-      <div className="flex justify-between items-center gap-4">
+
+      <div className="flex justify-between items-center gap-2">
         <NavigationButton href="" label="Docs" />
         <DropdownButton
           position="left"
