@@ -46,6 +46,10 @@ export enum AUTH_MESSAGES {
   INVALID_CREDENTIALS = "Invalid credentials",
 }
 
+export enum GOOGLE_AUTH_MESSAGES {
+  NO_CODE = "Missing code",
+}
+
 export enum ENDPOINT_MESSAGES {
   ENDPOINT_DUPLICATED = "Endpoint already exists",
 }
