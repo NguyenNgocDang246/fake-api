@@ -18,6 +18,7 @@ export async function middleware(req: NextRequest) {
   if (url.pathname.startsWith("/api/auth/register")) return NextResponse.next();
   if (url.pathname.startsWith("/api/auth/refresh-token")) return NextResponse.next();
   if (url.pathname.startsWith("/api/auth/google")) return NextResponse.next();
+  if (url.pathname.startsWith("/api/auth/forgot-password")) return NextResponse.next();
 
   if (url.pathname.startsWith("/api/")) {
     const res = await authMiddleware({ ctx });
