@@ -1,11 +1,19 @@
 import { oauth2Client } from "@/app/api/auth/google/google.OAuth2";
-import { NextResponse } from "next/server";
+import ApiResponse from "@/server/core/api_response";
+import { LoginWithGoogleResponseDTO } from "@/models/auth.model";
 
 export async function GET() {
-  const url = oauth2Client.generateAuthUrl({
-    access_type: "offline",
-    scope: ["profile", "email"],
-  });
+  try {
+    const url = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: ["profile", "email"],
+    });
 
-  return NextResponse.redirect(url);
+    const data: LoginWithGoogleResponseDTO = { url };
+
+    return ApiResponse.success({ data });
+  } catch (error) {
+    void error;
+    return ApiResponse.error();
+  }
 }

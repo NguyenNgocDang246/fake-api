@@ -6,9 +6,10 @@ import { SubmitButton } from "@/app/components/Button/SubmitButton";
 import { TextLink } from "@/app/components/Link/TextLink";
 import { ErrorText } from "@/app/components/Text/ErrorText";
 import { PAGE_ROUTES } from "@/app/libs/routes";
+import { IconButton } from "@/app/components/Button/IconButton";
 
 export default function LoginPage() {
-  const { register, handleSubmit, errors, message } = useLoginViewModel();
+  const { register, handleSubmit, loginWithGoogle, errors, message } = useLoginViewModel();
   return (
     <div className="flex justify-center items-center h-screen">
       <div className="w-[20rem] h-fit p-4 rounded-md shadow-[0_0_10px_rgba(0,0,0,0.5)] shadow-gray-600">
@@ -41,6 +42,14 @@ export default function LoginPage() {
           </div>
           <SubmitButton label="Login" className="w-full mt-8" />
         </form>
+        <IconButton
+          icon={{ src: "/assets/google-icon.svg", alt: "google", width: 20, height: 20 }}
+          label="Login with Google"
+          className="w-full mt-4"
+          onClick={() => {
+            loginWithGoogle();
+          }}
+        />
         <div className="flex justify-between my-4">
           <TextLink className="underline" href={PAGE_ROUTES.AUTH.REGISTER}>
             Sign Up

@@ -5,6 +5,9 @@ export const API_ROUTES = {
     LOGOUT: "/api/auth/logout",
     CHECK: "/api/auth/check",
     REFRESH_TOKEN: "/api/auth/refresh-token",
+    GOOGLE: {
+      LOGIN: "/api/auth/google",
+    },
   },
   USER: {
     GET: "/api/user",

@@ -51,6 +51,8 @@ export enum AUTH_MESSAGES {
 
 export enum GOOGLE_AUTH_MESSAGES {
   NO_CODE = "Missing code",
+  NO_EMAIL = "Missing email",
+  NO_NAME = "Missing name",
 }
 
 export enum ENDPOINT_MESSAGES {

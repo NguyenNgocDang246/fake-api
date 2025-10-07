@@ -1,6 +1,13 @@
 import { AUTH_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { AppError } from "@/server/core/errors";
-import { LoginDTO, LoginResponseDTO, LoginResponseSchema, RegisterDTO } from "@/models/auth.model";
+import {
+  LoginDTO,
+  LoginResponseDTO,
+  LoginResponseSchema,
+  RegisterDTO,
+  RegisterWithGoogleDTO,
+  LoginWithGoogleDTO,
+} from "@/models/auth.model";
 import { UserDTO } from "@/models/user.model";
 import userService from "@/server/services/user.service";
 import { hashPassword, verifyPassword } from "@/server/services/auth/hash.service";
@@ -18,6 +25,17 @@ class AuthService {
 
       const password = await hashPassword(data.password);
       return await userService.createUser({ ...data, password });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async registerWithGoogle(data: RegisterWithGoogleDTO): Promise<UserDTO> {
+    try {
+      const password = Date.now().toString() + process.env.DUMMY_PASSWORD_SALT;
+      const user = await this.register({ ...data, password });
+      await userService.verifyUserEmail({ id: user.id });
+      return user;
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
@@ -45,6 +63,31 @@ class AuthService {
         throw new AppError({
           statusCode: STATUS_CODE.FORBIDDEN,
           message: AUTH_MESSAGES.EMAIL_NOT_VERIFIED,
+        });
+      }
+
+      const refreshToken = await tokenService.createRefreshToken({
+        id: user.id,
+        token_version: user.token_version,
+      });
+      const accessToken = await tokenService.createAccessToken({ id: user.id });
+
+      return LoginResponseSchema.parse({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async loginWithGoogle(data: LoginWithGoogleDTO): Promise<LoginResponseDTO> {
+    try {
+      const user = await userService.getUserByEmail({ email: data.email });
+      if (!user) {
+        throw new AppError({
+          statusCode: STATUS_CODE.UNAUTHORIZED,
+          message: AUTH_MESSAGES.INVALID_CREDENTIALS,
         });
       }
 

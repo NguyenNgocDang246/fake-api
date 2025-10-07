@@ -9,6 +9,7 @@ import {
 import ApiResponse from "@/server/core/api_response";
 import { NextRequest } from "next/server";
 import authService from "@/server/services/auth/auth.service";
+import { API_ROUTES } from "@/app/libs/routes";
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         maxAge: REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
-        path: "/api/auth/refresh-token",
+        path: API_ROUTES.AUTH.REFRESH_TOKEN,
       }),
     ].join(", ");
     const res = ApiResponse.success();

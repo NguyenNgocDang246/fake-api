@@ -22,6 +22,24 @@ export const RegisterSchema = UserSchema.pick({
 }).strict();
 export type RegisterDTO = z.infer<typeof RegisterSchema>;
 
+export const LoginWithGoogleSchema = UserSchema.pick({
+  email: true,
+}).strict();
+export type LoginWithGoogleDTO = z.infer<typeof LoginWithGoogleSchema>;
+
+export const LoginWithGoogleResponseSchema = z
+  .object({
+    url: z.string(),
+  })
+  .strict();
+export type LoginWithGoogleResponseDTO = z.infer<typeof LoginWithGoogleResponseSchema>;
+
+export const RegisterWithGoogleSchema = UserSchema.pick({
+  name: true,
+  email: true,
+}).strict();
+export type RegisterWithGoogleDTO = z.infer<typeof RegisterWithGoogleSchema>;
+
 export const LogoutSchema = z.object({}).strict();
 export type LogoutDTO = z.infer<typeof LogoutSchema>;
 
