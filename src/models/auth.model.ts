@@ -46,15 +46,20 @@ export type LogoutDTO = z.infer<typeof LogoutSchema>;
 export const UserToAccessTokenSchema = UserSchema.pick({ id: true }).strict();
 export type UserToAccessTokenDTO = z.infer<typeof UserToAccessTokenSchema>;
 
-export const UserToRefreshTokenSchema = UserSchema.pick({ id: true })
-  .extend({ token_version: z.bigint() })
-  .strict();
+export const UserToRefreshTokenSchema = UserSchema.pick({ id: true, token_version: true }).strict();
 export type UserToRefreshTokenDTO = z.infer<typeof UserToRefreshTokenSchema>;
 
 export const AccessTokenPayloadSchema = UserSchema.pick({ id: true }).strict();
 export type AccessTokenPayloadDTO = z.infer<typeof AccessTokenPayloadSchema>;
 
-export const RefreshTokenPayloadSchema = UserSchema.pick({ id: true })
-  .extend({ token_version: z.bigint() })
-  .strict();
+export const RefreshTokenPayloadSchema = UserSchema.pick({
+  id: true,
+  token_version: true,
+}).strict();
 export type RefreshTokenPayloadDTO = z.infer<typeof RefreshTokenPayloadSchema>;
+
+export const ResetPasswordTokenPayloadSchema = UserSchema.pick({
+  id: true,
+  token_version: true,
+}).strict();
+export type ResetPasswordTokenPayloadDTO = z.infer<typeof ResetPasswordTokenPayloadSchema>;

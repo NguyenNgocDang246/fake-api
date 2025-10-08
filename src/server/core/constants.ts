@@ -2,6 +2,8 @@ export const ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS = 5 * 60;
 export const ACCESS_TOKEN_EXPIRATION_TIME_IN_STRING = "5m";
 export const REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS = 7 * 24 * 60 * 60;
 export const REFRESH_TOKEN_EXPIRATION_TIME_IN_STRING = "7d";
+export const RESET_PASSWORD_TOKEN_EXPIRATION_TIME_IN_SECONDS = 5 * 60;
+export const RESET_PASSWORD_TOKEN_EXPIRATION_TIME_IN_STRING = "5m";
 
 export enum ERROR_MESSAGES {
   VALIDATION_FAILED = "Some information seems incorrect. Please check and try again.",
@@ -45,6 +47,7 @@ export enum AUTH_MESSAGES {
   EMAIL_DUPLICATED = "This email is already registered. Try signing in instead.",
 
   USER_ALREADY_EXISTS = "An account with this information already exists.",
+  USER_NOT_FOUND = "We couldn't find an account with that information.",
   INVALID_CREDENTIALS = "Incorrect email or password. Please try again.",
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import authMiddleware from "@/server/middlewares/auth.middleware";
 import fakeMiddleware, { FakeAPIPrefix } from "@/server/middlewares/fake.middleware";
+import { API_ROUTES } from "@/app/libs/routes";
 
 export interface MiddlewareContext {
   userId?: string;
@@ -14,11 +15,12 @@ export async function middleware(req: NextRequest) {
   // fake
   if (url.pathname.startsWith(FakeAPIPrefix)) return NextResponse.next();
   // server
-  if (url.pathname.startsWith("/api/auth/login")) return NextResponse.next();
-  if (url.pathname.startsWith("/api/auth/register")) return NextResponse.next();
-  if (url.pathname.startsWith("/api/auth/refresh-token")) return NextResponse.next();
-  if (url.pathname.startsWith("/api/auth/google")) return NextResponse.next();
-  if (url.pathname.startsWith("/api/auth/forgot-password")) return NextResponse.next();
+  if (url.pathname.startsWith(API_ROUTES.AUTH.LOGIN)) return NextResponse.next();
+  if (url.pathname.startsWith(API_ROUTES.AUTH.REGISTER)) return NextResponse.next();
+  if (url.pathname.startsWith(API_ROUTES.AUTH.REFRESH_TOKEN)) return NextResponse.next();
+  if (url.pathname.startsWith(API_ROUTES.AUTH.GOOGLE.LOGIN)) return NextResponse.next();
+  if (url.pathname.startsWith(API_ROUTES.AUTH.PASSWORD.FORGOT)) return NextResponse.next();
+  if (url.pathname.startsWith(API_ROUTES.AUTH.PASSWORD.RESET)) return NextResponse.next();
 
   if (url.pathname.startsWith("/api/")) {
     const res = await authMiddleware({ ctx });

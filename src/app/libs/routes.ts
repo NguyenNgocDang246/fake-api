@@ -1,3 +1,5 @@
+export const DOMAIN = "http://localhost:3000";
+
 export const API_ROUTES = {
   AUTH: {
     LOGIN: "/api/auth/login",
@@ -5,6 +7,11 @@ export const API_ROUTES = {
     LOGOUT: "/api/auth/logout",
     CHECK: "/api/auth/check",
     REFRESH_TOKEN: "/api/auth/refresh-token",
+    PASSWORD: {
+      FORGOT: "/api/auth/password/forgot",
+      RESET: "/api/auth/password/reset",
+      CHANGE: "/api/auth/password/change",
+    },
     GOOGLE: {
       LOGIN: "/api/auth/google",
     },
@@ -44,8 +51,10 @@ export const PAGE_ROUTES = {
   AUTH: {
     LOGIN: "/auth/login",
     REGISTER: "/auth/register",
+    PASSWORD: {
+      RESET: "/auth/password/reset",
+    },
   },
   HOME: "/",
   PROJECT: "/project",
 };
-

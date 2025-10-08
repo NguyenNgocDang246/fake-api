@@ -8,6 +8,7 @@ import {
   RegisterWithGoogleDTO,
   LoginWithGoogleDTO,
 } from "@/models/auth.model";
+import { UpdatePasswordDTO } from "@/models/user.model";
 import { UserDTO } from "@/models/user.model";
 import userService from "@/server/services/user.service";
 import { hashPassword, verifyPassword } from "@/server/services/auth/hash.service";
@@ -101,6 +102,23 @@ class AuthService {
         access_token: accessToken,
         refresh_token: refreshToken,
       });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async updatePassword({ id, password }: UpdatePasswordDTO) {
+    try {
+      const user = await userService.getUserById({ id });
+      if (!user) {
+        throw new AppError({
+          statusCode: STATUS_CODE.NO_CONTENT,
+          message: AUTH_MESSAGES.USER_NOT_FOUND,
+        });
+      }
+
+      const hashedPassword = await hashPassword(password);
+      return await userService.updatePassword({ id, password: hashedPassword });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

@@ -6,6 +6,8 @@ import {
   RefreshTokenPayloadDTO,
   AccessTokenPayloadSchema,
   RefreshTokenPayloadSchema,
+  ResetPasswordTokenPayloadDTO,
+  ResetPasswordTokenPayloadSchema,
 } from "@/models/auth.model";
 import { GetUserByIdDTO } from "@/models/user.model";
 import { AppError } from "@/server/core/errors";
@@ -13,6 +15,7 @@ import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
 import {
   ACCESS_TOKEN_EXPIRATION_TIME_IN_STRING,
   REFRESH_TOKEN_EXPIRATION_TIME_IN_STRING,
+  RESET_PASSWORD_TOKEN_EXPIRATION_TIME_IN_STRING,
 } from "@/server/core/constants";
 import userService from "../user.service";
 import { PrismaClient } from "@prisma/client";
@@ -20,6 +23,9 @@ const prisma = new PrismaClient();
 
 const ACCESS_SECRET = new TextEncoder().encode(process.env.ACCESS_SECRET || "access_secret");
 const REFRESH_SECRET = new TextEncoder().encode(process.env.REFRESH_SECRET || "refresh_secret");
+const RESET_PASSWORD_SECRET = new TextEncoder().encode(
+  process.env.RESET_PASSWORD_SECRET || "reset_password_secret"
+);
 
 class TokenService {
   async createAccessToken({ id }: UserToAccessTokenDTO): Promise<string> {
@@ -82,6 +88,43 @@ class TokenService {
     } catch (error) {
       console.log(error);
       throw new AppError();
+    }
+  }
+
+  async createResetPasswordToken({ id, token_version }: ResetPasswordTokenPayloadDTO) {
+    return new SignJWT({ id: id.toString(), token_version: token_version.toString() })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime(RESET_PASSWORD_TOKEN_EXPIRATION_TIME_IN_STRING)
+      .sign(RESET_PASSWORD_SECRET);
+  }
+
+  async verifyResetPasswordToken(token: string): Promise<ResetPasswordTokenPayloadDTO> {
+    try {
+      const { payload } = await jwtVerify(token, RESET_PASSWORD_SECRET);
+      const result = ResetPasswordTokenPayloadSchema.parse({
+        id: BigInt(payload.id as string),
+        token_version: BigInt(payload.token_version as string),
+      });
+      const user = await userService.getUserById({ id: result.id });
+      if (!user) {
+        throw new AppError({
+          message: TOKEN_MESSAGE.INVALID_TOKEN,
+          statusCode: STATUS_CODE.UNAUTHORIZED,
+        });
+      }
+      if (user.token_version !== result.token_version) {
+        throw new AppError({
+          message: TOKEN_MESSAGE.INVALID_TOKEN,
+          statusCode: STATUS_CODE.UNAUTHORIZED,
+        });
+      }
+      return result;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError({
+        message: TOKEN_MESSAGE.INVALID_EXPIRED_TOKEN,
+        statusCode: STATUS_CODE.UNAUTHORIZED,
+      });
     }
   }
 }

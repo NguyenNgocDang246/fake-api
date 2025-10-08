@@ -1,5 +1,10 @@
 import { PrismaClient } from "@prisma/client";
-import { CreateUserDTO, GetUserByIdDTO, GetUserByEmailDTO } from "@/models/user.model";
+import {
+  CreateUserDTO,
+  GetUserByIdDTO,
+  GetUserByEmailDTO,
+  UpdatePasswordDTO,
+} from "@/models/user.model";
 import { AppError } from "@/server/core/errors";
 
 const prisma = new PrismaClient();
@@ -39,6 +44,14 @@ class UserService {
   async verifyUserEmail({ id }: GetUserByIdDTO) {
     try {
       return await prisma.users.update({ where: { id }, data: { is_verified: true } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async updatePassword({ id, password }: UpdatePasswordDTO) {
+    try {
+      return await prisma.users.update({ where: { id }, data: { password } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

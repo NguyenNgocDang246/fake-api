@@ -33,14 +33,13 @@ export const NavigationButton: React.FC<NavigationButtonProps> = ({
   }
 
   return (
-    <Link
-      href={href}
+    <div
       className={twMerge(
-        "rounded-lg bg-inherit px-4 py-2 font-medium hover:bg-blue-200 transition-colors",
+        "rounded-lg bg-inherit px-4 py-2 font-medium hover:bg-blue-200 transition-colors text-center cursor-pointer",
         className
       )}
     >
-      {content}
-    </Link>
+      <Link href={href}>{content}</Link>
+    </div>
   );
 };

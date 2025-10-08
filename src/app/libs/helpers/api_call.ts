@@ -22,7 +22,10 @@ export function createApi() {
       if (
         error.config?.url === API_ROUTES.AUTH.LOGOUT ||
         error.config?.url === API_ROUTES.AUTH.LOGIN ||
-        error.config?.url === API_ROUTES.AUTH.REGISTER
+        error.config?.url === API_ROUTES.AUTH.REGISTER ||
+        error.config?.url === API_ROUTES.AUTH.GOOGLE.LOGIN ||
+        error.config?.url === API_ROUTES.AUTH.PASSWORD.FORGOT ||
+        error.config?.url === API_ROUTES.AUTH.PASSWORD.RESET
       ) {
         return Promise.reject(error.response.data);
       }

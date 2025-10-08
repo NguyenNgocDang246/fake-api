@@ -16,6 +16,7 @@ export const UserSchema = z
       .min(6, "Mật khẩu phải có ít nhất 6 ký tự")
       .max(255, "Mật khẩu không được quá 255 ký tự"),
     is_verified: z.boolean().default(false),
+    token_version: z.bigint(),
   })
   .strict();
 export type UserDTO = z.infer<typeof UserSchema>;
@@ -45,3 +46,16 @@ export type GetUserByEmailDTO = z.infer<typeof GetUserByEmailSchema>;
 
 export const getUserProjectsSchema = UserSchema.pick({ id: true }).strict();
 export type GetUserProjectsDTO = z.infer<typeof getUserProjectsSchema>;
+
+export const UpdatePasswordSchema = UserSchema.pick({
+  id: true,
+  password: true,
+}).strict();
+export type UpdatePasswordDTO = z.infer<typeof UpdatePasswordSchema>;
+
+export const ClientResetPasswordSchema = UpdatePasswordSchema.pick({
+  password: true,
+})
+  .extend({ token: z.string() })
+  .strict();
+export type ClientResetPasswordDTO = z.infer<typeof ClientResetPasswordSchema>;
