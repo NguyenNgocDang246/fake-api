@@ -51,7 +51,7 @@ const customResolver: Resolver<ClientCreateEndpointDTO> = async (values, context
 
   if (Object.keys(errors).length > 0) {
     return {
-      values: {} as ClientCreateEndpointDTO,
+      values: {},
       errors,
     };
   }

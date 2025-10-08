@@ -157,6 +157,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
               type="text"
               id="status_code"
               placeholder="200"
+              defaultValue="200"
             />
             {errors.status_code && <ErrorText message={errors.status_code.message} />}
           </div>

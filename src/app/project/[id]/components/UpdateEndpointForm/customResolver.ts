@@ -54,7 +54,7 @@ const customResolver: Resolver<ClientUpdateEndpointByIdDTO> = async (values, con
 
   if (Object.keys(errors).length > 0) {
     return {
-      values: {} as ClientUpdateEndpointByIdDTO,
+      values: {},
       errors,
     };
   }
