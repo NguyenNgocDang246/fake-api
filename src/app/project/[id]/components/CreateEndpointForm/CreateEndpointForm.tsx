@@ -7,7 +7,7 @@ import { ClientCreateEndpointDTO } from "@/models/endpoint.model";
 import { DefaultInput } from "@/app/components/Input/DefaultInput";
 import { ErrorText } from "@/app/components/Text/ErrorText";
 import { SelectInput } from "@/app/components/Input/SelectInput";
-import { TextArea } from "@/app/components/Input/TextArea";
+import { JsonEditor } from "@/app/components/Input/JsonEditor";
 import { API_ROUTES } from "@/app/libs/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
@@ -127,7 +127,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
         </div>
 
         <div className="flex flex-col gap-1">
-          <TextArea
+          <JsonEditor
             label="Response body"
             register={register("response_body")}
             id="response_body"

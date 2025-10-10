@@ -29,6 +29,7 @@ const customResolver: Resolver<ClientCreateEndpointDTO> = async (values, context
   }
 
   if (!isValidJson(values.response_body)) {
+    console.log(values);
     errors.response_body = {
       type: "manual",
       message: "Invalid JSON",
