@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { FormModalProps, FormModal } from "./FormModal";
 import { ConfirmModalProps, ConfirmModal } from "./ConfirmModal";
 
@@ -29,6 +29,21 @@ export const ModalWrapper = ({ children }: { children: React.ReactNode }) => {
   const closeModal = (id: string) => {
     setModals((prev) => prev.filter((m) => m.id !== id));
   };
+
+  useEffect(() => {
+    if (modals.length > 0) {
+      // Ngăn cuộn
+      document.body.style.overflow = "hidden";
+    } else {
+      // Cho phép cuộn lại
+      document.body.style.overflow = "";
+    }
+
+    // Đảm bảo dọn dẹp khi component unmount
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [modals.length]);
 
   return (
     <ModalContext.Provider value={{ modals, openModal, closeModal }}>
