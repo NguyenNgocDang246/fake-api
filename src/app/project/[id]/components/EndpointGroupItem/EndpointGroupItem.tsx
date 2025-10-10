@@ -35,7 +35,7 @@ export const EndpointGroupItem: React.FC<EndpointGroupItemProps> = ({
       <div className="flex items-center justify-between gap-2 w-full">
         <h3 className="truncate">{name}</h3>
         <DropdownButton
-          btnClassName="p-2 rounded-full bg-inherit hover:bg-gray-300"
+          btnClassName="p-2 rounded-full bg-inherit hover:bg-gray-100"
           boxClassName="w-52 text-black"
           position="right"
           title="Endpoint Group Action"
