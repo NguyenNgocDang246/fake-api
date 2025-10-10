@@ -191,7 +191,13 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
       textareaRef.current.value = formatted;
       setColoredJson(jsonToColoredSpans(formatted));
-      setHeight(textareaRef.current.scrollHeight + "px");
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.style.height = "auto"; // reset
+          textareaRef.current.style.height = textareaRef.current.scrollHeight + "px"; // set lại
+          setHeight(textareaRef.current.scrollHeight + "px"); // overlay dùng height này
+        }
+      });
     }
   }, [defaultValue]);
 
