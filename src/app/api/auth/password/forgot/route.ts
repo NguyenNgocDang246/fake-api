@@ -5,7 +5,7 @@ import UserService from "@/server/services/user.service";
 import { AppError } from "@/server/core/errors";
 import { GetUserByEmailSchema } from "@/models/user.model";
 import TokenService from "@/server/services/auth/token.service";
-import { DOMAIN, PAGE_ROUTES } from "@/app/libs/routes";
+import { PAGE_ROUTES } from "@/app/libs/routes";
 import { validateData } from "@/server/core/validation";
 import { STATUS_CODE, AUTH_MESSAGES } from "@/server/core/constants";
 
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       id: user.id,
       token_version: user.token_version,
     });
+    const DOMAIN = process.env["DOMAIN"];
     const data = await MailService.sendEmail({
       to: email,
       subject: "Forgot Password",

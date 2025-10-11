@@ -49,8 +49,9 @@ export const useEndpointViewmodel = (project_id: string, endpoint_groups_id: str
     });
   };
 
+  const DOMAIN = process.env["DOMAIN"];
   const copyPathToClipboard = (projectId: string, path: string) => {
-    navigator.clipboard.writeText(`http://localhost:3000/${projectId}${path}`);
+    navigator.clipboard.writeText(`${DOMAIN}/${projectId}${path}`);
     Notify.success("Copied to clipboard");
   };
   return { openDeleteEndpointModal, copyPathToClipboard };
