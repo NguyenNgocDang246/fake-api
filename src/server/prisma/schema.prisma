@@ -28,7 +28,7 @@ model endpoints {
   method             HttpMethod      
   path               String          @db.VarChar(255)
   status_code        Int             @default(200)
-  response_body      Json?
+  response_body      String
   delay_ms           Int             @default(0)
   endpoint_groups    endpoint_groups @relation(fields: [endpoint_groups_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

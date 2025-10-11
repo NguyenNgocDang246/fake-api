@@ -3,7 +3,8 @@ import ApiResponse from "@/server/core/api_response";
 import IdConverter from "@/app/libs/helpers/idConverter";
 import EndpointService from "@/server/services/endpoint.service";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
-import { EndpointMethod } from "@/models/endpoint.model";
+import { EndpointMethod, EndpointResponseSchema } from "@/models/endpoint.model";
+import { validateData } from "@/server/core/validation";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -30,19 +31,32 @@ async function handle(req: NextRequest, method: EndpointMethod["method"]) {
       message: ERROR_MESSAGES.NOT_FOUND,
       statusCode: STATUS_CODE.NOT_FOUND,
     });
-  await sleep(endpoint.delay_ms || 0);
 
-  if (endpoint.method !== method)
+  const endpointValidation = validateData(
+    {
+      method: endpoint.method,
+      path: endpoint.path,
+      status_code: endpoint.status_code,
+      response_body: endpoint.response_body,
+      delay_ms: endpoint.delay_ms,
+    },
+    EndpointResponseSchema
+  );
+  if (!endpointValidation.success) return endpointValidation.response;
+  const validEndpoint = endpointValidation.data;
+  await sleep(validEndpoint.delay_ms || 0);
+
+  if (validEndpoint.method !== method)
     return ApiResponse.error({
       message: ERROR_MESSAGES.METHOD_NOT_ALLOWED,
       statusCode: STATUS_CODE.METHOD_NOT_ALLOWED,
     });
 
-  if (endpoint.status_code == STATUS_CODE.NO_CONTENT)
+  if (validEndpoint.status_code == STATUS_CODE.NO_CONTENT)
     return new NextResponse(null, { status: STATUS_CODE.NO_CONTENT });
 
-  return NextResponse.json(endpoint.response_body, {
-    status: endpoint.status_code || STATUS_CODE.OK,
+  return NextResponse.json(validEndpoint.response_body, {
+    status: validEndpoint.status_code || STATUS_CODE.OK,
   });
 }
 

@@ -17,7 +17,7 @@ CREATE TABLE "endpoints" (
     "method" "HttpMethod" NOT NULL,
     "path" VARCHAR(255) NOT NULL,
     "status_code" INTEGER NOT NULL DEFAULT 200,
-    "response_body" JSONB,
+    "response_body" TEXT NOT NULL,
     "delay_ms" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "endpoints_pkey" PRIMARY KEY ("id")

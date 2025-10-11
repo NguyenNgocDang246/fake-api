@@ -1,32 +1,18 @@
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 
-type Json = Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput;
+export const JsonSchema = z.string().transform((val) => {
+  try {
+    const parsed = JSON.parse(val);
 
-const JsonSchemaBase: z.ZodType<Prisma.InputJsonValue | null> = z.lazy(() =>
-  z.union([
-    z.null(),
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.array(JsonSchemaBase),
-    z.record(z.string(), JsonSchemaBase),
-  ])
-);
-
-const JsonSchema: z.ZodType<Json> = z.preprocess(
-  (val) => {
-    if (typeof val === "string") {
-      try {
-        return JSON.parse(val) as Json;
-      } catch {
-        throw new Error("Không parse được JSON từ string");
-      }
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return JSON.stringify(parsed);
     }
-    return val;
-  },
-  z.lazy(() => z.record(z.string(), JsonSchemaBase))
-);
+
+    throw new Error("Not a JSON object");
+  } catch {
+    throw new Error("response_body must be a valid JSON object");
+  }
+});
 
 export const EndpointSchema = z
   .object({
@@ -44,16 +30,45 @@ export const EndpointSchema = z
   .strict();
 export type EndpointDTO = z.infer<typeof EndpointSchema>;
 
-export const EndpointInfoSchema = EndpointSchema.pick({
+const JsonValue: z.ZodType<unknown> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(JsonValue),
+    z.record(z.string(), JsonValue),
+  ])
+);
+
+export const EndpointInfoSchema = EndpointSchema.omit({ response_body: true, id: true })
+  .extend({
+    response_body: z.preprocess(
+      (val) => {
+        if (typeof val === "string") {
+          try {
+            return JSON.parse(val);
+          } catch {
+            return val;
+          }
+        }
+        return val;
+      },
+      z.record(z.string(), JsonValue)
+    ),
+  })
+  .extend({ public_id: z.string(), endpoint_groups_id: z.string() })
+  .strict();
+export type EndpointInfoDTO = z.infer<typeof EndpointInfoSchema>;
+
+export const EndpointResponseSchema = EndpointInfoSchema.pick({
   method: true,
   path: true,
   status_code: true,
   response_body: true,
   delay_ms: true,
-})
-  .extend({ public_id: z.string(), endpoint_groups_id: z.string() })
-  .strict();
-export type EndpointInfoDTO = z.infer<typeof EndpointInfoSchema>;
+}).strict();
+export type EndpointResponseDTO = z.infer<typeof EndpointResponseSchema>;
 
 export const ClientCreateEndpointSchema = EndpointInfoSchema.pick({
   path: true,
