@@ -16,7 +16,6 @@ import {
   REFRESH_TOKEN_EXPIRATION_TIME_IN_STRING,
   RESET_PASSWORD_TOKEN_EXPIRATION_TIME_IN_STRING,
 } from "@/server/core/constants";
-import userService from "../user.service";
 const ACCESS_SECRET = new TextEncoder().encode(process.env["ACCESS_SECRET"] || "access_secret");
 const REFRESH_SECRET = new TextEncoder().encode(process.env["REFRESH_SECRET"] || "refresh_secret");
 const RESET_PASSWORD_SECRET = new TextEncoder().encode(
@@ -58,19 +57,7 @@ class TokenService {
         id: BigInt(payload["id"] as string),
         token_version: BigInt(payload["token_version"] as string),
       });
-      const user = await userService.getUserById({ id: result.id });
-      if (!user) {
-        throw new AppError({
-          message: TOKEN_MESSAGE.INVALID_EXPIRED_REFRESH_TOKEN,
-          statusCode: STATUS_CODE.UNAUTHORIZED,
-        });
-      }
-      if (user.token_version !== result.token_version) {
-        throw new AppError({
-          message: TOKEN_MESSAGE.INVALID_EXPIRED_REFRESH_TOKEN,
-          statusCode: STATUS_CODE.UNAUTHORIZED,
-        });
-      }
+
       return result;
     } catch (error) {
       if (error instanceof AppError) throw error;
@@ -92,19 +79,6 @@ class TokenService {
         id: BigInt(payload["id"] as string),
         token_version: BigInt(payload["token_version"] as string),
       });
-      const user = await userService.getUserById({ id: result.id });
-      if (!user) {
-        throw new AppError({
-          message: TOKEN_MESSAGE.INVALID_TOKEN,
-          statusCode: STATUS_CODE.UNAUTHORIZED,
-        });
-      }
-      if (user.token_version !== result.token_version) {
-        throw new AppError({
-          message: TOKEN_MESSAGE.INVALID_TOKEN,
-          statusCode: STATUS_CODE.UNAUTHORIZED,
-        });
-      }
       return result;
     } catch (error) {
       if (error instanceof AppError) throw error;

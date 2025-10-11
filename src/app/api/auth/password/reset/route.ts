@@ -24,6 +24,20 @@ export async function POST(req: NextRequest) {
       return userIdValidation.response;
     }
     const userId = userIdValidation.data.id;
+    const token_version = userIdValidation.data.token_version;
+    const user = await UserService.getUserById({ id: userId });
+    if (!user) {
+      throw new AppError({
+        message: TOKEN_MESSAGE.INVALID_TOKEN,
+        statusCode: STATUS_CODE.UNAUTHORIZED,
+      });
+    }
+    if (user.token_version !== token_version) {
+      throw new AppError({
+        message: TOKEN_MESSAGE.INVALID_TOKEN,
+        statusCode: STATUS_CODE.UNAUTHORIZED,
+      });
+    }
     const dataValidation = validateData(
       { password: body.password, id: userId },
       UpdatePasswordSchema

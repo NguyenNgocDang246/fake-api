@@ -5,6 +5,7 @@ import { AppError } from "@/server/core/errors";
 import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
 import { ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS } from "@/server/core/constants";
 import tokenService from "@/server/services/auth/token.service";
+import userService from "@/server/services/user.service";
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -17,6 +18,19 @@ export async function GET() {
       });
     }
     const payload = await tokenService.verifyRefreshToken(refreshToken);
+    const user = await userService.getUserById({ id: payload.id });
+    if (!user) {
+      throw new AppError({
+        message: TOKEN_MESSAGE.INVALID_EXPIRED_REFRESH_TOKEN,
+        statusCode: STATUS_CODE.UNAUTHORIZED,
+      });
+    }
+    if (user.token_version !== payload.token_version) {
+      throw new AppError({
+        message: TOKEN_MESSAGE.INVALID_EXPIRED_REFRESH_TOKEN,
+        statusCode: STATUS_CODE.UNAUTHORIZED,
+      });
+    }
     const accessToken = await tokenService.createAccessToken({ id: payload.id });
     const res = ApiResponse.success();
     const cookie = serialize("access_token", accessToken, {
