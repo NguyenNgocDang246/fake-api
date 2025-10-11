@@ -5,7 +5,8 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "dev": "next dev --turbopack",
-    "build": "prisma generate && next build --turbopack",
+    "prisma:generate": "prisma generate --schema=src/server/prisma/schema.prisma",
+    "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint"
   },
