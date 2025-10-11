@@ -9,7 +9,6 @@ import {
   ResetPasswordTokenPayloadDTO,
   ResetPasswordTokenPayloadSchema,
 } from "@/models/auth.model";
-import { GetUserByIdDTO } from "@/models/user.model";
 import { AppError } from "@/server/core/errors";
 import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
 import {
@@ -18,9 +17,6 @@ import {
   RESET_PASSWORD_TOKEN_EXPIRATION_TIME_IN_STRING,
 } from "@/server/core/constants";
 import userService from "../user.service";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
-
 const ACCESS_SECRET = new TextEncoder().encode(process.env["ACCESS_SECRET"] || "access_secret");
 const REFRESH_SECRET = new TextEncoder().encode(process.env["REFRESH_SECRET"] || "refresh_secret");
 const RESET_PASSWORD_SECRET = new TextEncoder().encode(
@@ -78,15 +74,6 @@ class TokenService {
       return result;
     } catch (error) {
       if (error instanceof AppError) throw error;
-      throw new AppError();
-    }
-  }
-
-  async increaseTokenVersion({ id }: GetUserByIdDTO) {
-    try {
-      await prisma.users.update({ where: { id }, data: { token_version: { increment: 1 } } });
-    } catch (error) {
-      console.log(error);
       throw new AppError();
     }
   }

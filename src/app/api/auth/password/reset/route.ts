@@ -5,6 +5,7 @@ import { validateData } from "@/server/core/validation";
 import ApiResponse from "@/server/core/api_response";
 import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
 import TokenService from "@/server/services/auth/token.service";
+import UserService from "@/server/services/user.service";
 import AuthService from "@/server/services/auth/auth.service";
 import { AppError } from "@/server/core/errors";
 export async function POST(req: NextRequest) {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
     const data = dataValidation.data;
     await AuthService.updatePassword(data);
-    await TokenService.increaseTokenVersion({ id: userId });
+    await UserService.increaseTokenVersion({ id: userId });
     return ApiResponse.success();
   } catch (error) {
     if (error instanceof AppError) {

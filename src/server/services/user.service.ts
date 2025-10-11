@@ -56,6 +56,13 @@ class UserService {
       throw error instanceof AppError ? error : new AppError();
     }
   }
+  async increaseTokenVersion({ id }: GetUserByIdDTO) {
+    try {
+      await prisma.users.update({ where: { id }, data: { token_version: { increment: 1 } } });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
 }
 const userService = new UserService();
 export default userService;
