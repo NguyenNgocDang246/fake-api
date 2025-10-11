@@ -113,31 +113,29 @@ export default function Project() {
               <div className="flex justify-center mt-24">
                 <Spinner size={40} />
               </div>
-            ) : hasEndpoints ? (
-              endpointsState.data.map((endpoint) => (
-                <div key={endpoint.public_id} className="mb-2">
-                  <EndpointItem
-                    {...{
-                      public_id: endpoint.public_id,
-                      path: endpoint.path,
-                      delay_ms: endpoint.delay_ms,
-                      method: endpoint.method,
-                      status_code: endpoint.status_code,
-                      response_body: JSON.stringify(endpoint.response_body),
-                      endpoint_groups_id: endpoint.endpoint_groups_id,
-                      project_id: projectInfoState.data?.public_id ?? "",
-                    }}
-                  />
-                </div>
-              ))
+            ) : hasEndpointGroups ? (
+              hasEndpoints ? (
+                endpointsState.data.map((endpoint) => (
+                  <div key={endpoint.public_id} className="mb-2">
+                    <EndpointItem
+                      {...{
+                        public_id: endpoint.public_id,
+                        path: endpoint.path,
+                        delay_ms: endpoint.delay_ms,
+                        method: endpoint.method,
+                        status_code: endpoint.status_code,
+                        response_body: JSON.stringify(endpoint.response_body),
+                        endpoint_groups_id: endpoint.endpoint_groups_id,
+                        project_id: projectInfoState.data?.public_id ?? "",
+                      }}
+                    />
+                  </div>
+                ))
+              ) : (
+                <NoContentText className="flex justify-center" message="No endpoints" />
+              )
             ) : (
-              <div className="flex justify-center">
-                {hasEndpointGroups ? (
-                  <NoContentText message="No endpoints" />
-                ) : (
-                  <NoContentText message="No endpoint groups" />
-                )}
-              </div>
+              <NoContentText className="flex justify-center" message="No endpoint groups" />
             )}
           </div>
         </div>
