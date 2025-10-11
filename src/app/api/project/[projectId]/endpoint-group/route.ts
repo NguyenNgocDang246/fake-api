@@ -6,7 +6,11 @@ import { AppError } from "@/server/core/errors";
 import { validateData } from "@/server/core/validation";
 import { GetUserByIdSchema } from "@/models/user.model";
 import { GetProjectByIdSchema } from "@/models/project.model";
-import { CreateEndpointGroupSchema, EndpointGroupInfoSchema } from "@/models/endpoint_group.model";
+import {
+  CreateEndpointGroupSchema,
+  EndpointGroupDTO,
+  EndpointGroupInfoSchema,
+} from "@/models/endpoint_group.model";
 import { STATUS_CODE, ERROR_MESSAGES } from "@/server/core/constants";
 import IdConverter from "@/app/libs/helpers/idConverter";
 
@@ -42,7 +46,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
       });
     }
     const endpointGroupInfoValidation = validateData(
-      endpointGroups.map((e) => ({
+      endpointGroups.map((e: EndpointGroupDTO) => ({
         public_id: IdConverter.encode(e.id),
         name: e.name,
         project_id: IdConverter.encode(e.project_id),
