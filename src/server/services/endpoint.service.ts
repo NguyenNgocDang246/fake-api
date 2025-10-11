@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/server/prisma/prisma_provider";
 import { AppError } from "@/server/core/errors";
 import { GetUserByIdDTO } from "@/models/user.model";
 import { GetProjectByIdDTO } from "@/models/project.model";
@@ -11,8 +11,6 @@ import {
   DeleteEndpointByIdDTO,
   UpdateEndpointByIdDTO,
 } from "@/models/endpoint.model";
-
-const prisma = new PrismaClient();
 
 class EndpointService {
   async checkPermissions({

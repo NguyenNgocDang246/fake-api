@@ -7,10 +7,8 @@ import {
   GetProjectByUserIdDTO,
 } from "@/models/project.model";
 import { GetUserByIdDTO } from "@/models/user.model";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/server/prisma/prisma_provider";
 import { AppError } from "@/server/core/errors";
-
-const prisma = new PrismaClient();
 
 class ProjectService {
   async checkPermission({

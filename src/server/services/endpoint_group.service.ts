@@ -1,4 +1,3 @@
-import { PrismaClient } from "@prisma/client";
 import { AppError } from "@/server/core/errors";
 import {
   GetProjectByIdDTO,
@@ -7,8 +6,7 @@ import {
 } from "@/models/project.model";
 import { CreateEndpointGroupDTO, GetEndpointGroupByIdDTO } from "@/models/endpoint_group.model";
 import { GetUserByIdDTO } from "@/models/user.model";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/server/prisma/prisma_provider";
 
 class EndpointGroupService {
   async checkPermission({

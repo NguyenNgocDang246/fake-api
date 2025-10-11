@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/server/prisma/prisma_provider";
 import {
   CreateUserDTO,
   GetUserByIdDTO,
@@ -6,8 +6,6 @@ import {
   UpdatePasswordDTO,
 } from "@/models/user.model";
 import { AppError } from "@/server/core/errors";
-
-const prisma = new PrismaClient();
 
 class UserService {
   async getAllUsers() {
