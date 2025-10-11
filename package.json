@@ -6,7 +6,8 @@
     "type-check": "tsc --noEmit",
     "dev": "next dev --turbopack",
     "prisma:generate": "prisma generate --schema=src/server/prisma/schema.prisma",
-    "build": "next build --turbopack",
+    "prisma:deploy": "prisma migrate deploy --schema=src/server/prisma/schema.prisma",
+    "build": "npm run prisma:generate && next build --turbopack",
     "start": "next start",
     "lint": "eslint"
   },
