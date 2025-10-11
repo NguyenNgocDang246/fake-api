@@ -4,7 +4,7 @@ import { FC } from "react";
 import { twMerge } from "tailwind-merge";
 
 interface ErrorTextProps {
-  message?: string;
+  message?: string | undefined;
   className?: string;
 }
 

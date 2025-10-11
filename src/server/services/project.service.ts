@@ -72,7 +72,11 @@ class ProjectService {
   async updateProjectById(project: UpdateProjectByIdDTO) {
     try {
       const { id, ...rest } = project;
-      return await prisma.projects.update({ where: { id }, data: rest });
+      const data = {
+        ...rest,
+        description: rest.description ?? null,
+      };
+      return await prisma.projects.update({ where: { id }, data });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
@@ -81,9 +85,10 @@ class ProjectService {
   async createProject(project: CreateProjectDTO) {
     try {
       const { user_id, ...rest } = project;
+      const projectData = { ...rest, description: rest.description ?? null };
       return await prisma.projects.create({
         data: {
-          ...rest,
+          ...projectData,
           users: {
             connect: { id: user_id },
           },

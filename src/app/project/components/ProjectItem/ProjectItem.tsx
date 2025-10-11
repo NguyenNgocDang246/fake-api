@@ -6,7 +6,7 @@ import { useUpdateProjectViewModel } from "@/app/project/components/UpdateProjec
 interface ProjectItemProps {
   public_id: string;
   name: string;
-  description: string | undefined;
+  description: string | null | undefined;
 }
 
 export const ProjectItem: React.FC<ProjectItemProps> = ({ public_id, name, description }) => {

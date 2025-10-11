@@ -17,7 +17,7 @@ export function useEndpointGroupViewModel() {
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
 
   const pathnameSplit = pathname.split("/");
-  const projectId = pathnameSplit[pathnameSplit.length - 1];
+  const projectId = pathnameSplit[pathnameSplit.length - 1] ?? "";
 
   const fetchProjectInfo = async (): Promise<ProjectInfoDTO> => {
     const res = (await api.get(url_builder(API_ROUTES.PROJECT.GET_BY_ID, { projectId })))
@@ -51,7 +51,10 @@ export function useEndpointGroupViewModel() {
         endpointGroupsState.data.length > 0 &&
         !endpointGroupsState.data.find((group) => group.public_id === selectedGroupId))
     ) {
-      setSelectedGroupId(endpointGroupsState.data[0].public_id);
+      const data = endpointGroupsState.data[0];
+      if (data) {
+        setSelectedGroupId(data.public_id);
+      }
     }
   }, [endpointGroupsState.data, selectedGroupId]);
 

@@ -12,6 +12,11 @@ function sleep(ms: number) {
 async function handle(req: NextRequest, method: EndpointMethod["method"]) {
   const segments = req.nextUrl.pathname.split("/").filter(Boolean);
   const publicId = segments[0];
+  if (!publicId)
+    return ApiResponse.error({
+      message: ERROR_MESSAGES.NOT_FOUND,
+      statusCode: STATUS_CODE.NOT_FOUND,
+    });
   const projectId = IdConverter.decode(publicId);
   const pathname = "/" + segments.slice(1).join("/");
 

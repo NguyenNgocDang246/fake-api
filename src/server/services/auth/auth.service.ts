@@ -33,7 +33,7 @@ class AuthService {
 
   async registerWithGoogle(data: RegisterWithGoogleDTO): Promise<UserDTO> {
     try {
-      const password = Date.now().toString() + process.env.DUMMY_PASSWORD_SALT;
+      const password = Date.now().toString() + process.env["DUMMY_PASSWORD_SALT"];
       const user = await this.register({ ...data, password });
       await userService.verifyUserEmail({ id: user.id });
       return user;

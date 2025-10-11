@@ -22,7 +22,7 @@ export class ErrorValidation {
 
 export class AppError extends Error {
   statusCode: STATUS_CODE;
-  message: string;
+  override message: string;
   constructor({
     statusCode = STATUS_CODE.SERVER_ERROR,
     message = ERROR_MESSAGES.SERVER_ERROR,

@@ -28,7 +28,7 @@ export async function middleware(req: NextRequest) {
   }
   // check fake
   const segments = url.pathname.split("/").filter(Boolean);
-  const publicId = segments[0];
+  const publicId = segments[0] ?? "";
   const checkFake = fakeMiddleware(req, publicId);
   if (checkFake) return checkFake;
 

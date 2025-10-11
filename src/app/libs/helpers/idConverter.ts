@@ -1,5 +1,5 @@
 import Hashids from "hashids";
-const SECRET_SALT = process.env.SECRET_SALT || "SECRET SALT";
+const SECRET_SALT = process.env["SECRET_SALT"] || "SECRET SALT";
 const hashids = new Hashids(SECRET_SALT, 11);
 class IdConverter {
   public static encode(id: bigint): string {

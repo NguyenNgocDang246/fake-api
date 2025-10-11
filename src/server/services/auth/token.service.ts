@@ -21,10 +21,10 @@ import userService from "../user.service";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
-const ACCESS_SECRET = new TextEncoder().encode(process.env.ACCESS_SECRET || "access_secret");
-const REFRESH_SECRET = new TextEncoder().encode(process.env.REFRESH_SECRET || "refresh_secret");
+const ACCESS_SECRET = new TextEncoder().encode(process.env["ACCESS_SECRET"] || "access_secret");
+const REFRESH_SECRET = new TextEncoder().encode(process.env["REFRESH_SECRET"] || "refresh_secret");
 const RESET_PASSWORD_SECRET = new TextEncoder().encode(
-  process.env.RESET_PASSWORD_SECRET || "reset_password_secret"
+  process.env["RESET_PASSWORD_SECRET"] || "reset_password_secret"
 );
 
 class TokenService {
@@ -38,7 +38,7 @@ class TokenService {
   async verifyAccessToken(token: string): Promise<AccessTokenPayloadDTO> {
     try {
       const { payload } = await jwtVerify(token, ACCESS_SECRET);
-      return AccessTokenPayloadSchema.parse({ id: BigInt(payload.id as string) });
+      return AccessTokenPayloadSchema.parse({ id: BigInt(payload["id"] as string) });
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError({
@@ -59,8 +59,8 @@ class TokenService {
     try {
       const { payload } = await jwtVerify(token, REFRESH_SECRET);
       const result = RefreshTokenPayloadSchema.parse({
-        id: BigInt(payload.id as string),
-        token_version: BigInt(payload.token_version as string),
+        id: BigInt(payload["id"] as string),
+        token_version: BigInt(payload["token_version"] as string),
       });
       const user = await userService.getUserById({ id: result.id });
       if (!user) {
@@ -102,8 +102,8 @@ class TokenService {
     try {
       const { payload } = await jwtVerify(token, RESET_PASSWORD_SECRET);
       const result = ResetPasswordTokenPayloadSchema.parse({
-        id: BigInt(payload.id as string),
-        token_version: BigInt(payload.token_version as string),
+        id: BigInt(payload["id"] as string),
+        token_version: BigInt(payload["token_version"] as string),
       });
       const user = await userService.getUserById({ id: result.id });
       if (!user) {

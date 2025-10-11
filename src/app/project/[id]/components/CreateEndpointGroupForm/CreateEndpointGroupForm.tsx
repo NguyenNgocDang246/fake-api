@@ -34,7 +34,7 @@ export const CreateEndpointGroupForm = forwardRef<CreateEndpointGroupFormHandles
   const queryClient = useQueryClient();
   const pathname = usePathname();
   const pathnameSplit = pathname.split("/");
-  const projectId = pathnameSplit[pathnameSplit.length - 1];
+  const projectId = pathnameSplit[pathnameSplit.length - 1] ?? "";
   const createEndpointGroupMutation = useMutation<
     ApiSuccessResponse,
     ApiErrorResponse,

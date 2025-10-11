@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { SendMailDTO } from "@/models/mail.model";
 import { AppError } from "@/server/core/errors";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env["RESEND_API_KEY"]);
 
 const MailService = {
   async sendEmail({ to, subject, html }: SendMailDTO) {

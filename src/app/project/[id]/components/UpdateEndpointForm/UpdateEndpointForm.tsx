@@ -49,7 +49,7 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
     const queryClient = useQueryClient();
     const pathname = usePathname();
     const pathnameSplit = pathname.split("/");
-    const projectId = pathnameSplit[pathnameSplit.length - 1];
+    const projectId = pathnameSplit[pathnameSplit.length - 1] ?? "";
 
     const createEndpointMutation = useMutation<
       ApiSuccessResponse,

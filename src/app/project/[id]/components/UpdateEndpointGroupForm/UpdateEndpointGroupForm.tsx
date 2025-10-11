@@ -42,7 +42,7 @@ export const UpdateEndpointGroupForm = forwardRef<
   const queryClient = useQueryClient();
   const pathname = usePathname();
   const pathnameSplit = pathname.split("/");
-  const projectId = pathnameSplit[pathnameSplit.length - 1];
+  const projectId = pathnameSplit[pathnameSplit.length - 1] ?? "";
   const updateEndpointGroupMutation = useMutation<
     ApiSuccessResponse,
     ApiErrorResponse,

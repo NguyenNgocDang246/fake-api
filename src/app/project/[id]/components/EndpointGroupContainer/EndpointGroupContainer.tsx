@@ -50,9 +50,12 @@ export const EndpointGroupContainer = ({
                   btnClassName="bg-inherit rounded-xl w-full hover:bg-blue-200 cursor-pointer"
                   boxClassName="w-full bg-white text-black"
                   optionClassName="hover:bg-inherit"
-                  onSelect={(index) =>
-                    setSelectedGroupId(endpointGroupsState.data[index].public_id)
-                  }
+                  onSelect={(index) => {
+                    const data = endpointGroupsState.data;
+                    if (data && data[index]) {
+                      setSelectedGroupId(data[index].public_id);
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     {selectedGroup.name} <ChevronDown />

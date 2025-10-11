@@ -104,7 +104,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       const afterCursor = value.substring(end);
 
       const lines = beforeCursor.split("\n");
-      const currentLine = lines[lines.length - 1];
+      const currentLine = lines[lines.length - 1] ?? "";
       const tabMatch = currentLine.match(/^\t*/);
       const tabPrefix = tabMatch ? tabMatch[0] : "";
 
