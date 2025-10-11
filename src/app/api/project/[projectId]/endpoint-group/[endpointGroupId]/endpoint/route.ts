@@ -7,9 +7,10 @@ import { validateData } from "@/server/core/validation";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import IdConverter from "@/app/libs/helpers/idConverter";
 import { GetEndpointGroupByIdSchema } from "@/models/endpoint_group.model";
-import { EndpointInfoSchema, CreateEndpointSchema } from "@/models/endpoint.model";
+import { EndpointInfoSchema, CreateEndpointSchema, EndpointDTO } from "@/models/endpoint.model";
 import EndpointService from "@/server/services/endpoint.service";
 import endpointGroupService from "@/server/services/endpoint_group.service";
+import { JsonValue } from "@prisma/client/runtime/library";
 export async function GET(
   req: NextRequest,
   props: { params: Promise<{ projectId: string; endpointGroupId: string }> }
@@ -61,7 +62,7 @@ export async function GET(
     }
 
     const endpointInfoValidation = validateData(
-      endpoints.map((e) => ({
+      endpoints.map((e: Omit<EndpointDTO, "response_body"> & { response_body: JsonValue }) => ({
         public_id: IdConverter.encode(e.id),
         path: e.path,
         method: e.method,
