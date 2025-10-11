@@ -12,6 +12,7 @@ import { useCreateEndpointViewModel } from "@/app/project/[id]/components/Create
 import { EndpointGroupContainer } from "@/app/project/[id]/components/EndpointGroupContainer/EndpointGroupContainer";
 import { usePathname } from "next/navigation";
 export default function Project() {
+  const DOMAIN = process.env["NEXT_PUBLIC_DOMAIN"];
   const {
     projectInfoState,
     endpointGroupsState,
@@ -70,7 +71,7 @@ export default function Project() {
             <div>
               <div className="font-semibold text-lg">API Endpoint: </div>
               <div className="text-blue-800 min-w-full flex flex-nowrap">
-                <span>https://fakeapi.com/</span>
+                <span>{DOMAIN}/</span>
                 <Tooltip
                   tooltip="Your project Id"
                   className="mx-0.5 px-2 font-medium rounded-xl hover:bg-blue-200 bg-blue-100"

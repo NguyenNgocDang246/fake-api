@@ -49,7 +49,7 @@ export const useEndpointViewmodel = (project_id: string, endpoint_groups_id: str
     });
   };
 
-  const DOMAIN = process.env["DOMAIN"];
+  const DOMAIN = process.env["NEXT_PUBLIC_DOMAIN"];
   const copyPathToClipboard = (projectId: string, path: string) => {
     navigator.clipboard.writeText(`${DOMAIN}/${projectId}${path}`);
     Notify.success("Copied to clipboard");
