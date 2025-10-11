@@ -7,7 +7,7 @@ export const ProjectSchema = z
       .string()
       .nonempty("Tên project không được để trống")
       .max(255, "Tên project không được quá 255 ký tự"),
-    description: z.string().max(255, "Mô tả không được quá 255 ký tự").optional(),
+    description: z.string().max(255, "Mô tả không được quá 255 ký tự").optional().nullable(),
   })
   .strict();
 export type ProjectDTO = z.infer<typeof ProjectSchema>;

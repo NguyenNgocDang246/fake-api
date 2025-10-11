@@ -1,6 +1,6 @@
 import projectService from "@/server/services/project.service";
 import { GetUserByIdSchema } from "@/models/user.model";
-import { CreateProjectSchema } from "@/models/project.model";
+import { CreateProjectSchema, ProjectDTO } from "@/models/project.model";
 import { AppError } from "@/server/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { validateData } from "@/server/core/validation";
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       });
 
     const projectInfoValidation = validateData(
-      projects.map((p) => ({
+      projects.map((p: ProjectDTO) => ({
         public_id: IdConverter.encode(p.id),
         name: p.name,
         description: p.description,
