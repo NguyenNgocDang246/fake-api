@@ -23,7 +23,7 @@ export default function Home() {
       <div className="mt-12 w-full max-w-xl bg-white shadow rounded-xl p-6">
         <h2 className="text-xl font-semibold mb-3">API Example</h2>
         <pre className="bg-gray-100 p-4 rounded-md text-sm overflow-x-auto">
-          {`GET ${DOMAIN}/api/v1/users\n\nResponse:\n{\n    "id": "1",\n    "name": "John Doe",\n    "email": "john@example.com"\n}`}
+          {`GET ${DOMAIN}/projectId/api/v1/users\n\nResponse:\n{\n    "id": "1",\n    "name": "John Doe",\n    "email": "john@example.com"\n}`}
         </pre>
       </div>
     </div>
