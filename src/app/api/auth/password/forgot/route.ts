@@ -7,7 +7,6 @@ import { GetUserByEmailSchema } from "@/models/user.model";
 import TokenService from "@/server/services/auth/token.service";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 import { validateData } from "@/server/core/validation";
-import { STATUS_CODE, AUTH_MESSAGES } from "@/server/core/constants";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,22 +19,19 @@ export async function POST(req: NextRequest) {
     const email = emailValidation.data.email;
     const user = await UserService.getUserByEmail({ email });
     if (!user) {
-      return ApiResponse.error({
-        statusCode: STATUS_CODE.NO_CONTENT,
-        message: AUTH_MESSAGES.USER_NOT_FOUND,
-      });
+      return ApiResponse.success(); // hạn chế lộ thông tin
     }
     const token = await TokenService.createResetPasswordToken({
       id: user.id,
       token_version: user.token_version,
     });
     const DOMAIN = process.env["DOMAIN"];
-    const data = await MailService.sendEmail({
+    await MailService.sendEmail({
       to: email,
       subject: "Forgot Password",
       html: `<a href="${DOMAIN}${PAGE_ROUTES.AUTH.PASSWORD.RESET}?token=${token}">Reset Password</a>`,
     });
-    return ApiResponse.success(data);
+    return ApiResponse.success();
   } catch (error) {
     if (error instanceof AppError) {
       return ApiResponse.error({
