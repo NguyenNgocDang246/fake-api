@@ -14,7 +14,7 @@ export default function Project() {
   const hasProjects = projectsState.data && projectsState.data.length > 0;
 
   return (
-    <div className="min-h-screen">
+    <div className="">
       <div className="flex justify-start">
         <Breadcrumb
           items={[

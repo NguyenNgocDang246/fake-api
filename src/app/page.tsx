@@ -6,7 +6,7 @@ export default function Home() {
   const { user } = useAuth();
   const DOMAIN = process.env["NEXT_PUBLIC_DOMAIN"];
   return (
-    <div className="font-sans flex flex-col items-center justify-center min-h-screen px-6 py-12 bg-gray-50">
+    <div className="font-sans flex flex-col items-center justify-center px-6 py-12 bg-gray-50">
       <h1 className="text-4xl font-medium text-black mb-4">Mock APIs in seconds</h1>
       <p className="text-lg text-gray-600 max-w-2xl text-center mb-8">
         Quickly create and manage mock APIs to develop and test your applications. No real backend
