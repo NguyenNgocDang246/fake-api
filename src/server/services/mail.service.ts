@@ -6,7 +6,7 @@ const resend = new Resend(process.env["RESEND_API_KEY"]);
 const MailService = {
   async sendEmail({ to, subject, html }: SendMailDTO) {
     try {
-      const from = `Fake API <noreply@fake-api.dev>`;
+      const from = `Fake API <support@fake-api.dev>`;
       const data = await resend.emails.send({ from, to, subject, html });
       return data;
     } catch (error) {
