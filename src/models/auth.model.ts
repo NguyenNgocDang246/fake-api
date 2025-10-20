@@ -63,3 +63,9 @@ export const ResetPasswordTokenPayloadSchema = UserSchema.pick({
   token_version: true,
 }).strict();
 export type ResetPasswordTokenPayloadDTO = z.infer<typeof ResetPasswordTokenPayloadSchema>;
+
+export const VerifyEmailTokenPayloadSchema = UserSchema.pick({
+  id: true,
+  token_version: true,
+}).strict();
+export type VerifyEmailTokenPayloadDTO = z.infer<typeof VerifyEmailTokenPayloadSchema>;

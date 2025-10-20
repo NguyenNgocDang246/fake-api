@@ -5,6 +5,10 @@ export const API_ROUTES = {
     LOGOUT: "/api/auth/logout",
     CHECK: "/api/auth/check",
     REFRESH_TOKEN: "/api/auth/refresh-token",
+    EMAIL: {
+      VERIFY: "/api/auth/email/verify",
+      RESEND: "/api/auth/email/resend",
+    },
     PASSWORD: {
       FORGOT: "/api/auth/password/forgot",
       RESET: "/api/auth/password/reset",
@@ -51,6 +55,9 @@ export const PAGE_ROUTES = {
     REGISTER: "/auth/register",
     PASSWORD: {
       RESET: "/auth/password/reset",
+    },
+    EMAIL: {
+      VERIFY: "/auth/email/verify",
     },
   },
   HOME: "/",
