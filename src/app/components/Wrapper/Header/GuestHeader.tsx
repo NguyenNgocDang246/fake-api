@@ -5,7 +5,7 @@ import { TextLink } from "@/app/components/Link/TextLink";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 export function GuestHeader() {
   return (
-    <div className="flex justify-between px-[6rem] py-4">
+    <div className="flex justify-between lg:px-24 md:px-16 sm:px-8 px-4 py-4">
       <TextLink
         href={PAGE_ROUTES.HOME}
         className="flex items-center font-bold sm:text-[2rem] text-2xl text-center"

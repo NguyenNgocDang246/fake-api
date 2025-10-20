@@ -1,0 +1,9 @@
+import { PAGE_ROUTES } from "@/app/libs/routes";
+
+export const ignoreAuthPageRoute = [
+  PAGE_ROUTES.AUTH.LOGIN,
+  PAGE_ROUTES.AUTH.REGISTER,
+  PAGE_ROUTES.HOME,
+  PAGE_ROUTES.AUTH.PASSWORD.RESET,
+  PAGE_ROUTES.AUTH.EMAIL.VERIFY,
+];

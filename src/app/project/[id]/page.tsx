@@ -31,7 +31,7 @@ export default function Project() {
   const hasEndpoints = endpointsState.data && endpointsState.data.length > 0;
 
   return (
-    <div className="h-screen">
+    <div>
       <div className="flex justify-start">
         {projectInfoState.isFetching ? (
           <div className="flex items-center">

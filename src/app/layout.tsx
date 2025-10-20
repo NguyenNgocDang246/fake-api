@@ -39,16 +39,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${baloo2.className} antialiased`}>
-        <QueryWrapper>
-          <ModalWrapper>
-            <AuthWrapper>
-              <HeaderWrapper />
-              <div className="lg:px-32 md:px-24 sm:px-12 px-8 mt-4">{children}</div>
-            </AuthWrapper>
-          </ModalWrapper>
-        </QueryWrapper>
-        <ToastContainer position="bottom-right" />
+      <body className={`${baloo2.className} antialiased flex flex-col min-h-screen`}>
+        <div className="flex-1">
+          <QueryWrapper>
+            <ModalWrapper>
+              <AuthWrapper>
+                <HeaderWrapper />
+                <div className="lg:px-32 md:px-24 sm:px-12 px-8 mt-4">{children}</div>
+              </AuthWrapper>
+            </ModalWrapper>
+          </QueryWrapper>
+          <ToastContainer position="bottom-right" />
+        </div>
 
         <footer className="flex mb-4 mt-24 justify-center text-sm text-gray-500">
           <p>© 2025 Fake API. All rights reserved.</p>

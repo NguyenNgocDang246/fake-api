@@ -21,6 +21,8 @@ export async function middleware(req: NextRequest) {
   if (url.pathname.startsWith(API_ROUTES.AUTH.GOOGLE.LOGIN)) return NextResponse.next();
   if (url.pathname.startsWith(API_ROUTES.AUTH.PASSWORD.FORGOT)) return NextResponse.next();
   if (url.pathname.startsWith(API_ROUTES.AUTH.PASSWORD.RESET)) return NextResponse.next();
+  if (url.pathname.startsWith(API_ROUTES.AUTH.EMAIL.VERIFY)) return NextResponse.next();
+  if (url.pathname.startsWith(API_ROUTES.AUTH.EMAIL.RESEND)) return NextResponse.next();
 
   if (url.pathname.startsWith("/api/")) {
     const res = await authMiddleware({ ctx });
