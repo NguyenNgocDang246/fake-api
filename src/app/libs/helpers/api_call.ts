@@ -1,6 +1,15 @@
 import axios, { AxiosError } from "axios";
 import { API_ROUTES } from "@/app/libs/routes";
 
+const ignoreAuthAPIRoute = [
+  API_ROUTES.AUTH.LOGOUT,
+  API_ROUTES.AUTH.LOGIN,
+  API_ROUTES.AUTH.REGISTER,
+  API_ROUTES.AUTH.GOOGLE.LOGIN,
+  API_ROUTES.AUTH.PASSWORD.FORGOT,
+  API_ROUTES.AUTH.PASSWORD.RESET,
+];
+
 export function createApi() {
   const api = axios.create({
     baseURL: "/",
@@ -19,14 +28,7 @@ export function createApi() {
         return Promise.reject(error.response?.data);
       }
 
-      if (
-        error.config?.url === API_ROUTES.AUTH.LOGOUT ||
-        error.config?.url === API_ROUTES.AUTH.LOGIN ||
-        error.config?.url === API_ROUTES.AUTH.REGISTER ||
-        error.config?.url === API_ROUTES.AUTH.GOOGLE.LOGIN ||
-        error.config?.url === API_ROUTES.AUTH.PASSWORD.FORGOT ||
-        error.config?.url === API_ROUTES.AUTH.PASSWORD.RESET
-      ) {
+      if (ignoreAuthAPIRoute.includes(error.config?.url || "")) {
         return Promise.reject(error.response.data);
       }
 
