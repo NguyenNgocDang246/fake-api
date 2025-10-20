@@ -10,6 +10,7 @@ import { ApiSuccessResponse } from "@/models/api_response.model";
 import { Spinner } from "@/app/components/Loading/Spinner";
 import { LoadingDots } from "@/app/components/Loading/LoadingDots";
 import { QUERY_KEY, STALETIME } from "@/app/components/Wrapper/QueryClient/Constants";
+import { ignoreAuthPageRoute } from "./ignoreAuthPageRoute";
 
 interface AuthContextType {
   user: UserInfoDTO | null;
@@ -45,26 +46,12 @@ export const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   // Kiểm tra auth khi pathname thay đổi
   useEffect(() => {
     const currentPath = pathname;
-    if (
-      !isLoading &&
-      !user &&
-      currentPath !== PAGE_ROUTES.AUTH.LOGIN &&
-      currentPath !== PAGE_ROUTES.AUTH.REGISTER &&
-      currentPath !== PAGE_ROUTES.HOME &&
-      currentPath !== PAGE_ROUTES.AUTH.PASSWORD.RESET
-    ) {
+    if (!isLoading && !user && !ignoreAuthPageRoute.includes(currentPath)) {
       router.push(PAGE_ROUTES.AUTH.LOGIN);
     }
   }, [isLoading, user, pathname, router]);
 
-  if (
-    isLoading ||
-    (!user &&
-      pathname !== PAGE_ROUTES.AUTH.LOGIN &&
-      pathname !== PAGE_ROUTES.AUTH.REGISTER &&
-      pathname !== PAGE_ROUTES.HOME &&
-      pathname !== PAGE_ROUTES.AUTH.PASSWORD.RESET)
-  ) {
+  if (isLoading || (!user && !ignoreAuthPageRoute.includes(pathname))) {
     return (
       <div className="flex flex-col justify-center items-center h-screen gap-8">
         <Spinner size={60} />
