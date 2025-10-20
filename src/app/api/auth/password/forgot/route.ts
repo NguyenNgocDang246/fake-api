@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return ApiResponse.success(); // hạn chế lộ thông tin
     }
+    if (user.is_verified == false) return ApiResponse.success();
     const token = await TokenService.createResetPasswordToken({
       id: user.id,
       token_version: user.token_version,
