@@ -52,7 +52,7 @@ export default function RootLayout({
           <ToastContainer position="bottom-right" />
         </div>
 
-        <footer className="flex mb-4 mt-24 justify-center text-sm text-gray-500">
+        <footer className="flex mb-4 mt-4 justify-center text-sm text-gray-500">
           <p>© 2025 Fake API. All rights reserved.</p>
         </footer>
       </body>
