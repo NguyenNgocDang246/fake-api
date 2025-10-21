@@ -5,12 +5,11 @@ import ApiResponse from "@/server/core/api_response";
 import { NextRequest } from "next/server";
 import authService from "@/server/services/auth/auth.service";
 import UserService from "@/server/services/user.service";
-import MailService from "@/server/services/mail.service";
+import MailService from "@/server/services/mail/mail.service";
 import TokenService from "@/server/services/auth/token.service";
 import { UserInfoSchema } from "@/models/user.model";
 import IdConverter from "@/app/libs/helpers/idConverter";
 import { STATUS_CODE, AUTH_MESSAGES } from "@/server/core/constants";
-import { PAGE_ROUTES } from "@/app/libs/routes";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,11 +32,9 @@ export async function POST(req: NextRequest) {
       id: registeredUser.id,
       token_version: registeredUser.token_version,
     });
-    const DOMAIN = process.env["DOMAIN"];
-    await MailService.sendEmail({
+    await MailService.sendVerificationEmail({
       to: user.email,
-      subject: "Verify Email",
-      html: `<a href="${DOMAIN}${PAGE_ROUTES.AUTH.EMAIL.VERIFY}?token=${verifyEmailToken}">Verify Email</a>`,
+      token: verifyEmailToken,
     });
     const userInfoValidation = validateData(
       {

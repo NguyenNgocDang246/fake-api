@@ -1,11 +1,10 @@
 import { NextRequest } from "next/server";
 import ApiResponse from "@/server/core/api_response";
-import MailService from "@/server/services/mail.service";
+import MailService from "@/server/services/mail/mail.service";
 import UserService from "@/server/services/user.service";
 import { AppError } from "@/server/core/errors";
 import { GetUserByEmailSchema } from "@/models/user.model";
 import TokenService from "@/server/services/auth/token.service";
-import { PAGE_ROUTES } from "@/app/libs/routes";
 import { validateData } from "@/server/core/validation";
 
 export async function POST(req: NextRequest) {
@@ -26,11 +25,9 @@ export async function POST(req: NextRequest) {
       id: user.id,
       token_version: user.token_version,
     });
-    const DOMAIN = process.env["DOMAIN"];
-    await MailService.sendEmail({
+    await MailService.sendForgotPasswordEmail({
       to: email,
-      subject: "Forgot Password",
-      html: `<a href="${DOMAIN}${PAGE_ROUTES.AUTH.PASSWORD.RESET}?token=${token}">Reset Password</a>`,
+      token: token,
     });
     return ApiResponse.success();
   } catch (error) {
