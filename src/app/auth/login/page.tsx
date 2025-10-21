@@ -13,7 +13,7 @@ export default function LoginPage() {
   const { register, handleSubmit, loginWithGoogle, errors, message } = useLoginViewModel();
   const { openForgotPasswordModal } = useForgotPasswordViewModel();
   return (
-    <div className="flex justify-center h-screen">
+    <div className="flex justify-center">
       <div className="w-[20rem] h-fit p-4 rounded-md shadow-[0_0_10px_rgba(0,0,0,0.5)] shadow-gray-600">
         <p className="text-3xl font-bold mb-4 text-center"> Login</p>
         <div className="text-center mt-1">{message && <ErrorText message={message} />}</div>

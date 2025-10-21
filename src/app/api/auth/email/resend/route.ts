@@ -3,10 +3,9 @@ import { AppError } from "@/server/core/errors";
 import { validateData } from "@/server/core/validation";
 import { GetUserByEmailSchema } from "@/models/user.model";
 import ApiResponse from "@/server/core/api_response";
-import MailService from "@/server/services/mail.service";
+import MailService from "@/server/services/mail/mail.service";
 import TokenService from "@/server/services/auth/token.service";
 import UserService from "@/server/services/user.service";
-import { PAGE_ROUTES } from "@/app/libs/routes";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,11 +26,9 @@ export async function POST(req: NextRequest) {
       id: user.id,
       token_version: user.token_version,
     });
-    const DOMAIN = process.env["DOMAIN"];
-    await MailService.sendEmail({
-      to: user.email,
-      subject: "Verify Email",
-      html: `<a href="${DOMAIN}${PAGE_ROUTES.AUTH.EMAIL.VERIFY}?token=${verifyEmailToken}">Verify Email</a>`,
+    await MailService.sendVerificationEmail({
+      to: email,
+      token: verifyEmailToken,
     });
 
     return ApiResponse.success();

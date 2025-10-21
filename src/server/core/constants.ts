@@ -55,20 +55,20 @@ export enum AUTH_MESSAGES {
 
 
 export enum GOOGLE_AUTH_MESSAGES {
-  NO_CODE = "Missing code",
-  NO_EMAIL = "Missing email",
-  NO_NAME = "Missing name",
+  NO_CODE = "Authorization code is missing.",
+  NO_EMAIL = "Email address is missing.",
+  NO_NAME = "User name is missing.",
 }
 
 export enum ENDPOINT_MESSAGES {
-  ENDPOINT_DUPLICATED = "Endpoint already exists",
+  ENDPOINT_DUPLICATED = "This endpoint already exists.",
 }
 
 export enum TOKEN_MESSAGE {
-  INVALID_TOKEN = "Invalid token",
-  EXPIRED_TOKEN = "Expired token",
-  INVALID_EXPIRED_TOKEN = "Invalid or expired token",
-  INVALID_REFRESH_TOKEN = "Invalid refresh token",
-  EXPIRED_REFRESH_TOKEN = "Expired refresh token",
-  INVALID_EXPIRED_REFRESH_TOKEN = "Invalid or expired refresh token",
+  INVALID_TOKEN = "The token provided is invalid.",
+  EXPIRED_TOKEN = "The token has expired.",
+  INVALID_EXPIRED_TOKEN = "The token is invalid or has expired.",
+  INVALID_REFRESH_TOKEN = "The refresh token provided is invalid.",
+  EXPIRED_REFRESH_TOKEN = "The refresh token has expired.",
+  INVALID_EXPIRED_REFRESH_TOKEN = "The refresh token is invalid or has expired.",
 }

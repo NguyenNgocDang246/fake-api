@@ -11,6 +11,7 @@ import {
 import { UpdatePasswordDTO } from "@/models/user.model";
 import { UserDTO } from "@/models/user.model";
 import userService from "@/server/services/user.service";
+import MailService from "@/server/services/mail/mail.service";
 import { hashPassword, verifyPassword } from "@/server/services/auth/hash.service";
 import tokenService from "@/server/services/auth/token.service";
 
@@ -52,18 +53,25 @@ class AuthService {
         });
       }
 
+      if (!user.is_verified) {
+        await MailService.sendVerificationEmail({
+          to: user.email,
+          token: await tokenService.createVerifyEmailToken({
+            id: user.id,
+            token_version: user.token_version,
+          }),
+        });
+        throw new AppError({
+          statusCode: STATUS_CODE.FORBIDDEN,
+          message: AUTH_MESSAGES.EMAIL_NOT_VERIFIED,
+        });
+      }
+
       const isValid = await verifyPassword(data.password, user.password);
       if (!isValid) {
         throw new AppError({
           statusCode: STATUS_CODE.UNAUTHORIZED,
           message: AUTH_MESSAGES.INVALID_CREDENTIALS,
-        });
-      }
-
-      if (!user.is_verified) {
-        throw new AppError({
-          statusCode: STATUS_CODE.FORBIDDEN,
-          message: AUTH_MESSAGES.EMAIL_NOT_VERIFIED,
         });
       }
 
