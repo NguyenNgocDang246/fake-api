@@ -1,9 +1,9 @@
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ClientResetPasswordDTO, ClientResetPasswordSchema } from "@/models/user.model";
-import { API_ROUTES } from "@/app/libs/routes";
+import { API_ROUTES, PAGE_ROUTES } from "@/app/libs/routes";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import api from "@/app/libs/helpers/api_call";
 import Notify from "@/app/components/Notify";
@@ -31,6 +31,7 @@ export const useForgotPasswordViewModel = () => {
   });
 
   const searchParams = useSearchParams();
+  const router = useRouter();
   useEffect(() => {
     const value = searchParams.get("token");
     if (value) setValue("token", value);
@@ -44,6 +45,7 @@ export const useForgotPasswordViewModel = () => {
     mutationFn: (data) => api.post(API_ROUTES.AUTH.PASSWORD.RESET, data),
     onSuccess: () => {
       Notify.success("Password reset successfully. Please login now.");
+      router.replace(PAGE_ROUTES.AUTH.LOGIN);
     },
     onError: (error) => {
       const data = error as ApiErrorResponse;
