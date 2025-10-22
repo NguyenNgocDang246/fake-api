@@ -8,6 +8,7 @@ import TokenService from "@/server/services/auth/token.service";
 import UserService from "@/server/services/user.service";
 import AuthService from "@/server/services/auth/auth.service";
 import { AppError } from "@/server/core/errors";
+import { serialize } from "cookie";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -48,8 +49,27 @@ export async function POST(req: NextRequest) {
     const data = dataValidation.data;
     await AuthService.updatePassword(data);
     await UserService.increaseTokenVersion({ id: userId });
-    return ApiResponse.success();
+    const cookie = [
+      serialize("access_token", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 0,
+        path: "/",
+      }),
+      serialize("refresh_token", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 0,
+        path: "/api/auth/refresh-token",
+      }),
+    ].join(", ");
+    const res = ApiResponse.success();
+    res.headers.set("Set-Cookie", cookie);
+    return res;
   } catch (error) {
+    console.log(error);
     if (error instanceof AppError) {
       return ApiResponse.error({
         message: error.message,
