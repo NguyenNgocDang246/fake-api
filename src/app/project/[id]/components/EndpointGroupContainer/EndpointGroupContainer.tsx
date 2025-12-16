@@ -23,7 +23,7 @@ export const EndpointGroupContainer = ({
   const hasEndpointGroups = endpointGroupsState.data && endpointGroupsState.data.length > 0;
   return (
     <div>
-      <div className="xl:hidden flex gap-2 items-center relative flex-wrap">
+      <div className="xl:hidden flex gap-2 items-center relative flex-wrap max-[425px]:flex-col max-[425px]:items-stretch max-[425px]:gap-3">
         <div className="sm:block hidden font-semibold">Current group: </div>
         <div className="grow">
           {!endpointGroupsState.isFetched ? (
@@ -71,7 +71,7 @@ export const EndpointGroupContainer = ({
         </div>
         <ActionButton
           label="Create new"
-          className="flex-[3_1_0%] min-w-[5rem]"
+          className="flex-[3_1_0%] min-w-[5rem] max-[425px]:w-full max-[425px]:flex-none"
           type="create"
           onClick={() => {
             openCreateEndpointGroupModal();

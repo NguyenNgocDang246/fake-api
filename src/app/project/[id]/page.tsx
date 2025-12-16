@@ -2,7 +2,6 @@
 import { useEndpointGroupViewModel } from "@/app/project/[id]/viewmodel";
 import { EndpointItem } from "@/app/project/[id]/components/EndpointItem/EndpointItem";
 import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
-import { Tooltip } from "@/app/components/Tooltip";
 import { LoadingDots } from "@/app/components/Loading/LoadingDots";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
@@ -67,31 +66,21 @@ export default function Project() {
         </div>
 
         <div className="grow flex flex-col">
-          <div className="flex flex-col w-full h-37 rounded-xl border border-gray-200 bg-white p-4 shadow-sm overflow-x-auto gap-2">
+          <div className="flex flex-col w-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm gap-3 max-[425px]:p-3 max-[425px]:gap-3">
             <div>
               <div className="font-semibold text-lg">API Endpoint: </div>
-              <div className="text-blue-800 min-w-full flex flex-nowrap">
+              <div className="text-blue-800 min-w-full flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto max-[425px]:text-sm">
                 <span>{DOMAIN}/</span>
-                <Tooltip
-                  tooltip="Your project Id"
-                  className="mx-0.5 px-2 font-medium rounded-xl hover:bg-blue-200 bg-blue-100"
-                >
-                  {projectId}
-                </Tooltip>
+                <span className="mx-0.5 px-2 font-medium rounded-xl bg-blue-100">{projectId}</span>
                 <span>/</span>
-                <Tooltip
-                  tooltip="Your endpoint's path"
-                  className="mx-0.5 px-2 font-medium rounded-xl hover:bg-blue-200 bg-blue-100"
-                >
-                  :path
-                </Tooltip>
+                <span className="mx-0.5 px-2 font-medium rounded-xl bg-blue-100">:path</span>
               </div>
             </div>
-            <div className="flex nowrap gap-2 justify-end">
+            <div className="flex flex-wrap gap-2 justify-end max-[425px]:flex-col max-[425px]:items-stretch max-[425px]:gap-3">
               <ActionButton
                 label="Create new"
                 type="create"
-                className=""
+                className="max-[425px]:w-full"
                 onClick={() => {
                   openCreateEndpointModal(selectedGroupId);
                 }}
@@ -100,7 +89,7 @@ export default function Project() {
               <ActionButton
                 label="Delete all"
                 type="delete"
-                className=""
+                className="max-[425px]:w-full"
                 onClick={() => {
                   openDeleteAllEndpointModal();
                 }}
