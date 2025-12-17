@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { UseQueryResult } from "@tanstack/react-query";
 import { EndpointGroupInfoDTO } from "@/models/endpoint_group.model";
@@ -23,9 +23,9 @@ export const EndpointGroupContainer = ({
   const hasEndpointGroups = endpointGroupsState.data && endpointGroupsState.data.length > 0;
   return (
     <div>
-      <div className="xl:hidden flex gap-2 items-center relative flex-wrap max-[425px]:flex-col max-[425px]:items-stretch max-[425px]:gap-3">
+      <div className="xl:hidden flex gap-2 items-center relative max-[425px]:items-stretch max-[425px]:gap-3">
         <div className="sm:block hidden font-semibold">Current group: </div>
-        <div className="grow">
+        <div className="grow-7">
           {!endpointGroupsState.isFetched ? (
             <div className="flex justify-center">
               <Spinner size={40} />
@@ -46,7 +46,7 @@ export const EndpointGroupContainer = ({
                       onclick={() => {}}
                     />
                   ))}
-                  className="w-full flex-[7_1_0%] min-w-[10rem] border border-gray-300 bg-white shadow-sm rounded-xl"
+                  className="w-full border border-gray-300 bg-white shadow-sm rounded-xl"
                   btnClassName="bg-inherit rounded-xl w-full hover:bg-blue-200 cursor-pointer"
                   boxClassName="w-full bg-white text-black"
                   optionClassName="hover:bg-inherit"
@@ -70,13 +70,16 @@ export const EndpointGroupContainer = ({
           )}
         </div>
         <ActionButton
-          label="Create new"
-          className="flex-[3_1_0%] min-w-[5rem] max-[425px]:w-full max-[425px]:flex-none"
           type="create"
           onClick={() => {
             openCreateEndpointGroupModal();
           }}
-        />
+        >
+          <div className="max-[425px]:block hidden">
+            <Plus className="grow-3" />
+          </div>
+          <div className="max-[425px]:hidden block">Create new</div>
+        </ActionButton>
       </div>
       <div className="xl:block hidden rounded-2xl border border-gray-300 bg-white shadow-sm ">
         <p className="text-center text-lg text-white bg-linear-to-r from-indigo-600 to-blue-500 rounded-t-2xl py-3">
