@@ -66,21 +66,21 @@ export default function Project() {
         </div>
 
         <div className="grow flex flex-col">
-          <div className="flex flex-col w-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm gap-3 max-[425px]:p-3 max-[425px]:gap-3">
+          <div className="flex flex-col w-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm max-[425px]:p-3">
             <div>
               <div className="font-semibold text-lg">API Endpoint: </div>
-              <div className="text-blue-800 min-w-full flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto max-[425px]:text-sm">
+              <div className="text-blue-800 py-2 min-w-full flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto max-[425px]:text-sm">
                 <span>{DOMAIN}/</span>
                 <span className="mx-0.5 px-2 font-medium rounded-xl bg-blue-100">{projectId}</span>
                 <span>/</span>
                 <span className="mx-0.5 px-2 font-medium rounded-xl bg-blue-100">:path</span>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 justify-end max-[425px]:flex-col max-[425px]:items-stretch max-[425px]:gap-3">
+            <div className="flex flex-row gap-2 justify-center sm:justify-end max-[425px]:flex-col max-[425px]:items-stretch mt-3">
               <ActionButton
-                label="Create new"
+                label="New Endpoint"
                 type="create"
-                className="max-[425px]:w-full"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   openCreateEndpointModal(selectedGroupId);
                 }}
@@ -89,7 +89,7 @@ export default function Project() {
               <ActionButton
                 label="Delete all"
                 type="delete"
-                className="max-[425px]:w-full"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   openDeleteAllEndpointModal();
                 }}

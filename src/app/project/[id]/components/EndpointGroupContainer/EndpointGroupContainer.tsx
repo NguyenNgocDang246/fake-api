@@ -78,7 +78,7 @@ export const EndpointGroupContainer = ({
           <div className="max-[425px]:block hidden">
             <Plus className="grow-3" />
           </div>
-          <div className="max-[425px]:hidden block">Create new</div>
+          <div className="max-[425px]:hidden block">New group</div>
         </ActionButton>
       </div>
       <div className="xl:block hidden rounded-2xl border border-gray-300 bg-white shadow-sm ">
