@@ -4,6 +4,7 @@ import { NavigationButton } from "@/app/components/Button/NavigationButton";
 import { TextLink } from "@/app/components/Link/TextLink";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 export function GuestHeader() {
+  const docs_url = process.env["NEXT_PUBLIC_DOCS_URL"] || "./";
   return (
     <div className="flex justify-between lg:px-24 md:px-16 sm:px-8 px-4 py-4">
       <TextLink
@@ -20,7 +21,7 @@ export function GuestHeader() {
         Fake API
       </TextLink>
       <div className="flex justify-between items-center gap-4">
-        <NavigationButton href="./" label="Docs" />
+        <NavigationButton href={docs_url} label="Docs" target="_blank" />
         <NavigationButton href={PAGE_ROUTES.AUTH.LOGIN} label="Login" className="border-2" />
       </div>
     </div>

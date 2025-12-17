@@ -8,6 +8,8 @@ interface NavigationButtonProps {
   children?: ReactNode;
   disabled?: boolean;
   className?: string;
+  target?: React.HTMLAttributeAnchorTarget;
+  rel?: string;
 }
 
 export const NavigationButton: React.FC<NavigationButtonProps> = ({
@@ -16,8 +18,14 @@ export const NavigationButton: React.FC<NavigationButtonProps> = ({
   children,
   disabled = false,
   className,
+  target,
+  rel,
 }) => {
   const content = children ?? label;
+  const mergedRel =
+    target === "_blank"
+      ? Array.from(new Set([...(rel ?? "").split(/\s+/).filter(Boolean), "noopener", "noreferrer"])).join(" ")
+      : rel;
 
   if (disabled) {
     return (
@@ -35,6 +43,8 @@ export const NavigationButton: React.FC<NavigationButtonProps> = ({
   return (
     <Link
       href={href}
+      target={target}
+      rel={mergedRel}
       className={twMerge(
         "rounded-lg bg-inherit px-4 py-2 font-medium hover:bg-blue-200 transition-colors text-center cursor-pointer",
         className
