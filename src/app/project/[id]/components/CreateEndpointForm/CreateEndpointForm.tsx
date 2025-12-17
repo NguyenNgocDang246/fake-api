@@ -102,7 +102,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
 
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex items-start gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
           <div className="flex-1 flex flex-col gap-1">
             <SelectInput
               className="w-full"
@@ -136,7 +136,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
           {errors.response_body && <ErrorText message={errors.response_body.message} />}
         </div>
 
-        <div className="flex items-start gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
           <div className="flex-1 flex flex-col gap-1">
             <DefaultInput
               className="w-full"

@@ -106,7 +106,7 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
 
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex items-start gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
           <div className="flex-1 flex flex-col gap-1">
             <SelectInput
               className="w-full"
@@ -119,6 +119,7 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
           </div>
           <div className="flex-1 flex flex-col gap-1">
             <DefaultInput
+              className="w-full"
               label="Path"
               register={register("path")}
               type="text"
@@ -139,7 +140,7 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
           {errors.response_body && <ErrorText message={errors.response_body.message} />}
         </div>
 
-        <div className="flex items-start gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
           <div className="flex-1 flex flex-col gap-1">
             <DefaultInput
               className="w-full"
