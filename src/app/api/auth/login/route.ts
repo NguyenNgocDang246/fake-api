@@ -23,14 +23,14 @@ export async function POST(req: NextRequest) {
     const cookie = [
       serialize("access_token", data.access_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env["NODE_ENV"] === "production",
         sameSite: "strict",
         maxAge: ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
         path: "/",
       }),
       serialize("refresh_token", data.refresh_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env["NODE_ENV"] === "production",
         sameSite: "strict",
         maxAge: REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
         path: API_ROUTES.AUTH.REFRESH_TOKEN,

@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import { serialize } from "cookie";
-import { oauth2Client } from "@/app/api/auth/google/google.OAuth2";
+import { getOauth2Client } from "@/app/api/auth/google/google.OAuth2";
 import { AppError } from "@/server/core/errors";
 import {
   GOOGLE_AUTH_MESSAGES,
@@ -26,6 +26,7 @@ export async function GET(req: Request) {
       });
     }
 
+    const oauth2Client = getOauth2Client();
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
@@ -51,14 +52,14 @@ export async function GET(req: Request) {
     const cookie = [
       serialize("access_token", tokenData.access_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env["NODE_ENV"] === "production",
         sameSite: "strict",
         maxAge: ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
         path: "/",
       }),
       serialize("refresh_token", tokenData.refresh_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env["NODE_ENV"] === "production",
         sameSite: "strict",
         maxAge: REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
         path: API_ROUTES.AUTH.REFRESH_TOKEN,
