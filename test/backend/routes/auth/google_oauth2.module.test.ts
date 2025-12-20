@@ -11,8 +11,12 @@ describe("src/app/api/auth/google/google.OAuth2.ts", () => {
       google: { auth: { OAuth2: OAuth2Mock } },
     }));
 
-    await import("@/app/api/auth/google/google.OAuth2");
-    expect(OAuth2Mock).toHaveBeenCalledWith("id", "secret", "http://localhost/api/auth/google/callback");
+    const mod = await import("@/app/api/auth/google/google.OAuth2");
+    mod.getOauth2Client();
+    expect(OAuth2Mock).toHaveBeenCalledWith(
+      "id",
+      "secret",
+      "http://localhost/api/auth/google/callback"
+    );
   });
 });
-

@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import { serialize } from "cookie";
-import { oauth2Client } from "@/app/api/auth/google/google.OAuth2";
+import { getOauth2Client } from "@/app/api/auth/google/google.OAuth2";
 import { AppError } from "@/server/core/errors";
 import {
   GOOGLE_AUTH_MESSAGES,
@@ -26,6 +26,7 @@ export async function GET(req: Request) {
       });
     }
 
+    const oauth2Client = getOauth2Client();
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 

@@ -6,9 +6,11 @@ jest.mock("googleapis", () => ({
     })),
   },
 }));
+const getToken = jest.fn();
+const setCredentials = jest.fn();
 jest.mock("@/app/api/auth/google/google.OAuth2", () => ({
   __esModule: true,
-  oauth2Client: { getToken: jest.fn(), setCredentials: jest.fn() },
+  getOauth2Client: () => ({ getToken, setCredentials }),
 }));
 jest.mock("@/server/services/user.service", () => ({
   __esModule: true,
@@ -20,7 +22,6 @@ jest.mock("@/server/services/auth/auth.service", () => ({
 }));
 
 import { google } from "googleapis";
-import { oauth2Client } from "@/app/api/auth/google/google.OAuth2";
 import UserService from "@/server/services/user.service";
 import AuthService from "@/server/services/auth/auth.service";
 import { GET } from "@/app/api/auth/google/callback/route";
@@ -32,8 +33,8 @@ describe("GET src/app/api/auth/google/callback/route.ts", () => {
   let userinfoGet: jest.Mock;
 
   beforeEach(() => {
-    (oauth2Client.getToken as jest.Mock).mockResolvedValue({ tokens: { access_token: "x" } });
-    (oauth2Client.setCredentials as jest.Mock).mockReturnValue(undefined);
+    getToken.mockResolvedValue({ tokens: { access_token: "x" } });
+    setCredentials.mockReturnValue(undefined);
     userinfoGet = jest.fn();
     (google.oauth2 as jest.Mock).mockImplementation(() => ({
       userinfo: { get: userinfoGet },

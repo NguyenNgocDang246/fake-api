@@ -1,9 +1,17 @@
 import { google } from "googleapis";
-const DOMAIN = process.env["DOMAIN"];
-const oauth2Client = new google.auth.OAuth2(
-  process.env["GOOGLE_CLIENT_ID"]!,
-  process.env["GOOGLE_CLIENT_SECRET"]!,
-  `${DOMAIN}/api/auth/google/callback`
-);
+import type { OAuth2Client } from "google-auth-library";
 
-export { oauth2Client };
+let client: OAuth2Client | undefined;
+
+export function getOauth2Client() {
+  if (!client) {
+    const DOMAIN = process.env["DOMAIN"];
+    client = new google.auth.OAuth2(
+      process.env["GOOGLE_CLIENT_ID"]!,
+      process.env["GOOGLE_CLIENT_SECRET"]!,
+      `${DOMAIN}/api/auth/google/callback`
+    );
+  }
+
+  return client;
+}
