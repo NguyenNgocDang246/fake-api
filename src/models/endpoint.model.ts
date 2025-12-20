@@ -1,17 +1,21 @@
 import { z } from "zod";
 
-export const JsonSchema = z.string().transform((val) => {
+export const JsonSchema = z.string().transform((val, ctx) => {
   try {
     const parsed = JSON.parse(val);
 
     if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
       return JSON.stringify(parsed);
     }
-
-    throw new Error("Not a JSON object");
   } catch {
-    throw new Error("response_body must be a valid JSON object");
+    // fallthrough to issue
   }
+
+  ctx.addIssue({
+    code: "custom",
+    message: "response_body must be a valid JSON object",
+  });
+  return z.NEVER;
 });
 
 export const EndpointSchema = z

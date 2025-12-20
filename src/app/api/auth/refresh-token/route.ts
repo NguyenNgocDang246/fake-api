@@ -35,7 +35,7 @@ export async function GET() {
     const res = ApiResponse.success();
     const cookie = serialize("access_token", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env["NODE_ENV"] === "production",
       sameSite: "strict",
       maxAge: ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
       path: "/",
