@@ -14,8 +14,8 @@ module.exports = {
       "ts-jest",
       {
         tsconfig: "<rootDir>/test/backend/tsconfig.jest.json",
+        diagnostics: false
       },
     ],
   },
 };
-

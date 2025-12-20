@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+.jest-localstorage
+/test/backend/.jest-localstorage/
 
 # next.js
 /.next/

@@ -1,3 +1,45 @@
+// Avoid Node experimental webstorage warning by providing explicit mock storage.
+function createStorageMock() {
+  const store = new Map<string, string>();
+  return {
+    get length() {
+      return store.size;
+    },
+    clear() {
+      store.clear();
+    },
+    getItem(key: string) {
+      return store.has(key) ? store.get(key)! : null;
+    },
+    key(index: number) {
+      return Array.from(store.keys())[index] ?? null;
+    },
+    removeItem(key: string) {
+      store.delete(key);
+    },
+    setItem(key: string, value: string) {
+      store.set(key, String(value));
+    },
+  };
+}
+
+try {
+  Object.defineProperty(globalThis, "localStorage", {
+    value: createStorageMock(),
+    writable: false,
+    configurable: true,
+    enumerable: true,
+  });
+  Object.defineProperty(globalThis, "sessionStorage", {
+    value: createStorageMock(),
+    writable: false,
+    configurable: true,
+    enumerable: true,
+  });
+} catch {
+  // If Node defines non-configurable WebStorage accessors, ignore.
+}
+
 process.env["SECRET_SALT"] ??= "test-secret-salt";
 process.env["DOMAIN"] ??= "http://localhost";
 process.env["DUMMY_PASSWORD_SALT"] ??= "dummy-salt";

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "test": "jest",
-    "test:backend": "jest --config test/backend/jest.config.cjs",
+    "test:backend": "node test/backend/run-jest.cjs",
     "type-check": "tsc --noEmit",
     "dev": "next dev --turbopack",
     "prisma:generate": "prisma generate --schema=src/server/prisma/schema.prisma",
