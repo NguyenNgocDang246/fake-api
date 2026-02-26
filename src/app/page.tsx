@@ -1,9 +1,19 @@
-"use client";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
-import { PAGE_ROUTES } from "@/app/libs/routes";
-import { useAuth } from "@/app/components/Wrapper/Auth/AuthWrapper";
-export default function Home() {
-  const { user } = useAuth();
+import { PAGE_ROUTES, API_ROUTES } from "@/app/libs/routes";
+import api from "@/app/libs/helpers/api_call.server";
+import { UserInfoDTO } from "@/models/user.model";
+import { ApiSuccessResponse } from "@/models/api_response.model";
+async function fetchUser(): Promise<UserInfoDTO | null> {
+  try {
+    const res = (await api.get(API_ROUTES.USER.GET)) as ApiSuccessResponse<UserInfoDTO>;
+    return res.data;
+  } catch (err) {
+    return null;
+  }
+}
+
+export default async function Home() {
+  const user = await fetchUser();
   return (
     <div className="font-sans flex flex-col items-center justify-center sm:px-6 py-12 bg-gray-50">
       <h1 className="text-4xl font-medium text-black mb-4 text-center">Mock APIs in seconds</h1>

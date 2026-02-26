@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { UserInfoDTO } from "@/models/user.model";
-import api from "@/app/libs/helpers/api_call";
+import api from "@/app/libs/helpers/api_call.client";
 import { API_ROUTES, PAGE_ROUTES } from "@/app/libs/routes";
 import { ApiSuccessResponse } from "@/models/api_response.model";
 import { Spinner } from "@/app/components/Loading/Spinner";
@@ -51,7 +51,8 @@ export const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isLoading, user, pathname, router]);
 
-  if (isLoading || (!user && !ignoreAuthPageRoute.includes(pathname))) {
+  // if (isLoading || (!user && !ignoreAuthPageRoute.includes(pathname))) {
+  if (!ignoreAuthPageRoute.includes(pathname) && (isLoading || !user)) {
     return (
       <div className="flex flex-col justify-center items-center h-screen gap-8">
         <Spinner size={60} />
