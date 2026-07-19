@@ -6,7 +6,7 @@ function resolveUrl(url: string): string {
   return url.startsWith("/") ? `${BASE_URL}${url}` : url;
 }
 
-async function apiFetch(url: string, options: RequestInit = {}): Promise<any> {
+async function apiFetch(url: string, options: RequestInit = {}): Promise<unknown> {
   const cookieStore = await cookies();
   const res = await fetch(resolveUrl(url), {
     ...options,
