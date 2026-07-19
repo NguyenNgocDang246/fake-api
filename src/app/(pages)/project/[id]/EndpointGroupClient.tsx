@@ -2,7 +2,7 @@
 import { useEndpointGroupViewModel } from "@/app/(pages)/project/[id]/viewmodel";
 import { EndpointItem } from "@/app/(pages)/project/[id]/components/EndpointItem/EndpointItem";
 import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
-import { LoadingDots } from "@/app/components/Loading/LoadingDots";
+import { BreadcrumbSkeleton } from "@/app/components/Link/BreadcrumbSkeleton";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 import { Spinner } from "@/app/components/Loading/Spinner";
@@ -38,17 +38,7 @@ export default function EndpointGroupClient({
     <div>
       <div className="flex justify-start">
         {projectInfoState.isFetching ? (
-          <div className="flex items-center">
-            <Breadcrumb
-              items={[
-                { label: "Home", href: PAGE_ROUTES.HOME },
-                { label: "Project", href: PAGE_ROUTES.PROJECT },
-              ]}
-            />
-            <div className="flex justify-center ml-4">
-              <LoadingDots text="." />
-            </div>
-          </div>
+          <BreadcrumbSkeleton />
         ) : (
           <Breadcrumb
             items={[
