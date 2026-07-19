@@ -36,7 +36,7 @@ export async function GET() {
     const cookie = serialize("access_token", accessToken, {
       httpOnly: true,
       secure: process.env["NODE_ENV"] === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
       path: "/",
     });

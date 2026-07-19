@@ -55,7 +55,7 @@ export async function GET(req: Request) {
       serialize("access_token", tokenData.access_token, {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
         path: "/",
       }),
@@ -65,7 +65,7 @@ export async function GET(req: Request) {
       serialize("refresh_token", tokenData.refresh_token, {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
         path: "/",
       }),
