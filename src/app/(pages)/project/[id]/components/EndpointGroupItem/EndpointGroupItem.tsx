@@ -1,4 +1,4 @@
-import { Folder, MoreVertical } from "lucide-react";
+import { Folder, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { DropdownButton } from "@/app/components/Button/DropdownButton";
 import { useEndpointGroupViewModel } from "./viewmodel";
 import { useUpdateEndpointGroupViewModel } from "@/app/(pages)/project/[id]/components/UpdateEndpointGroupForm/viewmodel";
@@ -44,7 +44,16 @@ export const EndpointGroupItem: React.FC<EndpointGroupItemProps> = ({
         boxClassName="w-52 text-black"
         position="right"
         title="Endpoint Group Action"
-        options={["Edit", "Delete"]}
+        options={[
+          <div key="edit" className="flex items-center gap-2">
+            <Pencil size={16} />
+            Edit
+          </div>,
+          <div key="delete" className="flex items-center gap-2 text-red-600">
+            <Trash2 size={16} />
+            Delete
+          </div>,
+        ]}
         onSelect={(index) => {
           if (index === 0) openUpdateEndpointGroupModal();
           if (index === 1) openDeleteEndpointGroupModal({ public_id });

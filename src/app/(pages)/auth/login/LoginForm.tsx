@@ -47,7 +47,7 @@ export function LoginForm() {
         <IconButton
           icon={{ src: "/assets/google-icon.svg", alt: "google", width: 20, height: 20 }}
           label="Login with Google"
-          className="w-full mt-4"
+          className="w-full mt-4 border border-gray-300 rounded-lg"
           onClick={() => {
             loginWithGoogle();
           }}

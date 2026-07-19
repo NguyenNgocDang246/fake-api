@@ -1,4 +1,4 @@
-import { MoreVertical, Copy } from "lucide-react";
+import { MoreVertical, Copy, Pencil, Trash2 } from "lucide-react";
 import { DropdownButton } from "@/app/components/Button/DropdownButton";
 import { useProjectItemViewModel } from "@/app/(pages)/project/components/ProjectItem/viewmodel";
 import { useUpdateProjectViewModel } from "@/app/(pages)/project/components/UpdateProjectForm/viewmodel";
@@ -50,10 +50,19 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({ public_id, name, descr
 
         <DropdownButton
           btnClassName="p-2 rounded-full bg-inherit hover:bg-gray-200"
-          boxClassName="w-52"
+          boxClassName="w-36"
           position="left"
           title="Project Action"
-          options={["Edit", "Delete"]}
+          options={[
+            <div key="edit" className="flex items-center gap-2">
+              <Pencil size={16} />
+              Edit
+            </div>,
+            <div key="delete" className="flex items-center gap-2 text-red-600">
+              <Trash2 size={16} />
+              Delete
+            </div>,
+          ]}
           onSelect={(index) => {
             if (index === 1) openDeleteProjectModal({ public_id });
             if (index === 0) openUpdateProjectModal();

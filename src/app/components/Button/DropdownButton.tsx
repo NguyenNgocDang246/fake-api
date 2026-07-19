@@ -5,7 +5,7 @@ import { twMerge } from "tailwind-merge";
 
 interface DropdownProps {
   children: ReactNode;
-  title: string;
+  title?: string;
   options: ReactNode[];
   onSelect?: (index: number) => void;
   className?: string;
@@ -73,7 +73,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
         }}
         className={twMerge(
           "px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 cursor-pointer",
-          btnClassName
+          btnClassName,
         )}
       >
         {children}
@@ -83,7 +83,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
         ref={boxRef}
         onClick={(e) => e.stopPropagation()}
         className={twMerge(
-          "absolute p-2 bg-gray-100 border border-gray-300 rounded-md shadow-lg z-10 transition-all duration-200 ease-out",
+          "absolute p-1.5 bg-white border border-gray-200 rounded-xl shadow-md z-10 transition-all duration-200 ease-out",
           dropUp ? "bottom-full mb-2" : "mt-2",
           positionClass,
           boxClassName,
@@ -91,13 +91,17 @@ export const DropdownButton: React.FC<DropdownProps> = ({
             ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
             : dropUp
               ? "opacity-0 scale-95 translate-y-2 pointer-events-none"
-              : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+              : "opacity-0 scale-95 -translate-y-2 pointer-events-none",
         )}
       >
-        <h3 className="px-2 pt-2 pb-1 text-sm text-gray-600">{title}</h3>
-        <div className="flex justify-center h-1 px-2 pb-1">
-          <div className={twMerge("w-full border-b border-gray-400", dividerClassName)}></div>
-        </div>
+        {title && (
+          <>
+            <h3 className="px-2 pt-2 pb-1 text-sm text-gray-600">{title}</h3>
+            <div className="flex justify-center h-1 px-2 pb-1">
+              <div className={twMerge("w-full border-b border-gray-400", dividerClassName)}></div>
+            </div>
+          </>
+        )}
 
         {options.map((option, index) => (
           <div
@@ -108,8 +112,8 @@ export const DropdownButton: React.FC<DropdownProps> = ({
               setOpen(false);
             }}
             className={twMerge(
-              "cursor-pointer block w-full text-left px-3 rounded-lg py-1 hover:bg-blue-300",
-              optionClassName
+              "cursor-pointer flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-200 text-sm font-medium text-gray-700 transition-colors",
+              optionClassName,
             )}
           >
             {option}

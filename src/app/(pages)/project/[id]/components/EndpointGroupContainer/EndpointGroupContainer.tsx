@@ -28,7 +28,7 @@ export const EndpointGroupContainer = ({
   );
   return (
     <div>
-      <div className="xl:hidden flex gap-2 items-center relative max-[425px]:items-stretch max-[425px]:gap-3">
+      <div className="xl:hidden flex gap-2 items-center relative">
         <div className="sm:block hidden font-semibold">Current group: </div>
         <div className="grow-7">
           {!endpointGroupsState.isFetched ? (
@@ -80,10 +80,7 @@ export const EndpointGroupContainer = ({
             openCreateEndpointGroupModal();
           }}
         >
-          <div className="max-[425px]:block hidden">
-            <Plus className="grow-3" />
-          </div>
-          <div className="max-[425px]:hidden block">New group</div>
+          New group
         </ActionButton>
       </div>
       <div className="xl:block hidden rounded-2xl border border-gray-200 bg-white shadow-sm p-4">
