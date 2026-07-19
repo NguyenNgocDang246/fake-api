@@ -4,7 +4,9 @@ import ApiResponse from "@/server/core/api_response";
 
 export async function GET(req: NextRequest) {
   void req;
-  const cookie = [
+  const res = ApiResponse.success();
+  res.headers.append(
+    "Set-Cookie",
     serialize("access_token", "", {
       httpOnly: true,
       secure: process.env["NODE_ENV"] === "production",
@@ -12,15 +14,16 @@ export async function GET(req: NextRequest) {
       maxAge: 0,
       path: "/",
     }),
+  );
+  res.headers.append(
+    "Set-Cookie",
     serialize("refresh_token", "", {
       httpOnly: true,
       secure: process.env["NODE_ENV"] === "production",
       sameSite: "strict",
       maxAge: 0,
-      path: "/api/auth/refresh-token",
+      path: "/",
     }),
-  ].join(", ");
-  const res = ApiResponse.success();
-  res.headers.set("Set-Cookie", cookie);
+  );
   return res;
 }

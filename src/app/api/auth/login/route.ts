@@ -9,7 +9,6 @@ import {
 import ApiResponse from "@/server/core/api_response";
 import { NextRequest } from "next/server";
 import authService from "@/server/services/auth/auth.service";
-import { API_ROUTES } from "@/app/libs/routes";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,7 +19,9 @@ export async function POST(req: NextRequest) {
     }
     const user = validation.data;
     const data = await authService.login(user);
-    const cookie = [
+    const res = ApiResponse.success();
+    res.headers.append(
+      "Set-Cookie",
       serialize("access_token", data.access_token, {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
@@ -28,16 +29,17 @@ export async function POST(req: NextRequest) {
         maxAge: ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
         path: "/",
       }),
+    );
+    res.headers.append(
+      "Set-Cookie",
       serialize("refresh_token", data.refresh_token, {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
         sameSite: "strict",
         maxAge: REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
-        path: API_ROUTES.AUTH.REFRESH_TOKEN,
+        path: "/",
       }),
-    ].join(", ");
-    const res = ApiResponse.success();
-    res.headers.set("Set-Cookie", cookie);
+    );
     return res;
   } catch (error) {
     if (error instanceof AppError) {
