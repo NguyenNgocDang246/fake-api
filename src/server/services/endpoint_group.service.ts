@@ -30,7 +30,10 @@ class EndpointGroupService {
   }
   async getAllEndpointGroups({ id }: GetProjectByIdDTO) {
     try {
-      return await prisma.endpoint_groups.findMany({ where: { project_id: id } });
+      return await prisma.endpoint_groups.findMany({
+        where: { project_id: id },
+        include: { _count: { select: { endpoints: true } } },
+      });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
@@ -38,7 +41,10 @@ class EndpointGroupService {
 
   async getEndpointGroupById({ id }: GetEndpointGroupByIdDTO) {
     try {
-      return await prisma.endpoint_groups.findUnique({ where: { id } });
+      return await prisma.endpoint_groups.findUnique({
+        where: { id },
+        include: { _count: { select: { endpoints: true } } },
+      });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
@@ -54,7 +60,11 @@ class EndpointGroupService {
 
   async updateEndpointGroupById({ id, ...rest }: UpdateProjectByIdDTO) {
     try {
-      return await prisma.endpoint_groups.update({ where: { id }, data: rest });
+      return await prisma.endpoint_groups.update({
+        where: { id },
+        data: rest,
+        include: { _count: { select: { endpoints: true } } },
+      });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

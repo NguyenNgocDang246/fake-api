@@ -8,7 +8,6 @@ import { GetUserByIdSchema } from "@/models/user.model";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import {
   CreateEndpointGroupSchema,
-  EndpointGroupDTO,
   EndpointGroupInfoSchema,
 } from "@/models/endpoint_group.model";
 import { STATUS_CODE, ERROR_MESSAGES } from "@/server/core/constants";
@@ -46,10 +45,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
       });
     }
     const endpointGroupInfoValidation = validateData(
-      endpointGroups.map((e: EndpointGroupDTO) => ({
+      endpointGroups.map((e) => ({
         public_id: IdConverter.encode(e.id),
         name: e.name,
         project_id: IdConverter.encode(e.project_id),
+        endpoint_count: e._count.endpoints,
       })),
       [EndpointGroupInfoSchema]
     );
@@ -111,6 +111,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ projectI
         public_id: IdConverter.encode(endpointGroupCreated.id),
         name: endpointGroupCreated.name,
         project_id: IdConverter.encode(endpointGroupCreated.project_id),
+        endpoint_count: 0,
       },
       EndpointGroupInfoSchema
     );

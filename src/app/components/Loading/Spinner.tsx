@@ -1,18 +1,37 @@
-"use client";
-
-import React from "react";
+import { twMerge } from "tailwind-merge";
 
 interface SpinnerProps {
   size?: number; // px
+  className?: string;
 }
 
-export const Spinner: React.FC<SpinnerProps> = ({ size = 40 }) => {
+export function Spinner({ size = 40, className }: SpinnerProps) {
   return (
-    <div
-      className="relative animate-spin rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 p-1"
-      style={{ width: size, height: size }}
-    >
-      <div className="h-full w-full rounded-full bg-white dark:bg-gray-900" />
-    </div>
+    <>
+      <style>{`
+        @keyframes spinner-quarter-ring-rotation {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+      <span
+        role="status"
+        className={twMerge(
+          "inline-block rounded-full border-t-[3px] border-r-[3px] border-t-current border-r-transparent text-blue-500",
+          className,
+        )}
+        style={{
+          width: size,
+          height: size,
+          animation: "spinner-quarter-ring-rotation 1s linear infinite",
+        }}
+      >
+        <span className="sr-only">Loading</span>
+      </span>
+    </>
   );
-};
+}

@@ -57,7 +57,7 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
           },
         });
       }}
-      className="flex flex-wrap sm:flex-nowrap items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md cursor-pointer sm:flex-row sm:gap-4 max-[425px]:flex-col max-[425px]:items-stretch"
+      className="flex flex-wrap sm:flex-nowrap items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md cursor-pointer sm:flex-row sm:gap-4"
     >
       <div className="flex items-center min-w-0 w-full sm:w-auto gap-3">
         <span
@@ -67,7 +67,7 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
         >
           {method}
         </span>
-        <h3 className="font-medium text-gray-800 truncate max-[425px]:text-sm flex-1 min-w-0">
+        <h3 className="font-medium text-gray-800 truncate flex-1 min-w-0">
           {path}
         </h3>
         <span

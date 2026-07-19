@@ -1,4 +1,5 @@
-import { ChevronDown, Plus } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, Plus, Search } from "lucide-react";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { UseQueryResult } from "@tanstack/react-query";
 import { EndpointGroupInfoDTO } from "@/models/endpoint_group.model";
@@ -19,11 +20,15 @@ export const EndpointGroupContainer = ({
   setSelectedGroupId,
 }: EndpointGroupsContainerProps) => {
   const { openCreateEndpointGroupModal } = useCreateEndpointGroupViewModel();
+  const [search, setSearch] = useState("");
 
   const hasEndpointGroups = endpointGroupsState.data && endpointGroupsState.data.length > 0;
+  const filteredGroups = (endpointGroupsState.data ?? []).filter((group) =>
+    group.name.toLowerCase().includes(search.trim().toLowerCase()),
+  );
   return (
     <div>
-      <div className="xl:hidden flex gap-2 items-center relative max-[425px]:items-stretch max-[425px]:gap-3">
+      <div className="xl:hidden flex gap-2 items-center relative">
         <div className="sm:block hidden font-semibold">Current group: </div>
         <div className="grow-7">
           {!endpointGroupsState.isFetched ? (
@@ -75,36 +80,50 @@ export const EndpointGroupContainer = ({
             openCreateEndpointGroupModal();
           }}
         >
-          <div className="max-[425px]:block hidden">
-            <Plus className="grow-3" />
-          </div>
-          <div className="max-[425px]:hidden block">New group</div>
+          New group
         </ActionButton>
       </div>
-      <div className="xl:block hidden rounded-2xl border border-gray-300 bg-white shadow-sm ">
-        <p className="text-center text-lg text-white bg-linear-to-r from-indigo-600 to-blue-500 rounded-t-2xl py-3">
-          Endpoint Groups
-        </p>
-        <div className="mt-1 p-4">
-          <ActionButton
-            label="Create new"
-            className="mb-4 w-full"
-            type="create"
-            onClick={() => {
-              openCreateEndpointGroupModal();
-            }}
+      <div className="xl:block hidden rounded-2xl border border-gray-200 bg-white shadow-sm p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-lg">Endpoint groups</h2>
+          <span className="text-xs font-semibold bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">
+            {endpointGroupsState.data?.length ?? 0}
+          </span>
+        </div>
+
+        <div className="relative mb-4">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search groups"
+            className="w-full rounded-lg border border-gray-300 bg-gray-50 pl-9 pr-3 py-2 text-sm outline-none focus:border-blue-400"
           />
-          <div className="space-y-1">
-            {!endpointGroupsState.isFetched ? (
-              <div className="flex justify-center">
-                <Spinner size={40} />
-              </div>
-            ) : hasEndpointGroups ? (
-              endpointGroupsState.data.map((group) => (
+        </div>
+
+        <button
+          type="button"
+          onClick={() => openCreateEndpointGroupModal()}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 mb-4 font-medium text-white transition hover:bg-blue-700 cursor-pointer"
+        >
+          <Plus size={18} />
+          Create new
+        </button>
+
+        <div className="space-y-1">
+          {!endpointGroupsState.isFetched ? (
+            <div className="flex justify-center">
+              <Spinner size={40} />
+            </div>
+          ) : hasEndpointGroups ? (
+            filteredGroups.length > 0 ? (
+              filteredGroups.map((group) => (
                 <EndpointGroupItem
                   key={group.public_id}
                   public_id={group.public_id}
                   name={group.name}
+                  endpoint_count={group.endpoint_count}
                   isChosen={group.public_id === selectedGroupId}
                   onclick={(public_id) => {
                     setSelectedGroupId(public_id);
@@ -112,9 +131,11 @@ export const EndpointGroupContainer = ({
                 />
               ))
             ) : (
-              <NoContentText message="No endpoint groups" className="text-center" />
-            )}
-          </div>
+              <NoContentText message="No matching groups" className="text-center" />
+            )
+          ) : (
+            <NoContentText message="No endpoint groups" className="text-center" />
+          )}
         </div>
       </div>
     </div>

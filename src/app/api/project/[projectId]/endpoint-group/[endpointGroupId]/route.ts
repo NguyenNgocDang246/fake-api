@@ -69,6 +69,7 @@ export async function GET(
         public_id: IdConverter.encode(endpointgroup.id),
         name: endpointgroup.name,
         project_id: IdConverter.encode(endpointgroup.project_id),
+        endpoint_count: endpointgroup._count.endpoints,
       },
       EndpointGroupInfoSchema
     );
@@ -216,6 +217,7 @@ export async function PUT(
         public_id: IdConverter.encode(endpointGroupUpdated.id),
         name: endpointGroupUpdated.name,
         project_id: IdConverter.encode(endpointGroupUpdated.project_id),
+        endpoint_count: endpointGroupUpdated._count.endpoints,
       },
       EndpointGroupInfoSchema
     );

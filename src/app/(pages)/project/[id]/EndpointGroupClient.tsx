@@ -2,7 +2,7 @@
 import { useEndpointGroupViewModel } from "@/app/(pages)/project/[id]/viewmodel";
 import { EndpointItem } from "@/app/(pages)/project/[id]/components/EndpointItem/EndpointItem";
 import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
-import { LoadingDots } from "@/app/components/Loading/LoadingDots";
+import { BreadcrumbSkeleton } from "@/app/components/Link/BreadcrumbSkeleton";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 import { Spinner } from "@/app/components/Loading/Spinner";
@@ -38,17 +38,7 @@ export default function EndpointGroupClient({
     <div>
       <div className="flex justify-start">
         {projectInfoState.isFetching ? (
-          <div className="flex items-center">
-            <Breadcrumb
-              items={[
-                { label: "Home", href: PAGE_ROUTES.HOME },
-                { label: "Project", href: PAGE_ROUTES.PROJECT },
-              ]}
-            />
-            <div className="flex justify-center ml-4">
-              <LoadingDots text="." />
-            </div>
-          </div>
+          <BreadcrumbSkeleton />
         ) : (
           <Breadcrumb
             items={[
@@ -71,17 +61,17 @@ export default function EndpointGroupClient({
         </div>
 
         <div className="grow flex flex-col">
-          <div className="flex flex-col w-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm max-[425px]:p-3">
+          <div className="flex flex-col w-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div>
               <div className="font-semibold text-lg">API Endpoint: </div>
-              <div className="text-blue-800 py-2 min-w-full flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto max-[425px]:text-sm">
+              <div className="text-blue-800 py-2 min-w-full flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto">
                 <span>{DOMAIN}/</span>
-                <span className="mx-0.5 px-2 font-medium rounded-xl bg-blue-100">{projectId}</span>
+                <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">{projectId}</span>
                 <span>/</span>
-                <span className="mx-0.5 px-2 font-medium rounded-xl bg-blue-100">:path</span>
+                <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">:path</span>
               </div>
             </div>
-            <div className="flex flex-row gap-2 justify-center sm:justify-end max-[425px]:flex-col max-[425px]:items-stretch mt-3">
+            <div className="flex flex-row gap-2 justify-center sm:justify-end mt-3">
               <ActionButton
                 label="New Endpoint"
                 type="create"
