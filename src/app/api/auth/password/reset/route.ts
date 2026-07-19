@@ -49,7 +49,9 @@ export async function POST(req: NextRequest) {
     const data = dataValidation.data;
     await AuthService.updatePassword(data);
     await UserService.increaseTokenVersion({ id: userId });
-    const cookie = [
+    const res = ApiResponse.success();
+    res.headers.append(
+      "Set-Cookie",
       serialize("access_token", "", {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
@@ -57,16 +59,17 @@ export async function POST(req: NextRequest) {
         maxAge: 0,
         path: "/",
       }),
+    );
+    res.headers.append(
+      "Set-Cookie",
       serialize("refresh_token", "", {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
         sameSite: "strict",
         maxAge: 0,
-        path: "/api/auth/refresh-token",
+        path: "/",
       }),
-    ].join(", ");
-    const res = ApiResponse.success();
-    res.headers.set("Set-Cookie", cookie);
+    );
     return res;
   } catch (error) {
     console.log(error);

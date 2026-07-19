@@ -12,7 +12,7 @@ import ApiResponse from "@/server/core/api_response";
 import UserService from "@/server/services/user.service";
 import AuthService from "@/server/services/auth/auth.service";
 import { NextResponse } from "next/server";
-import { PAGE_ROUTES, API_ROUTES } from "@/app/libs/routes";
+import { PAGE_ROUTES } from "@/app/libs/routes";
 
 export async function GET(req: Request) {
   try {
@@ -49,7 +49,9 @@ export async function GET(req: Request) {
       await AuthService.registerWithGoogle({ name: data.name, email: data.email });
     }
     const tokenData = await AuthService.loginWithGoogle({ email: data.email });
-    const cookie = [
+    const res = NextResponse.redirect(new URL(PAGE_ROUTES.PROJECT, req.url));
+    res.headers.append(
+      "Set-Cookie",
       serialize("access_token", tokenData.access_token, {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
@@ -57,16 +59,17 @@ export async function GET(req: Request) {
         maxAge: ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
         path: "/",
       }),
+    );
+    res.headers.append(
+      "Set-Cookie",
       serialize("refresh_token", tokenData.refresh_token, {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
         sameSite: "strict",
         maxAge: REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
-        path: API_ROUTES.AUTH.REFRESH_TOKEN,
+        path: "/",
       }),
-    ].join(", ");
-    const res = NextResponse.redirect(new URL(PAGE_ROUTES.PROJECT, req.url));
-    res.headers.set("Set-Cookie", cookie);
+    );
     return res;
   } catch (error) {
     if (error instanceof AppError) {

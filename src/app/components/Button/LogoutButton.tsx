@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import api from "@/app/libs/helpers/api_call";
+import { LogOut } from "lucide-react";
+import api from "@/app/libs/helpers/api_call.client";
 import { API_ROUTES, PAGE_ROUTES } from "@/app/libs/routes";
 
 export const LogoutButton: React.FC = () => {
@@ -15,5 +16,10 @@ export const LogoutButton: React.FC = () => {
     router.push(PAGE_ROUTES.AUTH.LOGIN);
   };
 
-  return <div onClick={handleLogout}>Logout</div>;
+  return (
+    <div onClick={handleLogout} className="flex items-center gap-2 text-red-600">
+      <LogOut size={16} />
+      Logout
+    </div>
+  );
 };

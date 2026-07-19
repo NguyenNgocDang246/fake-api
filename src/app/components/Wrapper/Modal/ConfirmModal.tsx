@@ -103,7 +103,7 @@ export function ConfirmModal({
             disabled={isConfirming}
           />
           <ActionButton
-            label={isConfirming ? "Confirming..." : "Confirm"}
+            label={isConfirming ? "Processing..." : "Confirm"}
             type="delete"
             onClick={handleConfirm}
             className="flex-1"
