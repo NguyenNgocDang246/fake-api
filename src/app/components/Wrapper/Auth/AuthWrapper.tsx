@@ -1,16 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { createContext, useContext } from "react";
+import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { UserInfoDTO } from "@/models/user.model";
 import api from "@/app/libs/helpers/api_call.client";
 import { API_ROUTES, PAGE_ROUTES } from "@/app/libs/routes";
 import { ApiSuccessResponse } from "@/models/api_response.model";
-import { Spinner } from "@/app/components/Loading/Spinner";
-import { LoadingDots } from "@/app/components/Loading/LoadingDots";
 import { QUERY_KEY, STALETIME } from "@/app/components/Wrapper/QueryClient/Constants";
-import { ignoreAuthPageRoute } from "./ignoreAuthPageRoute";
 
 interface AuthContextType {
   user: UserInfoDTO | null;
@@ -32,7 +29,6 @@ async function fetchUser(): Promise<UserInfoDTO | null> {
 }
 
 export const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
-  const router = useRouter();
   const pathname = usePathname();
 
   const { data: user, isLoading } = useQuery<UserInfoDTO | null>({
@@ -42,24 +38,6 @@ export const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
     retry: 0,
     enabled: pathname !== PAGE_ROUTES.AUTH.LOGIN && pathname !== PAGE_ROUTES.AUTH.REGISTER,
   });
-
-  // Kiểm tra auth khi pathname thay đổi
-  useEffect(() => {
-    const currentPath = pathname;
-    if (!isLoading && !user && !ignoreAuthPageRoute.includes(currentPath)) {
-      router.push(PAGE_ROUTES.AUTH.LOGIN);
-    }
-  }, [isLoading, user, pathname, router]);
-
-  // if (isLoading || (!user && !ignoreAuthPageRoute.includes(pathname))) {
-  if (!ignoreAuthPageRoute.includes(pathname) && (isLoading || !user)) {
-    return (
-      <div className="flex flex-col justify-center items-center h-screen gap-8">
-        <Spinner size={60} />
-        <LoadingDots text="Please wait" />
-      </div>
-    );
-  }
 
   return (
     <AuthContext.Provider value={{ user: user ?? null, loading: isLoading }}>

@@ -1,19 +1,9 @@
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
-import { PAGE_ROUTES, API_ROUTES } from "@/app/libs/routes";
-import api from "@/app/libs/helpers/api_call.server";
-import { UserInfoDTO } from "@/models/user.model";
-import { ApiSuccessResponse } from "@/models/api_response.model";
-async function fetchUser(): Promise<UserInfoDTO | null> {
-  try {
-    const res = (await api.get(API_ROUTES.USER.GET)) as ApiSuccessResponse<UserInfoDTO>;
-    return res.data;
-  } catch (err) {
-    return null;
-  }
-}
+import { PAGE_ROUTES } from "@/app/libs/routes";
+import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 
 export default async function Home() {
-  const user = await fetchUser();
+  const user = await getCurrentUser();
   return (
     <div className="font-sans flex flex-col items-center justify-center sm:px-6 py-12 bg-gray-50">
       <h1 className="text-4xl font-medium text-black mb-4 text-center">Mock APIs in seconds</h1>

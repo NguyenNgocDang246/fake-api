@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
 import api from "@/app/libs/helpers/api_call.client";
 import url_builder from "@/app/libs/helpers/url_builder";
 import { API_ROUTES } from "@/app/libs/routes";
@@ -12,12 +11,8 @@ import { QUERY_KEY, STALETIME } from "@/app/components/Wrapper/QueryClient/Const
 import Notify from "@/app/components/Notify";
 import { useModal } from "@/app/components/Wrapper/Modal/ModalWrapper";
 
-export function useEndpointGroupViewModel() {
-  const pathname = usePathname();
-  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
-
-  const pathnameSplit = pathname.split("/");
-  const projectId = pathnameSplit[pathnameSplit.length - 1] ?? "";
+export function useEndpointGroupViewModel(projectId: string, initialSelectedGroupId = "") {
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(initialSelectedGroupId);
 
   const fetchProjectInfo = async (): Promise<ProjectInfoDTO> => {
     const res = (await api.get(url_builder(API_ROUTES.PROJECT.GET_BY_ID, { projectId })))

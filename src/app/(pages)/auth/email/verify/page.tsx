@@ -1,63 +1,73 @@
-"use client";
-import { NavigationButton } from "@/app/components/Button/NavigationButton";
-import { ActionButton } from "@/app/components/Button/ActionButton";
-import { PAGE_ROUTES } from "@/app/libs/routes";
 import { CircleCheck, AlertCircle } from "lucide-react";
-import { Spinner } from "@/app/components/Loading/Spinner";
-import { useVerifyEmailViewModel } from "@/app/(pages)/auth/email/verify/viewmodel";
-import { useResendEmailViewModel } from "@/app/(pages)/auth/email/verify/components/ResendEmailForm/viewmodel";
+import { NavigationButton } from "@/app/components/Button/NavigationButton";
+import { PAGE_ROUTES, API_ROUTES } from "@/app/libs/routes";
+import api from "@/app/libs/helpers/api_call.server";
+import { ApiErrorResponse } from "@/models/api_response.model";
+import { ResendVerificationButton } from "@/app/(pages)/auth/email/verify/ResendVerificationButton";
 
-export default function VerifyEmailPage() {
-  const { isLoading, message, error } = useVerifyEmailViewModel();
-  const { openResendEmailModal } = useResendEmailViewModel();
-  return (
-    <div>
-      {isLoading ? (
-        <div className="flex justify-center items-center mt-24">
-          <Spinner size={60} />
-        </div>
-      ) : error ? (
-        <div className="flex flex-col items-center gap-4 max-w-[32rem] mx-auto text-center mt-10">
-          <AlertCircle className="text-red-500" size={80} />
-          <div className="text-4xl font-semibold">Email Verification Failed!</div>
-          <div>{message}</div>
-          <div className="flex flex-col w-full mt-10 gap-2">
-            <ActionButton
-              onClick={() => {
-                openResendEmailModal();
-              }}
-              className="bg-gray-900 text-white hover:bg-gray-800 hover:text-blue-400"
-            >
-              Resend Verification Email
-            </ActionButton>
-            <div className="flex gap-2 w-full">
-              <NavigationButton href={PAGE_ROUTES.AUTH.LOGIN} className="flex-1 border">
-                Continue to Login
-              </NavigationButton>
-              <NavigationButton href={PAGE_ROUTES.HOME} className="flex-1 border">
-                Back to Home
-              </NavigationButton>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-4 max-w-[32rem] mx-auto text-center mt-10">
-          <CircleCheck className="text-green-500" size={80} />
-          <div className="text-4xl font-semibold">Email Verified!</div>
-          <div>{message}</div>
-          <div className="flex flex-col gap-2 w-full mt-10">
-            <NavigationButton
-              href={PAGE_ROUTES.AUTH.LOGIN}
-              className="bg-blue-800 text-white hover:bg-gray-800 hover:text-blue-400"
-            >
+async function verifyEmail(
+  token: string | undefined,
+): Promise<{ success: boolean; message: string }> {
+  if (!token) {
+    return { success: false, message: "Verification token is missing." };
+  }
+  try {
+    await api.post(API_ROUTES.AUTH.EMAIL.VERIFY, { token });
+    return {
+      success: true,
+      message: "Your email has been successfully verified. You are all set to get started",
+    };
+  } catch (err) {
+    const error = err as ApiErrorResponse;
+    return { success: false, message: error.message ?? "Email verification failed." };
+  }
+}
+
+export default async function VerifyEmailPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string }>;
+}) {
+  const { token } = await searchParams;
+  const { success, message } = await verifyEmail(token);
+
+  if (!success) {
+    return (
+      <div className="flex flex-col items-center gap-4 max-w-[32rem] mx-auto text-center mt-10">
+        <AlertCircle className="text-red-500" size={80} />
+        <div className="text-4xl font-semibold">Email Verification Failed!</div>
+        <div>{message}</div>
+        <div className="flex flex-col w-full mt-10 gap-2">
+          <ResendVerificationButton />
+          <div className="flex gap-2 w-full">
+            <NavigationButton href={PAGE_ROUTES.AUTH.LOGIN} className="flex-1 border">
               Continue to Login
             </NavigationButton>
-            <NavigationButton href={PAGE_ROUTES.HOME} className="border">
+            <NavigationButton href={PAGE_ROUTES.HOME} className="flex-1 border">
               Back to Home
             </NavigationButton>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-4 max-w-[32rem] mx-auto text-center mt-10">
+      <CircleCheck className="text-green-500" size={80} />
+      <div className="text-4xl font-semibold">Email Verified!</div>
+      <div>{message}</div>
+      <div className="flex flex-col gap-2 w-full mt-10">
+        <NavigationButton
+          href={PAGE_ROUTES.AUTH.LOGIN}
+          className="bg-blue-800 text-white hover:bg-gray-800 hover:text-blue-400"
+        >
+          Continue to Login
+        </NavigationButton>
+        <NavigationButton href={PAGE_ROUTES.HOME} className="border">
+          Back to Home
+        </NavigationButton>
+      </div>
     </div>
   );
 }
