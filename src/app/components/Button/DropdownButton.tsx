@@ -29,7 +29,10 @@ export const DropdownButton: React.FC<DropdownProps> = ({
   position = "left",
 }: DropdownProps) => {
   const [open, setOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -43,6 +46,16 @@ export const DropdownButton: React.FC<DropdownProps> = ({
     };
   }, []);
 
+  const toggleOpen = () => {
+    if (!open && buttonRef.current) {
+      const btnRect = buttonRef.current.getBoundingClientRect();
+      const boxHeight = boxRef.current?.offsetHeight ?? 0;
+      const spaceBelow = window.innerHeight - btnRect.bottom;
+      setDropUp(spaceBelow < boxHeight);
+    }
+    setOpen((prev) => !prev);
+  };
+
   const positionClass =
     position === "left"
       ? "right-0"
@@ -53,9 +66,10 @@ export const DropdownButton: React.FC<DropdownProps> = ({
   return (
     <div ref={dropdownRef} className={twMerge("relative inline-block text-left", className)}>
       <button
+        ref={buttonRef}
         onClick={(e) => {
           e.stopPropagation();
-          setOpen(!open);
+          toggleOpen();
         }}
         className={twMerge(
           "px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 cursor-pointer",
@@ -66,14 +80,18 @@ export const DropdownButton: React.FC<DropdownProps> = ({
       </button>
 
       <div
+        ref={boxRef}
         onClick={(e) => e.stopPropagation()}
         className={twMerge(
-          "absolute mt-2 p-2 bg-gray-100 border border-gray-300 rounded-md shadow-lg z-10 transition-all duration-200 ease-out",
+          "absolute p-2 bg-gray-100 border border-gray-300 rounded-md shadow-lg z-10 transition-all duration-200 ease-out",
+          dropUp ? "bottom-full mb-2" : "mt-2",
           positionClass,
           boxClassName,
           open
             ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
-            : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+            : dropUp
+              ? "opacity-0 scale-95 translate-y-2 pointer-events-none"
+              : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
         )}
       >
         <h3 className="px-2 pt-2 pb-1 text-sm text-gray-600">{title}</h3>

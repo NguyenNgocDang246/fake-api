@@ -66,9 +66,9 @@ export default function EndpointGroupClient({
               <div className="font-semibold text-lg">API Endpoint: </div>
               <div className="text-blue-800 py-2 min-w-full flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto max-[425px]:text-sm">
                 <span>{DOMAIN}/</span>
-                <span className="mx-0.5 px-2 font-medium rounded-xl bg-blue-100">{projectId}</span>
+                <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">{projectId}</span>
                 <span>/</span>
-                <span className="mx-0.5 px-2 font-medium rounded-xl bg-blue-100">:path</span>
+                <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">:path</span>
               </div>
             </div>
             <div className="flex flex-row gap-2 justify-center sm:justify-end max-[425px]:flex-col max-[425px]:items-stretch mt-3">
