@@ -1,9 +1,9 @@
-"use client";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
-import { useAuth } from "@/app/components/Wrapper/Auth/AuthWrapper";
-export default function Home() {
-  const { user } = useAuth();
+import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
+
+export default async function Home() {
+  const user = await getCurrentUser();
   return (
     <div className="font-sans flex flex-col items-center justify-center sm:px-6 py-12 bg-gray-50">
       <h1 className="text-4xl font-medium text-black mb-4 text-center">Mock APIs in seconds</h1>

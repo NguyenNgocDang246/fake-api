@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import api from "@/app/libs/helpers/api_call";
+import api from "@/app/libs/helpers/api_call.client";
 import { API_ROUTES, PAGE_ROUTES } from "@/app/libs/routes";
 
 export const LogoutButton: React.FC = () => {
