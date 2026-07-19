@@ -41,7 +41,7 @@ export function createApi() {
         return api(error.config!);
       } catch (err) {
         try {
-          await plainApi.post(API_ROUTES.AUTH.LOGOUT);
+          await plainApi.get(API_ROUTES.AUTH.LOGOUT);
         } catch (err) {
           void err;
         }
