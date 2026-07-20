@@ -18,7 +18,7 @@ export async function GET() {
       });
     }
     const payload = await tokenService.verifyRefreshToken(refreshToken);
-    const user = await userService.getUserById({ id: payload.id });
+    const user = await userService.getUserById({ public_id: payload.public_id });
     if (!user) {
       throw new AppError({
         message: TOKEN_MESSAGE.INVALID_EXPIRED_REFRESH_TOKEN,
@@ -31,7 +31,7 @@ export async function GET() {
         statusCode: STATUS_CODE.UNAUTHORIZED,
       });
     }
-    const accessToken = await tokenService.createAccessToken({ id: payload.id });
+    const accessToken = await tokenService.createAccessToken({ public_id: payload.public_id });
     const res = ApiResponse.success();
     const cookie = serialize("access_token", accessToken, {
       httpOnly: true,

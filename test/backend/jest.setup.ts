@@ -40,7 +40,6 @@ try {
   // If Node defines non-configurable WebStorage accessors, ignore.
 }
 
-process.env["SECRET_SALT"] ??= "test-secret-salt";
 process.env["DOMAIN"] ??= "http://localhost";
 process.env["DUMMY_PASSWORD_SALT"] ??= "dummy-salt";
 process.env["ACCESS_SECRET"] ??= "access_secret";

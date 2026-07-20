@@ -22,9 +22,9 @@ export async function POST(req: NextRequest) {
     if (!payloadValidation.success) {
       return payloadValidation.response;
     }
-    const userId = payloadValidation.data.id;
+    const userPublicId = payloadValidation.data.public_id;
     const token_version = payloadValidation.data.token_version;
-    const user = await UserService.getUserById({ id: userId });
+    const user = await UserService.getUserById({ public_id: userPublicId });
     if (!user) {
       throw new AppError({
         message: TOKEN_MESSAGE.INVALID_TOKEN,
@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    await UserService.verifyUserEmail({ id: userId });
-    await UserService.increaseTokenVersion({ id: userId });
+    await UserService.verifyUserEmail({ public_id: userPublicId });
+    await UserService.increaseTokenVersion({ public_id: userPublicId });
     return ApiResponse.success();
   } catch (error) {
     if (error instanceof AppError) {

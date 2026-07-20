@@ -6,7 +6,6 @@ import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { validateData } from "@/server/core/validation";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import { GetEndpointGroupByIdSchema } from "@/models/endpoint_group.model";
-import IdConverter from "@/app/libs/helpers/idConverter";
 import EndpointService from "@/server/services/endpoint.service";
 import {
   EndpointInfoSchema,
@@ -20,46 +19,46 @@ export async function GET(
 ) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
 
     const projectIdValidation = validateData(
-      { id: IdConverter.decode(projectIdRaw) },
+      { public_id: projectIdRaw },
       GetProjectByIdSchema
     );
     if (!projectIdValidation.success) {
       return projectIdValidation.response;
     }
-    const projectId = projectIdValidation.data.id;
+    const projectId = projectIdValidation.data.public_id;
 
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
-      { id: IdConverter.decode(endpointGroupIdRaw) },
+      { public_id: endpointGroupIdRaw },
       GetEndpointGroupByIdSchema
     );
 
     if (!endpointGroupIdValidation.success) {
       return endpointGroupIdValidation.response;
     }
-    const endpointGroupId = endpointGroupIdValidation.data.id;
+    const endpointGroupId = endpointGroupIdValidation.data.public_id;
 
     const endpointIdRaw = params.endpointId;
     const endpointIdValidation = validateData(
-      { id: IdConverter.decode(endpointIdRaw) },
+      { public_id: endpointIdRaw },
       GetEndpointByIdSchema
     );
     if (!endpointIdValidation.success) {
       return endpointIdValidation.response;
     }
-    const endpointId = endpointIdValidation.data.id;
+    const endpointId = endpointIdValidation.data.public_id;
 
     const hasPermission = await endpointService.checkPermissions({
-      userProps: { id: userId },
-      projectProps: { id: projectId },
-      endpointGroupProps: { id: endpointGroupId },
-      endpointProps: { id: endpointId },
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+      endpointGroupProps: { public_id: endpointGroupId },
+      endpointProps: { public_id: endpointId },
     });
     if (!hasPermission) {
       return ApiResponse.error({
@@ -68,28 +67,22 @@ export async function GET(
       });
     }
 
-    const endpoint = await EndpointService.getEndpointById({ id: endpointId });
+    const endpoint = await EndpointService.getEndpointById({ public_id: endpointId });
     if (!endpoint) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.NOT_FOUND,
         statusCode: STATUS_CODE.NOT_FOUND,
       });
     }
-    if (endpoint.endpoint_groups_id !== endpointGroupId) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.FORBIDDEN,
-        statusCode: STATUS_CODE.FORBIDDEN,
-      });
-    }
     const endpointValidation = validateData(
       {
-        public_id: IdConverter.encode(endpoint.id),
+        public_id: endpoint.public_id,
         path: endpoint.path,
         method: endpoint.method,
         status_code: endpoint.status_code,
         response_body: endpoint.response_body,
         delay_ms: endpoint.delay_ms,
-        endpoint_groups_id: IdConverter.encode(endpoint.endpoint_groups_id),
+        endpoint_groups_id: endpointGroupId,
       },
       EndpointInfoSchema
     );
@@ -115,46 +108,46 @@ export async function PUT(
 ) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
 
     const projectIdValidation = validateData(
-      { id: IdConverter.decode(projectIdRaw) },
+      { public_id: projectIdRaw },
       GetProjectByIdSchema
     );
     if (!projectIdValidation.success) {
       return projectIdValidation.response;
     }
-    const projectId = projectIdValidation.data.id;
+    const projectId = projectIdValidation.data.public_id;
 
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
-      { id: IdConverter.decode(endpointGroupIdRaw) },
+      { public_id: endpointGroupIdRaw },
       GetEndpointGroupByIdSchema
     );
 
     if (!endpointGroupIdValidation.success) {
       return endpointGroupIdValidation.response;
     }
-    const endpointGroupId = endpointGroupIdValidation.data.id;
+    const endpointGroupId = endpointGroupIdValidation.data.public_id;
 
     const endpointIdRaw = params.endpointId;
     const endpointIdValidation = validateData(
-      { id: IdConverter.decode(endpointIdRaw) },
+      { public_id: endpointIdRaw },
       GetEndpointByIdSchema
     );
     if (!endpointIdValidation.success) {
       return endpointIdValidation.response;
     }
-    const endpointId = endpointIdValidation.data.id;
+    const endpointId = endpointIdValidation.data.public_id;
 
     const hasPermission = await endpointService.checkPermissions({
-      userProps: { id: userId },
-      projectProps: { id: projectId },
-      endpointGroupProps: { id: endpointGroupId },
-      endpointProps: { id: endpointId },
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+      endpointGroupProps: { public_id: endpointGroupId },
+      endpointProps: { public_id: endpointId },
     });
     if (!hasPermission) {
       return ApiResponse.error({
@@ -165,7 +158,7 @@ export async function PUT(
     const data = await req.json();
 
     const updateEndpointInfoValidation = validateData(
-      { ...data, id: endpointId },
+      { ...data, public_id: endpointId },
       UpdateEndpointByIdSchema
     );
     if (!updateEndpointInfoValidation.success) {
@@ -182,13 +175,13 @@ export async function PUT(
     }
     const endpointInfoValidation = validateData(
       {
-        public_id: IdConverter.encode(endpointUpdated.id),
+        public_id: endpointUpdated.public_id,
         path: endpointUpdated.path,
         method: endpointUpdated.method,
         status_code: endpointUpdated.status_code,
         response_body: endpointUpdated.response_body,
         delay_ms: endpointUpdated.delay_ms,
-        endpoint_groups_id: IdConverter.encode(endpointUpdated.endpoint_groups_id),
+        endpoint_groups_id: endpointGroupId,
       },
       EndpointInfoSchema
     );
@@ -214,46 +207,46 @@ export async function DELETE(
 ) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
 
     const projectIdValidation = validateData(
-      { id: IdConverter.decode(projectIdRaw) },
+      { public_id: projectIdRaw },
       GetProjectByIdSchema
     );
     if (!projectIdValidation.success) {
       return projectIdValidation.response;
     }
-    const projectId = projectIdValidation.data.id;
+    const projectId = projectIdValidation.data.public_id;
 
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
-      { id: IdConverter.decode(endpointGroupIdRaw) },
+      { public_id: endpointGroupIdRaw },
       GetEndpointGroupByIdSchema
     );
 
     if (!endpointGroupIdValidation.success) {
       return endpointGroupIdValidation.response;
     }
-    const endpointGroupId = endpointGroupIdValidation.data.id;
+    const endpointGroupId = endpointGroupIdValidation.data.public_id;
 
     const endpointIdRaw = params.endpointId;
     const endpointIdValidation = validateData(
-      { id: IdConverter.decode(endpointIdRaw) },
+      { public_id: endpointIdRaw },
       GetEndpointByIdSchema
     );
     if (!endpointIdValidation.success) {
       return endpointIdValidation.response;
     }
-    const endpointId = endpointIdValidation.data.id;
+    const endpointId = endpointIdValidation.data.public_id;
 
     const hasPermission = await endpointService.checkPermissions({
-      userProps: { id: userId },
-      projectProps: { id: projectId },
-      endpointGroupProps: { id: endpointGroupId },
-      endpointProps: { id: endpointId },
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+      endpointGroupProps: { public_id: endpointGroupId },
+      endpointProps: { public_id: endpointId },
     });
     if (!hasPermission) {
       return ApiResponse.error({
@@ -262,7 +255,7 @@ export async function DELETE(
       });
     }
 
-    const endpointDeleted = await EndpointService.deleteEndpointById({ id: endpointId });
+    const endpointDeleted = await EndpointService.deleteEndpointById({ public_id: endpointId });
     if (!endpointDeleted) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.NO_CONTENT,

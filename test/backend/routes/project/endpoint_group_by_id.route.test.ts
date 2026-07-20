@@ -11,8 +11,11 @@ jest.mock("@/server/services/endpoint_group.service", () => ({
 import endpointGroupService from "@/server/services/endpoint_group.service";
 import { GET, PUT, DELETE } from "@/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/route";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
-import IdConverter from "@/app/libs/helpers/idConverter";
 import { createJsonRequest, expectError, expectSuccess } from "../../helpers/http";
+
+const USER_PUBLIC_ID = "aaaaaaaaaaaa";
+const PROJECT_PUBLIC_ID = "bbbbbbbbbbbb";
+const GROUP_PUBLIC_ID = "cccccccccccc";
 
 describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/route.ts", () => {
   const props = (projectId: string, endpointGroupId: string) => ({
@@ -22,8 +25,8 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/route
   it("returns 403 when permission denied", async () => {
     (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(false);
     const res = await GET(
-      createJsonRequest({}, { headers: { "x-userId": "1" } }) as any,
-      props(IdConverter.encode(1n), IdConverter.encode(10n)) as any
+      createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
+      props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
     );
     await expectError(res, STATUS_CODE.FORBIDDEN, ERROR_MESSAGES.FORBIDDEN);
   });
@@ -32,8 +35,8 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/route
     (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
     (endpointGroupService.getEndpointGroupById as jest.Mock).mockResolvedValue(null);
     const res = await GET(
-      createJsonRequest({}, { headers: { "x-userId": "1" } }) as any,
-      props(IdConverter.encode(1n), IdConverter.encode(10n)) as any
+      createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
+      props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
     );
     await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
   });
@@ -41,13 +44,13 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/route
   it("PUT returns 200 when updated", async () => {
     (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
     (endpointGroupService.updateEndpointGroupById as jest.Mock).mockResolvedValue({
-      id: 10n,
-      project_id: 1n,
+      public_id: GROUP_PUBLIC_ID,
       name: "New",
+      _count: { endpoints: 0 },
     });
     const res = await PUT(
-      createJsonRequest({ name: "New" }, { headers: { "x-userId": "1" } }) as any,
-      props(IdConverter.encode(1n), IdConverter.encode(10n)) as any
+      createJsonRequest({ name: "New" }, { headers: { "x-userId": USER_PUBLIC_ID } }),
+      props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
     );
     await expectSuccess(res, 200);
   });
@@ -56,10 +59,9 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/route
     (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
     (endpointGroupService.deleteEndpointGroupById as jest.Mock).mockResolvedValue(null);
     const res = await DELETE(
-      createJsonRequest({}, { headers: { "x-userId": "1" } }) as any,
-      props(IdConverter.encode(1n), IdConverter.encode(10n)) as any
+      createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
+      props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
     );
     expect(res.status).toBe(204);
   });
 });
-

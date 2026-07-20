@@ -16,7 +16,9 @@ import { expectError, expectSuccess } from "../../helpers/http";
 
 describe("GET src/app/api/auth/refresh-token/route.ts", () => {
   const setCookies = async (entries: Record<string, string>) => {
-    const headersModule: any = await import("next/headers");
+    const headersModule = (await import("next/headers")) as unknown as {
+      __setMockCookies: (entries: Record<string, string>) => void;
+    };
     headersModule.__setMockCookies(entries);
   };
 
@@ -29,11 +31,11 @@ describe("GET src/app/api/auth/refresh-token/route.ts", () => {
   it("returns 200 and sets access_token cookie when refresh token is valid", async () => {
     await setCookies({ refresh_token: "rt" });
     (tokenService.verifyRefreshToken as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 2n,
     });
     (userService.getUserById as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 2n,
     });
     (tokenService.createAccessToken as jest.Mock).mockResolvedValue("access");
@@ -48,11 +50,11 @@ describe("GET src/app/api/auth/refresh-token/route.ts", () => {
   it("returns 401 when token_version mismatches", async () => {
     await setCookies({ refresh_token: "rt" });
     (tokenService.verifyRefreshToken as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 2n,
     });
     (userService.getUserById as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 3n,
     });
 

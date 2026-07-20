@@ -1,12 +1,14 @@
 import { z } from "zod";
+import { PublicIdSchema } from "@/app/libs/helpers/publicId";
+
 export const EndpointGroupSchema = z
   .object({
-    id: z.union([z.bigint(), z.string().transform((str) => BigInt(str))]),
-    project_id: z.union([z.bigint(), z.string().transform((str) => BigInt(str))]),
+    public_id: PublicIdSchema,
+    project_public_id: PublicIdSchema,
     name: z
       .string()
-      .nonempty("Tên nhóm endpoint không được để trống")
-      .max(255, "Tên nhóm endpoint không được quá 255 ký tự"),
+      .nonempty("Tên nhóm endpoint không được để trống")
+      .max(255, "Tên nhóm endpoint không được quá 255 ký tự"),
   })
   .strict();
 export type EndpointGroupDTO = z.infer<typeof EndpointGroupSchema>;
@@ -26,12 +28,12 @@ export const ClientCreateEndpointGroupSchema = EndpointGroupSchema.pick({
 export type ClientCreateEndpointGroupDTO = z.infer<typeof ClientCreateEndpointGroupSchema>;
 
 export const CreateEndpointGroupSchema = EndpointGroupSchema.pick({
-  project_id: true,
+  project_public_id: true,
   name: true,
 }).strict();
 export type CreateEndpointGroupDTO = z.infer<typeof CreateEndpointGroupSchema>;
 
-export const GetEndpointGroupByIdSchema = EndpointGroupSchema.pick({ id: true }).strict();
+export const GetEndpointGroupByIdSchema = EndpointGroupSchema.pick({ public_id: true }).strict();
 export type GetEndpointGroupByIdDTO = z.infer<typeof GetEndpointGroupByIdSchema>;
 
 export const ClientDeleteEndpointGroupByIdSchema = EndpointGroupInfoSchema.pick({
@@ -39,7 +41,9 @@ export const ClientDeleteEndpointGroupByIdSchema = EndpointGroupInfoSchema.pick(
 }).strict();
 export type ClientDeleteEndpointGroupByIdDTO = z.infer<typeof ClientDeleteEndpointGroupByIdSchema>;
 
-export const DeleteEndpointGroupByIdSchema = EndpointGroupSchema.pick({ id: true }).strict();
+export const DeleteEndpointGroupByIdSchema = EndpointGroupSchema.pick({
+  public_id: true,
+}).strict();
 export type DeleteEndpointGroupByIdDTO = z.infer<typeof DeleteEndpointGroupByIdSchema>;
 
 export const ClientUpdateEndpointGroupByIdSchema = EndpointGroupInfoSchema.pick({
@@ -48,7 +52,7 @@ export const ClientUpdateEndpointGroupByIdSchema = EndpointGroupInfoSchema.pick(
 export type ClientUpdateEndpointGroupByIdDTO = z.infer<typeof ClientUpdateEndpointGroupByIdSchema>;
 
 export const UpdateEndpointGroupByIdSchema = EndpointGroupSchema.pick({
-  id: true,
+  public_id: true,
   name: true,
 }).strict();
 export type UpdateEndpointGroupByIdDTO = z.infer<typeof UpdateEndpointGroupByIdSchema>;

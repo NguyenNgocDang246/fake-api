@@ -19,7 +19,7 @@ const authMiddleware = async ({
   if (accessToken) {
     try {
       const payload = await tokenService.verifyAccessToken(accessToken);
-      ctx.userId = String(payload.id);
+      ctx.userId = payload.public_id;
       return null;
     } catch {
       // fall through to refresh
@@ -30,16 +30,18 @@ const authMiddleware = async ({
   if (refreshToken) {
     try {
       const payload = await tokenService.verifyRefreshToken(refreshToken);
-      const user = await userService.getUserById({ id: payload.id });
+      const user = await userService.getUserById({ public_id: payload.public_id });
       if (!user || user.token_version !== payload.token_version) {
         throw new AppError({
           message: TOKEN_MESSAGE.INVALID_EXPIRED_REFRESH_TOKEN,
           statusCode: STATUS_CODE.UNAUTHORIZED,
         });
       }
-      const newAccessToken = await tokenService.createAccessToken({ id: payload.id });
+      const newAccessToken = await tokenService.createAccessToken({
+        public_id: payload.public_id,
+      });
       req.cookies.set("access_token", newAccessToken);
-      ctx.userId = String(payload.id);
+      ctx.userId = payload.public_id;
       ctx.refreshedAccessToken = newAccessToken;
       return null;
     } catch {

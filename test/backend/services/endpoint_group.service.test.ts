@@ -20,9 +20,9 @@ describe("src/server/services/endpoint_group.service.ts", () => {
     (prisma.endpoint_groups.findUnique as jest.Mock).mockResolvedValue(null);
     await expect(
       endpointGroupService.checkPermission({
-        userProps: { id: 1n },
-        projectProps: { id: 1n },
-        endpointGroupProps: { id: 10n },
+        userProps: { public_id: "user1" },
+        projectProps: { public_id: "proj1" },
+        endpointGroupProps: { public_id: "group1" },
       })
     ).resolves.toBe(false);
   });
@@ -31,9 +31,9 @@ describe("src/server/services/endpoint_group.service.ts", () => {
     (prisma.endpoint_groups.findUnique as jest.Mock).mockRejectedValue(new Error("boom"));
     await expect(
       endpointGroupService.checkPermission({
-        userProps: { id: 1n },
-        projectProps: { id: 1n },
-        endpointGroupProps: { id: 10n },
+        userProps: { public_id: "user1" },
+        projectProps: { public_id: "proj1" },
+        endpointGroupProps: { public_id: "group1" },
       })
     ).rejects.toThrow("boom");
   });
@@ -41,8 +41,7 @@ describe("src/server/services/endpoint_group.service.ts", () => {
   it("createEndpointGroup wraps error into AppError", async () => {
     (prisma.endpoint_groups.create as jest.Mock).mockRejectedValue(new Error("db down"));
     await expect(
-      endpointGroupService.createEndpointGroup({ project_id: 1n, name: "G" })
+      endpointGroupService.createEndpointGroup({ project_public_id: "proj1", name: "G" })
     ).rejects.toBeInstanceOf(AppError);
   });
 });
-

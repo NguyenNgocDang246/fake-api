@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
     if (!userIdValidation.success) {
       return userIdValidation.response;
     }
-    const userId = userIdValidation.data.id;
+    const userPublicId = userIdValidation.data.public_id;
     const token_version = userIdValidation.data.token_version;
-    const user = await UserService.getUserById({ id: userId });
+    const user = await UserService.getUserById({ public_id: userPublicId });
     if (!user) {
       throw new AppError({
         message: TOKEN_MESSAGE.INVALID_TOKEN,
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       });
     }
     const dataValidation = validateData(
-      { password: body.password, id: userId },
+      { password: body.password, public_id: userPublicId },
       UpdatePasswordSchema
     );
     if (!dataValidation.success) {
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
     const data = dataValidation.data;
     await AuthService.updatePassword(data);
-    await UserService.increaseTokenVersion({ id: userId });
+    await UserService.increaseTokenVersion({ public_id: userPublicId });
     const res = ApiResponse.success();
     res.headers.append(
       "Set-Cookie",

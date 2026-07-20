@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import ApiResponse from "@/server/core/api_response";
 import { GetUserByIdSchema } from "@/models/user.model";
 import { validateData } from "@/server/core/validation";
-import IdConverter from "@/app/libs/helpers/idConverter";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import EndpointGroupService from "@/server/services/endpoint_group.service";
@@ -20,35 +19,35 @@ export async function GET(
 ) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
 
     const projectIdValidation = validateData(
-      { id: IdConverter.decode(projectIdRaw) },
+      { public_id: projectIdRaw },
       GetProjectByIdSchema
     );
     if (!projectIdValidation.success) {
       return projectIdValidation.response;
     }
-    const projectId = projectIdValidation.data.id;
+    const projectId = projectIdValidation.data.public_id;
 
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
-      { id: IdConverter.decode(endpointGroupIdRaw) },
+      { public_id: endpointGroupIdRaw },
       GetEndpointGroupByIdSchema
     );
 
     if (!endpointGroupIdValidation.success) {
       return endpointGroupIdValidation.response;
     }
-    const endpointGroupId = endpointGroupIdValidation.data.id;
+    const endpointGroupId = endpointGroupIdValidation.data.public_id;
 
     const hasPermission = await endpointGroupService.checkPermission({
-      userProps: { id: userId },
-      projectProps: { id: projectId },
-      endpointGroupProps: { id: endpointGroupId },
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+      endpointGroupProps: { public_id: endpointGroupId },
     });
     if (!hasPermission) {
       return ApiResponse.error({
@@ -57,7 +56,9 @@ export async function GET(
       });
     }
 
-    const endpointgroup = await EndpointGroupService.getEndpointGroupById({ id: endpointGroupId });
+    const endpointgroup = await EndpointGroupService.getEndpointGroupById({
+      public_id: endpointGroupId,
+    });
     if (endpointgroup === null) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.NOT_FOUND,
@@ -66,9 +67,9 @@ export async function GET(
     }
     const endpointGroupInfoValidation = validateData(
       {
-        public_id: IdConverter.encode(endpointgroup.id),
+        public_id: endpointgroup.public_id,
         name: endpointgroup.name,
-        project_id: IdConverter.encode(endpointgroup.project_id),
+        project_id: projectId,
         endpoint_count: endpointgroup._count.endpoints,
       },
       EndpointGroupInfoSchema
@@ -95,35 +96,35 @@ export async function DELETE(
 ) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
 
     const projectIdValidation = validateData(
-      { id: IdConverter.decode(projectIdRaw) },
+      { public_id: projectIdRaw },
       GetProjectByIdSchema
     );
     if (!projectIdValidation.success) {
       return projectIdValidation.response;
     }
-    const projectId = projectIdValidation.data.id;
+    const projectId = projectIdValidation.data.public_id;
 
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
-      { id: IdConverter.decode(endpointGroupIdRaw) },
+      { public_id: endpointGroupIdRaw },
       GetEndpointGroupByIdSchema
     );
 
     if (!endpointGroupIdValidation.success) {
       return endpointGroupIdValidation.response;
     }
-    const endpointGroupId = endpointGroupIdValidation.data.id;
+    const endpointGroupId = endpointGroupIdValidation.data.public_id;
 
     const hasPermission = await endpointGroupService.checkPermission({
-      userProps: { id: userId },
-      projectProps: { id: projectId },
-      endpointGroupProps: { id: endpointGroupId },
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+      endpointGroupProps: { public_id: endpointGroupId },
     });
     if (!hasPermission) {
       return ApiResponse.error({
@@ -132,7 +133,9 @@ export async function DELETE(
       });
     }
 
-    const result = await EndpointGroupService.deleteEndpointGroupById({ id: endpointGroupId });
+    const result = await EndpointGroupService.deleteEndpointGroupById({
+      public_id: endpointGroupId,
+    });
     if (!result)
       return ApiResponse.error({
         message: ERROR_MESSAGES.NO_CONTENT,
@@ -156,35 +159,35 @@ export async function PUT(
 ) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
 
     const projectIdValidation = validateData(
-      { id: IdConverter.decode(projectIdRaw) },
+      { public_id: projectIdRaw },
       GetProjectByIdSchema
     );
     if (!projectIdValidation.success) {
       return projectIdValidation.response;
     }
-    const projectId = projectIdValidation.data.id;
+    const projectId = projectIdValidation.data.public_id;
 
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
-      { id: IdConverter.decode(endpointGroupIdRaw) },
+      { public_id: endpointGroupIdRaw },
       GetEndpointGroupByIdSchema
     );
 
     if (!endpointGroupIdValidation.success) {
       return endpointGroupIdValidation.response;
     }
-    const endpointGroupId = endpointGroupIdValidation.data.id;
+    const endpointGroupId = endpointGroupIdValidation.data.public_id;
 
     const hasPermission = await endpointGroupService.checkPermission({
-      userProps: { id: userId },
-      projectProps: { id: projectId },
-      endpointGroupProps: { id: endpointGroupId },
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+      endpointGroupProps: { public_id: endpointGroupId },
     });
     if (!hasPermission) {
       return ApiResponse.error({
@@ -194,7 +197,7 @@ export async function PUT(
     }
 
     const data = await req.json();
-    const endpointGroupRaw = { ...data, id: endpointGroupId };
+    const endpointGroupRaw = { ...data, public_id: endpointGroupId };
     const updateEndpointGroupValidation = validateData(
       endpointGroupRaw,
       UpdateEndpointGroupByIdSchema
@@ -214,9 +217,9 @@ export async function PUT(
     }
     const endpointGroupInfoValidation = validateData(
       {
-        public_id: IdConverter.encode(endpointGroupUpdated.id),
+        public_id: endpointGroupUpdated.public_id,
         name: endpointGroupUpdated.name,
-        project_id: IdConverter.encode(endpointGroupUpdated.project_id),
+        project_id: projectId,
         endpoint_count: endpointGroupUpdated._count.endpoints,
       },
       EndpointGroupInfoSchema

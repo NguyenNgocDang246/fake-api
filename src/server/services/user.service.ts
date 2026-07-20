@@ -6,6 +6,7 @@ import {
   UpdatePasswordDTO,
 } from "@/models/user.model";
 import { AppError } from "@/server/core/errors";
+import { createWithUniquePublicId } from "@/server/core/prisma_retry";
 
 class UserService {
   async getAllUsers() {
@@ -17,15 +18,17 @@ class UserService {
   }
   async createUser(user: CreateUserDTO) {
     try {
-      return await prisma.users.create({ data: user });
+      return await createWithUniquePublicId((public_id) =>
+        prisma.users.create({ data: { ...user, public_id } })
+      );
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
   }
 
-  async getUserById({ id }: GetUserByIdDTO) {
+  async getUserById({ public_id }: GetUserByIdDTO) {
     try {
-      return await prisma.users.findUnique({ where: { id } });
+      return await prisma.users.findUnique({ where: { public_id } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
@@ -39,24 +42,27 @@ class UserService {
     }
   }
 
-  async verifyUserEmail({ id }: GetUserByIdDTO) {
+  async verifyUserEmail({ public_id }: GetUserByIdDTO) {
     try {
-      return await prisma.users.update({ where: { id }, data: { is_verified: true } });
+      return await prisma.users.update({ where: { public_id }, data: { is_verified: true } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
   }
 
-  async updatePassword({ id, password }: UpdatePasswordDTO) {
+  async updatePassword({ public_id, password }: UpdatePasswordDTO) {
     try {
-      return await prisma.users.update({ where: { id }, data: { password } });
+      return await prisma.users.update({ where: { public_id }, data: { password } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
   }
-  async increaseTokenVersion({ id }: GetUserByIdDTO) {
+  async increaseTokenVersion({ public_id }: GetUserByIdDTO) {
     try {
-      await prisma.users.update({ where: { id }, data: { token_version: { increment: 1 } } });
+      await prisma.users.update({
+        where: { public_id },
+        data: { token_version: { increment: 1 } },
+      });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

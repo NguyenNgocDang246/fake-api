@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     if (user.is_verified == true) return ApiResponse.success();
 
     const verifyEmailToken = await TokenService.createVerifyEmailToken({
-      id: user.id,
+      public_id: user.public_id,
       token_version: user.token_version,
     });
     await MailService.sendVerificationEmail({

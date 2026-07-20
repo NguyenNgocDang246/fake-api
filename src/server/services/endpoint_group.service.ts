@@ -1,12 +1,14 @@
 import { AppError } from "@/server/core/errors";
+import { GetProjectByIdDTO } from "@/models/project.model";
 import {
-  GetProjectByIdDTO,
-  DeleteProjectByIdDTO,
-  UpdateProjectByIdDTO,
-} from "@/models/project.model";
-import { CreateEndpointGroupDTO, GetEndpointGroupByIdDTO } from "@/models/endpoint_group.model";
+  CreateEndpointGroupDTO,
+  GetEndpointGroupByIdDTO,
+  UpdateEndpointGroupByIdDTO,
+  DeleteEndpointGroupByIdDTO,
+} from "@/models/endpoint_group.model";
 import { GetUserByIdDTO } from "@/models/user.model";
 import { prisma } from "@/server/prisma/prisma_provider";
+import { createWithUniquePublicId } from "@/server/core/prisma_retry";
 
 class EndpointGroupService {
   async checkPermission({
@@ -20,18 +22,20 @@ class EndpointGroupService {
   }) {
     const endpointGroup = await prisma.endpoint_groups.findUnique({
       where: {
-        id: endpointGroupProps.id,
-        project_id: projectProps.id,
-        projects: { user_id: userProps.id },
+        public_id: endpointGroupProps.public_id,
+        projects: {
+          public_id: projectProps.public_id,
+          users: { public_id: userProps.public_id },
+        },
       },
     });
 
     return !!endpointGroup;
   }
-  async getAllEndpointGroups({ id }: GetProjectByIdDTO) {
+  async getAllEndpointGroups({ public_id }: GetProjectByIdDTO) {
     try {
       return await prisma.endpoint_groups.findMany({
-        where: { project_id: id },
+        where: { projects: { public_id } },
         include: { _count: { select: { endpoints: true } } },
       });
     } catch (error) {
@@ -39,10 +43,10 @@ class EndpointGroupService {
     }
   }
 
-  async getEndpointGroupById({ id }: GetEndpointGroupByIdDTO) {
+  async getEndpointGroupById({ public_id }: GetEndpointGroupByIdDTO) {
     try {
       return await prisma.endpoint_groups.findUnique({
-        where: { id },
+        where: { public_id },
         include: { _count: { select: { endpoints: true } } },
       });
     } catch (error) {
@@ -50,18 +54,18 @@ class EndpointGroupService {
     }
   }
 
-  async deleteEndpointGroupById({ id }: DeleteProjectByIdDTO) {
+  async deleteEndpointGroupById({ public_id }: DeleteEndpointGroupByIdDTO) {
     try {
-      return await prisma.endpoint_groups.delete({ where: { id } });
+      return await prisma.endpoint_groups.delete({ where: { public_id } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
   }
 
-  async updateEndpointGroupById({ id, ...rest }: UpdateProjectByIdDTO) {
+  async updateEndpointGroupById({ public_id, ...rest }: UpdateEndpointGroupByIdDTO) {
     try {
       return await prisma.endpoint_groups.update({
-        where: { id },
+        where: { public_id },
         data: rest,
         include: { _count: { select: { endpoints: true } } },
       });
@@ -70,9 +74,13 @@ class EndpointGroupService {
     }
   }
 
-  async createEndpointGroup({ project_id, name }: CreateEndpointGroupDTO) {
+  async createEndpointGroup({ project_public_id, name }: CreateEndpointGroupDTO) {
     try {
-      return await prisma.endpoint_groups.create({ data: { project_id, name } });
+      return await createWithUniquePublicId((public_id) =>
+        prisma.endpoint_groups.create({
+          data: { public_id, name, projects: { connect: { public_id: project_public_id } } },
+        })
+      );
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

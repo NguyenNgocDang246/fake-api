@@ -21,31 +21,31 @@ import { createJsonRequest, expectSuccess, expectError } from "../../helpers/htt
 describe("POST src/app/api/auth/password/forgot/route.ts", () => {
   it("returns 200 and does not leak information for non-existing user", async () => {
     (UserService.getUserByEmail as jest.Mock).mockResolvedValue(null);
-    const res = await POST(createJsonRequest({ email: "x@example.com" }) as any);
+    const res = await POST(createJsonRequest({ email: "x@example.com" }));
     await expectSuccess(res, 200);
     expect(MailService.sendForgotPasswordEmail).not.toHaveBeenCalled();
   });
 
   it("returns 200 and does not send mail for unverified user", async () => {
     (UserService.getUserByEmail as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 0n,
       is_verified: false,
     });
-    const res = await POST(createJsonRequest({ email: "x@example.com" }) as any);
+    const res = await POST(createJsonRequest({ email: "x@example.com" }));
     await expectSuccess(res, 200);
     expect(MailService.sendForgotPasswordEmail).not.toHaveBeenCalled();
   });
 
   it("sends reset password email for verified user", async () => {
     (UserService.getUserByEmail as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 2n,
       is_verified: true,
     });
     (TokenService.createResetPasswordToken as jest.Mock).mockResolvedValue("reset-token");
 
-    const res = await POST(createJsonRequest({ email: "x@example.com" }) as any);
+    const res = await POST(createJsonRequest({ email: "x@example.com" }));
     await expectSuccess(res, 200);
     expect(MailService.sendForgotPasswordEmail).toHaveBeenCalledWith({
       to: "x@example.com",
@@ -54,7 +54,7 @@ describe("POST src/app/api/auth/password/forgot/route.ts", () => {
   });
 
   it("returns 400 for invalid email", async () => {
-    const res = await POST(createJsonRequest({ email: "not-an-email" }) as any);
+    const res = await POST(createJsonRequest({ email: "not-an-email" }));
     await expectError(res, STATUS_CODE.BAD_REQUEST, ERROR_MESSAGES.VALIDATION_FAILED);
   });
 });

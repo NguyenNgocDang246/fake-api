@@ -9,6 +9,7 @@
     "dev": "next dev --turbopack",
     "prisma:generate": "prisma generate --schema=src/server/prisma/schema.prisma",
     "prisma:deploy": "prisma migrate deploy --schema=src/server/prisma/schema.prisma",
+    "prisma:backfill-public-id": "tsx src/server/prisma/scripts/backfill-public-id.ts",
     "build": "npm run prisma:generate && next build --turbopack",
     "start": "next start",
     "lint": "eslint",
@@ -24,8 +25,8 @@
     "cookie": "^1.0.2",
     "dotenv": "^17.2.1",
     "googleapis": "^161.0.0",
-    "hashids": "^2.3.0",
     "jose": "^6.1.0",
+    "nanoid": "^3.3.8",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.544.0",
     "next": "^15.5.7",
@@ -53,6 +54,7 @@
     "lint-staged": "^17.1.0",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.6",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   },
   "lint-staged": {
