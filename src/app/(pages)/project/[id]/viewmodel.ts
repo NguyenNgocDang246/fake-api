@@ -11,18 +11,18 @@ import { QUERY_KEY, STALETIME } from "@/app/components/Wrapper/QueryClient/Const
 import Notify from "@/app/components/Notify";
 import { useModal } from "@/app/components/Wrapper/Modal/ModalWrapper";
 
+export const fetchProjectInfo = async (projectId: string): Promise<ProjectInfoDTO> => {
+  const res = (await api.get(url_builder(API_ROUTES.PROJECT.GET_BY_ID, { projectId })))
+    .data as ApiSuccessResponse;
+  return res.data as ProjectInfoDTO;
+};
+
 export function useEndpointGroupViewModel(projectId: string, initialSelectedGroupId = "") {
   const [selectedGroupId, setSelectedGroupId] = useState<string>(initialSelectedGroupId);
 
-  const fetchProjectInfo = async (): Promise<ProjectInfoDTO> => {
-    const res = (await api.get(url_builder(API_ROUTES.PROJECT.GET_BY_ID, { projectId })))
-      .data as ApiSuccessResponse;
-    return res.data as ProjectInfoDTO;
-  };
-
   const projectInfoState = useQuery<ProjectInfoDTO, ApiErrorResponse>({
     queryKey: [QUERY_KEY.PROJECT.ONE, projectId],
-    queryFn: fetchProjectInfo,
+    queryFn: () => fetchProjectInfo(projectId),
     staleTime: STALETIME,
   });
 
