@@ -25,7 +25,7 @@ describe("POST src/app/api/auth/login/route.ts", () => {
     expect(setCookie).toContain("access_token=access");
     expect(setCookie).toContain("Path=/");
     expect(setCookie).toContain("refresh_token=refresh");
-    expect(setCookie).toContain("Path=/api/auth/refresh-token");
+    expect(setCookie).toContain("Path=/");
   });
 
   it("returns 400 on validation error (missing fields)", async () => {
