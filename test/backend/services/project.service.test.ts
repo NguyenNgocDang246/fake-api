@@ -12,8 +12,16 @@ jest.mock("@/server/prisma/prisma_provider", () => ({
   },
 }));
 
+jest.mock("@/server/services/endpoint_group.service", () => ({
+  __esModule: true,
+  default: {
+    createEndpointGroup: jest.fn(),
+  },
+}));
+
 import { prisma } from "@/server/prisma/prisma_provider";
 import projectService from "@/server/services/project.service";
+import endpointGroupService from "@/server/services/endpoint_group.service";
 import { AppError } from "@/server/core/errors";
 
 describe("src/server/services/project.service.ts", () => {
@@ -51,5 +59,25 @@ describe("src/server/services/project.service.ts", () => {
     await expect(
       projectService.createProject({ user_public_id: "user1", name: "P", description: null })
     ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it("createProject also creates a default endpoint group for the new project", async () => {
+    (prisma.projects.create as jest.Mock).mockResolvedValue({ public_id: "proj1", name: "P" });
+    (endpointGroupService.createEndpointGroup as jest.Mock).mockResolvedValue({
+      public_id: "group1",
+      name: "default",
+    });
+
+    const result = await projectService.createProject({
+      user_public_id: "user1",
+      name: "P",
+      description: null,
+    });
+
+    expect(result).toEqual({ public_id: "proj1", name: "P" });
+    expect(endpointGroupService.createEndpointGroup).toHaveBeenCalledWith({
+      project_public_id: "proj1",
+      name: "default",
+    });
   });
 });
