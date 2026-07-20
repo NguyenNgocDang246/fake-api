@@ -10,6 +10,7 @@ import { GetUserByIdDTO } from "@/models/user.model";
 import { prisma } from "@/server/prisma/prisma_provider";
 import { AppError } from "@/server/core/errors";
 import { createWithUniquePublicId } from "@/server/core/prisma_retry";
+import endpointGroupService from "@/server/services/endpoint_group.service";
 
 class ProjectService {
   async checkPermission({
@@ -89,7 +90,7 @@ class ProjectService {
     try {
       const { user_public_id, ...rest } = project;
       const projectData = { ...rest, description: rest.description ?? null };
-      return await createWithUniquePublicId((public_id) =>
+      const newProject = await createWithUniquePublicId((public_id) =>
         prisma.projects.create({
           data: {
             ...projectData,
@@ -100,6 +101,11 @@ class ProjectService {
           },
         })
       );
+      await endpointGroupService.createEndpointGroup({
+        project_public_id: newProject.public_id,
+        name: "default",
+      });
+      return newProject;
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
