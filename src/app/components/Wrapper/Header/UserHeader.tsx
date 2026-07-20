@@ -32,11 +32,13 @@ export function UserHeader() {
           href={docs_url}
           label="Docs"
           target="_blank"
-          className="p-0 bg-inherit text-gray-600 hover:bg-inherit hover:text-gray-900 hover:underline underline-offset-4"
+          variant="ghost"
+          className="p-0"
         />
         <DropdownButton
           position="left"
-          btnClassName="p-0 size-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+          variant="outline"
+          btnClassName="p-0 size-9 flex items-center justify-center rounded-full"
           boxClassName="w-52"
           title={`Hello, ${user?.name}`}
           options={[<LogoutButton key="logout" />]}

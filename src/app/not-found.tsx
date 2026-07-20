@@ -10,7 +10,7 @@ export default function Home() {
         moved or deleted.
       </p>
 
-      <NavigationButton className="text-lg bg-blue-400" href={PAGE_ROUTES.HOME}>
+      <NavigationButton variant="primary" className="text-lg" href={PAGE_ROUTES.HOME}>
         Back to Home
       </NavigationButton>
     </div>

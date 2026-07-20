@@ -25,13 +25,10 @@ export function GuestHeader() {
           href={docs_url}
           label="Docs"
           target="_blank"
-          className="p-0 bg-inherit text-gray-600 hover:bg-inherit hover:text-gray-900 hover:underline underline-offset-4"
+          variant="ghost"
+          className="p-0"
         />
-        <NavigationButton
-          href={PAGE_ROUTES.AUTH.LOGIN}
-          label="Login"
-          className="bg-indigo-600 text-white hover:bg-indigo-700"
-        />
+        <NavigationButton href={PAGE_ROUTES.AUTH.LOGIN} label="Login" variant="primary" />
       </div>
     </div>
   );

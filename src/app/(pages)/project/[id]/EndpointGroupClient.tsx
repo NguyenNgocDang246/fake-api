@@ -74,7 +74,7 @@ export default function EndpointGroupClient({
             <div className="flex flex-row gap-2 justify-center sm:justify-end mt-3">
               <ActionButton
                 label="New Endpoint"
-                type="create"
+                variant="create"
                 className="w-full sm:w-auto"
                 onClick={() => {
                   openCreateEndpointModal(selectedGroupId);
@@ -83,7 +83,7 @@ export default function EndpointGroupClient({
               />
               <ActionButton
                 label="Delete all"
-                type="delete"
+                variant="delete"
                 className="w-full sm:w-auto"
                 onClick={() => {
                   openDeleteAllEndpointModal();

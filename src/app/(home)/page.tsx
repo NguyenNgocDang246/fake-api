@@ -75,9 +75,6 @@ const STEPS = [
   },
 ];
 
-const PRIMARY_CTA_CLASSES =
-  "text-lg bg-linear-to-r from-indigo-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.03] active:scale-[0.98]";
-
 export default async function Home() {
   const user = await getCurrentUser();
   const DOMAIN = process.env["NEXT_PUBLIC_DOMAIN"];
@@ -113,14 +110,19 @@ export default async function Home() {
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <NavigationButton className={PRIMARY_CTA_CLASSES} href={ctaHref}>
+          <NavigationButton
+            variant="primary"
+            className="text-lg shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.03] active:scale-[0.98]"
+            href={ctaHref}
+          >
             <span className="flex items-center gap-1.5">
               Get started
               <ArrowRight size={18} />
             </span>
           </NavigationButton>
           <NavigationButton
-            className="text-lg border-2 border-gray-300 hover:bg-gray-100 transition-all hover:scale-[1.03] active:scale-[0.98]"
+            variant="outline"
+            className="text-lg transition-all hover:scale-[1.03] active:scale-[0.98]"
             href={docsUrl}
             target="_blank"
           >
@@ -226,7 +228,8 @@ export default async function Home() {
             Create a project and get a working endpoint in under a minute.
           </p>
           <NavigationButton
-            className="text-lg bg-white text-blue-700 hover:bg-blue-50 shadow-lg transition-all hover:scale-[1.03] active:scale-[0.98]"
+            variant="inverse"
+            className="text-lg transition-all hover:scale-[1.03] active:scale-[0.98]"
             href={ctaHref}
           >
             <span className="flex items-center gap-1.5">

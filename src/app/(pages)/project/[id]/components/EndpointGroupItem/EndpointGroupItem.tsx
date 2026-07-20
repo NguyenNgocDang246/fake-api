@@ -40,8 +40,9 @@ export const EndpointGroupItem: React.FC<EndpointGroupItemProps> = ({
         </div>
       </div>
       <DropdownButton
-        btnClassName="p-2 rounded-full bg-inherit hover:bg-white"
-        boxClassName="w-52 text-black"
+        variant="light"
+        btnClassName="p-2 rounded-full"
+        boxClassName="w-52"
         position="right"
         title="Endpoint Group Action"
         options={[

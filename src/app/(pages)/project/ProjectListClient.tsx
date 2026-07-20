@@ -27,13 +27,13 @@ export function ProjectListClient() {
         <div className="mb-4 flex items-center justify-end">
           <ActionButton
             label="Create new"
-            type="create"
+            variant="create"
             className="ml-4 "
             onClick={() => openCreateProjectModal()}
           />
           <ActionButton
             label="Delete all"
-            type="delete"
+            variant="delete"
             disabled={!hasProjects}
             className="ml-4"
             onClick={() => openDeleteAllProjectModal()}

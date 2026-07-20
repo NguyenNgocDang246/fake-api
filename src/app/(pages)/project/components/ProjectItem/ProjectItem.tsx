@@ -49,7 +49,8 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({ public_id, name, descr
         </p>
 
         <DropdownButton
-          btnClassName="p-2 rounded-full bg-inherit hover:bg-gray-200"
+          variant="subtle"
+          btnClassName="p-2 rounded-full"
           boxClassName="w-36"
           position="left"
           title="Project Action"

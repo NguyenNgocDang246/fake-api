@@ -58,10 +58,7 @@ export default async function VerifyEmailPage({
       <div className="text-4xl font-semibold">Email Verified!</div>
       <div>{message}</div>
       <div className="flex flex-col gap-2 w-full mt-10">
-        <NavigationButton
-          href={PAGE_ROUTES.AUTH.LOGIN}
-          className="bg-blue-800 text-white hover:bg-gray-800 hover:text-blue-400"
-        >
+        <NavigationButton href={PAGE_ROUTES.AUTH.LOGIN} variant="primary">
           Continue to Login
         </NavigationButton>
         <NavigationButton href={PAGE_ROUTES.HOME} className="border">

@@ -104,7 +104,7 @@ export function ConfirmModal({
           />
           <ActionButton
             label={isConfirming ? "Processing..." : "Confirm"}
-            type="delete"
+            variant="delete"
             onClick={handleConfirm}
             className="flex-1"
             disabled={isConfirming || (critical && confirmText !== "Fake API")}

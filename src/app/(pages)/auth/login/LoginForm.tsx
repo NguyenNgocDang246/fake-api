@@ -53,7 +53,7 @@ export function LoginForm() {
           }}
         />
         <div className="flex justify-between my-4">
-          <TextLink className="underline hover:text-blue-700" href={PAGE_ROUTES.AUTH.REGISTER}>
+          <TextLink variant="muted" href={PAGE_ROUTES.AUTH.REGISTER}>
             Sign Up
           </TextLink>
           <div

@@ -3,12 +3,19 @@
 import { useState, useRef, useEffect, ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 
+const variantClasses: Record<string, string> = {
+  subtle: "bg-inherit hover:bg-gray-200",
+  light: "bg-inherit hover:bg-white",
+  outline: "border border-gray-300 text-gray-700 hover:bg-gray-100",
+};
+
 interface DropdownProps {
   children: ReactNode;
   title?: string;
   options: ReactNode[];
   onSelect?: (index: number) => void;
   className?: string;
+  variant?: keyof typeof variantClasses;
   btnClassName?: string;
   dividerClassName?: string;
   boxClassName?: string;
@@ -22,6 +29,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
   options,
   onSelect,
   className,
+  variant,
   btnClassName,
   dividerClassName,
   boxClassName,
@@ -60,8 +68,8 @@ export const DropdownButton: React.FC<DropdownProps> = ({
     position === "left"
       ? "right-0"
       : position === "center"
-      ? "left-1/2 transform -translate-x-1/2"
-      : "left-0";
+        ? "left-1/2 transform -translate-x-1/2"
+        : "left-0";
 
   return (
     <div ref={dropdownRef} className={twMerge("relative inline-block text-left", className)}>
@@ -72,7 +80,8 @@ export const DropdownButton: React.FC<DropdownProps> = ({
           toggleOpen();
         }}
         className={twMerge(
-          "px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 cursor-pointer",
+          "px-4 py-2 rounded-md cursor-pointer",
+          variant ? variantClasses[variant] : "bg-gray-300 hover:bg-gray-400",
           btnClassName,
         )}
       >
