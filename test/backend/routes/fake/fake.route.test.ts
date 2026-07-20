@@ -10,13 +10,13 @@ import { createJsonRequest, expectError } from "../../helpers/http";
 
 describe("src/app/api/fake/[projectId]/route.ts", () => {
   it("returns 404 when publicId missing", async () => {
-    const res = await GET(createJsonRequest({}, { pathname: "/" }) as any);
+    const res = await GET(createJsonRequest({}, { pathname: "/" }));
     await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
   });
 
   it("returns 404 when endpoint not found", async () => {
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }) as any);
+    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
     await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
   });
 
@@ -28,7 +28,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       response_body: "{}",
       delay_ms: 0,
     });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }) as any);
+    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
     await expectError(res, STATUS_CODE.METHOD_NOT_ALLOWED, ERROR_MESSAGES.METHOD_NOT_ALLOWED);
   });
 
@@ -40,7 +40,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       response_body: "{}",
       delay_ms: 0,
     });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }) as any);
+    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
     expect(res.status).toBe(204);
   });
 
@@ -54,7 +54,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       delay_ms: 50,
     });
 
-    const promise = POST(createJsonRequest({}, { pathname: "/PUBLIC/users" }) as any) as any;
+    const promise = POST(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
     await jest.advanceTimersByTimeAsync(50);
     const res = await promise;
     expect(res.status).toBe(200);

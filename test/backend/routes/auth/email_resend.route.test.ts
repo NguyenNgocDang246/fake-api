@@ -21,31 +21,31 @@ import { createJsonRequest, expectError, expectSuccess } from "../../helpers/htt
 describe("POST src/app/api/auth/email/resend/route.ts", () => {
   it("returns 200 when user does not exist (no-op)", async () => {
     (UserService.getUserByEmail as jest.Mock).mockResolvedValue(null);
-    const res = await POST(createJsonRequest({ email: "x@example.com" }) as any);
+    const res = await POST(createJsonRequest({ email: "x@example.com" }));
     await expectSuccess(res, 200);
     expect(MailService.sendVerificationEmail).not.toHaveBeenCalled();
   });
 
   it("returns 200 when user already verified (no-op)", async () => {
     (UserService.getUserByEmail as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 0n,
       is_verified: true,
     });
-    const res = await POST(createJsonRequest({ email: "x@example.com" }) as any);
+    const res = await POST(createJsonRequest({ email: "x@example.com" }));
     await expectSuccess(res, 200);
     expect(MailService.sendVerificationEmail).not.toHaveBeenCalled();
   });
 
   it("sends verification email when user unverified", async () => {
     (UserService.getUserByEmail as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 2n,
       is_verified: false,
     });
     (TokenService.createVerifyEmailToken as jest.Mock).mockResolvedValue("verify-token");
 
-    const res = await POST(createJsonRequest({ email: "x@example.com" }) as any);
+    const res = await POST(createJsonRequest({ email: "x@example.com" }));
     await expectSuccess(res, 200);
     expect(MailService.sendVerificationEmail).toHaveBeenCalledWith({
       to: "x@example.com",
@@ -54,7 +54,7 @@ describe("POST src/app/api/auth/email/resend/route.ts", () => {
   });
 
   it("returns 400 for invalid email", async () => {
-    const res = await POST(createJsonRequest({ email: "bad" }) as any);
+    const res = await POST(createJsonRequest({ email: "bad" }));
     await expectError(res, STATUS_CODE.BAD_REQUEST, ERROR_MESSAGES.VALIDATION_FAILED);
   });
 });

@@ -15,37 +15,39 @@ import { createJsonRequest, expectError, expectSuccess } from "../../helpers/htt
 
 describe("POST src/app/api/auth/email/verify/route.ts", () => {
   it("returns 400 if token missing", async () => {
-    const res = await POST(createJsonRequest({}) as any);
+    const res = await POST(createJsonRequest({}));
     await expectError(res, STATUS_CODE.BAD_REQUEST, TOKEN_MESSAGE.INVALID_TOKEN);
   });
 
   it("returns 401 if token_version mismatch", async () => {
     (TokenService.verifyVerifyEmailToken as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 1n,
     });
     (UserService.getUserById as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 2n,
     });
-    const res = await POST(createJsonRequest({ token: "t" }) as any);
+    const res = await POST(createJsonRequest({ token: "t" }));
     await expectError(res, STATUS_CODE.UNAUTHORIZED, TOKEN_MESSAGE.INVALID_TOKEN);
   });
 
   it("verifies email and increases token version on success", async () => {
     (TokenService.verifyVerifyEmailToken as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 1n,
     });
     (UserService.getUserById as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 1n,
     });
 
-    const res = await POST(createJsonRequest({ token: "t" }) as any);
+    const res = await POST(createJsonRequest({ token: "t" }));
     await expectSuccess(res, 200);
-    expect(UserService.verifyUserEmail).toHaveBeenCalledWith({ id: 1n });
-    expect(UserService.increaseTokenVersion).toHaveBeenCalledWith({ id: 1n });
+    expect(UserService.verifyUserEmail).toHaveBeenCalledWith({ public_id: "aaaaaaaaaaaa" });
+    expect(UserService.increaseTokenVersion).toHaveBeenCalledWith({
+      public_id: "aaaaaaaaaaaa",
+    });
   });
 });
 

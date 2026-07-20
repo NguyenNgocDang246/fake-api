@@ -8,7 +8,6 @@ import UserService from "@/server/services/user.service";
 import MailService from "@/server/services/mail/mail.service";
 import TokenService from "@/server/services/auth/token.service";
 import { UserInfoSchema } from "@/models/user.model";
-import IdConverter from "@/app/libs/helpers/idConverter";
 import { STATUS_CODE, AUTH_MESSAGES } from "@/server/core/constants";
 
 export async function POST(req: NextRequest) {
@@ -29,7 +28,7 @@ export async function POST(req: NextRequest) {
     const registeredUser = await authService.register(user);
     // send verify email
     const verifyEmailToken = await TokenService.createVerifyEmailToken({
-      id: registeredUser.id,
+      public_id: registeredUser.public_id,
       token_version: registeredUser.token_version,
     });
     await MailService.sendVerificationEmail({
@@ -38,7 +37,7 @@ export async function POST(req: NextRequest) {
     });
     const userInfoValidation = validateData(
       {
-        public_id: IdConverter.encode(registeredUser.id),
+        public_id: registeredUser.public_id,
         name: registeredUser.name,
         email: registeredUser.email,
       },

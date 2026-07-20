@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import ApiResponse from "@/server/core/api_response";
-import IdConverter from "@/app/libs/helpers/idConverter";
 import EndpointService from "@/server/services/endpoint.service";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { EndpointMethod, EndpointResponseSchema } from "@/models/endpoint.model";
@@ -18,11 +17,10 @@ async function handle(req: NextRequest, method: EndpointMethod["method"]) {
       message: ERROR_MESSAGES.NOT_FOUND,
       statusCode: STATUS_CODE.NOT_FOUND,
     });
-  const projectId = IdConverter.decode(publicId);
   const pathname = "/" + segments.slice(1).join("/");
 
   const endpoint = await EndpointService.getEndpointByPath({
-    project_id: projectId,
+    project_public_id: publicId,
     path: pathname,
     method,
   });

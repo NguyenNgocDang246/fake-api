@@ -11,6 +11,7 @@ import {
   DeleteEndpointByIdDTO,
   UpdateEndpointByIdDTO,
 } from "@/models/endpoint.model";
+import { createWithUniquePublicId } from "@/server/core/prisma_retry";
 
 class EndpointService {
   async checkPermissions({
@@ -26,9 +27,14 @@ class EndpointService {
   }) {
     const endpointGroup = await prisma.endpoints.findUnique({
       where: {
-        id: endpointProps.id,
-        endpoint_groups_id: endpointGroupProps.id,
-        endpoint_groups: { project_id: projectProps.id, projects: { user_id: userProps.id } },
+        public_id: endpointProps.public_id,
+        endpoint_groups: {
+          public_id: endpointGroupProps.public_id,
+          projects: {
+            public_id: projectProps.public_id,
+            users: { public_id: userProps.public_id },
+          },
+        },
       },
     });
     return !!endpointGroup;
@@ -39,70 +45,80 @@ class EndpointService {
     status_code,
     response_body,
     delay_ms,
-    endpoint_groups_id,
+    endpoint_groups_public_id,
   }: CreateEndpointDTO) {
     try {
-      return await prisma.endpoints.create({
-        data: { method, path, status_code, response_body, delay_ms, endpoint_groups_id },
-      });
+      return await createWithUniquePublicId((public_id) =>
+        prisma.endpoints.create({
+          data: {
+            public_id,
+            method,
+            path,
+            status_code,
+            response_body,
+            delay_ms,
+            endpoint_groups: { connect: { public_id: endpoint_groups_public_id } },
+          },
+        })
+      );
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
   }
 
-  async getEndpointById({ id }: GetEndpointByIdDTO) {
+  async getEndpointById({ public_id }: GetEndpointByIdDTO) {
     try {
-      return await prisma.endpoints.findUnique({ where: { id } });
+      return await prisma.endpoints.findUnique({ where: { public_id } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
   }
 
   async getEndpointByPath({
-    project_id,
+    project_public_id,
     path,
     method,
   }: GetEndpointByPathDTO & {
-    project_id: GetProjectByIdDTO["id"];
+    project_public_id: GetProjectByIdDTO["public_id"];
   }) {
     try {
       return await prisma.endpoints.findFirst({
-        where: { path, method, endpoint_groups: { project_id } },
+        where: { path, method, endpoint_groups: { projects: { public_id: project_public_id } } },
       });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
   }
 
-  async getAllEndpoints({ id }: GetEndpointGroupByIdDTO) {
+  async getAllEndpoints({ public_id }: GetEndpointGroupByIdDTO) {
     try {
-      return await prisma.endpoints.findMany({ where: { endpoint_groups_id: id } });
+      return await prisma.endpoints.findMany({ where: { endpoint_groups: { public_id } } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
   }
 
-  async deleteEndpointById({ id }: DeleteEndpointByIdDTO) {
+  async deleteEndpointById({ public_id }: DeleteEndpointByIdDTO) {
     try {
-      return await prisma.endpoints.delete({ where: { id } });
+      return await prisma.endpoints.delete({ where: { public_id } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
   }
 
-  async deleteAllEndpoints({ endpoint_groups_id }: DeleteAllEndpointDTO) {
+  async deleteAllEndpoints({ endpoint_groups_public_id }: DeleteAllEndpointDTO) {
     try {
       return await prisma.endpoints.deleteMany({
-        where: { endpoint_groups_id: endpoint_groups_id },
+        where: { endpoint_groups: { public_id: endpoint_groups_public_id } },
       });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
   }
 
-  async updateEndpointById({ id, ...rest }: UpdateEndpointByIdDTO) {
+  async updateEndpointById({ public_id, ...rest }: UpdateEndpointByIdDTO) {
     try {
-      return await prisma.endpoints.update({ where: { id }, data: rest });
+      return await prisma.endpoints.update({ where: { public_id }, data: rest });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

@@ -37,7 +37,7 @@ import { AUTH_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 describe("src/server/services/auth/auth.service.ts", () => {
   describe("register", () => {
     it("throws when email duplicated", async () => {
-      (userService.getUserByEmail as jest.Mock).mockResolvedValue({ id: 1n });
+      (userService.getUserByEmail as jest.Mock).mockResolvedValue({ public_id: "user1" });
       await expect(
         authService.register({ name: "A", email: "a@b.com", password: "123456" })
       ).rejects.toMatchObject({
@@ -49,7 +49,7 @@ describe("src/server/services/auth/auth.service.ts", () => {
     it("hashes password and creates user", async () => {
       (userService.getUserByEmail as jest.Mock).mockResolvedValue(null);
       (hashPassword as jest.Mock).mockResolvedValue("hashed");
-      (userService.createUser as jest.Mock).mockResolvedValue({ id: 1n });
+      (userService.createUser as jest.Mock).mockResolvedValue({ public_id: "user1" });
 
       await authService.register({ name: "A", email: "a@b.com", password: "123456" });
       expect(hashPassword).toHaveBeenCalledWith("123456");
@@ -74,7 +74,7 @@ describe("src/server/services/auth/auth.service.ts", () => {
 
     it("sends verify email then throws forbidden when user not verified", async () => {
       (userService.getUserByEmail as jest.Mock).mockResolvedValue({
-        id: 1n,
+        public_id: "user1",
         email: "a@b.com",
         password: "hashed",
         is_verified: false,
@@ -94,7 +94,7 @@ describe("src/server/services/auth/auth.service.ts", () => {
 
     it("throws unauthorized when password invalid", async () => {
       (userService.getUserByEmail as jest.Mock).mockResolvedValue({
-        id: 1n,
+        public_id: "user1",
         email: "a@b.com",
         password: "hashed",
         is_verified: true,
@@ -112,7 +112,7 @@ describe("src/server/services/auth/auth.service.ts", () => {
 
     it("returns tokens when login succeeds", async () => {
       (userService.getUserByEmail as jest.Mock).mockResolvedValue({
-        id: 1n,
+        public_id: "user1",
         email: "a@b.com",
         password: "hashed",
         is_verified: true,
@@ -139,7 +139,9 @@ describe("src/server/services/auth/auth.service.ts", () => {
   describe("updatePassword", () => {
     it("throws NO_CONTENT when user not found (current behavior)", async () => {
       (userService.getUserById as jest.Mock).mockResolvedValue(null);
-      await expect(authService.updatePassword({ id: 1n, password: "123456" })).rejects.toMatchObject({
+      await expect(
+        authService.updatePassword({ public_id: "user1", password: "123456" })
+      ).rejects.toMatchObject({
         statusCode: STATUS_CODE.NO_CONTENT,
         message: AUTH_MESSAGES.USER_NOT_FOUND,
       });

@@ -17,7 +17,7 @@ describe("POST src/app/api/auth/login/route.ts", () => {
     });
 
     const res = await POST(
-      createJsonRequest({ email: "a@b.com", password: "123456" }) as any
+      createJsonRequest({ email: "a@b.com", password: "123456" })
     );
 
     await expectSuccess(res, 200);
@@ -29,12 +29,12 @@ describe("POST src/app/api/auth/login/route.ts", () => {
   });
 
   it("returns 400 on validation error (missing fields)", async () => {
-    const res = await POST(createJsonRequest({ email: "a@b.com" }) as any);
+    const res = await POST(createJsonRequest({ email: "a@b.com" }));
     await expectError(res, STATUS_CODE.BAD_REQUEST, ERROR_MESSAGES.VALIDATION_FAILED);
   });
 
   it("returns 500 when req.json throws", async () => {
-    const res = await POST(createThrowingJsonRequest() as any);
+    const res = await POST(createThrowingJsonRequest());
     await expectError(res, STATUS_CODE.SERVER_ERROR, ERROR_MESSAGES.SERVER_ERROR);
   });
 
@@ -43,7 +43,7 @@ describe("POST src/app/api/auth/login/route.ts", () => {
       new AppError({ statusCode: STATUS_CODE.UNAUTHORIZED, message: "nope" })
     );
     const res = await POST(
-      createJsonRequest({ email: "a@b.com", password: "123456" }) as any
+      createJsonRequest({ email: "a@b.com", password: "123456" })
     );
     await expectError(res, STATUS_CODE.UNAUTHORIZED, "nope");
   });
