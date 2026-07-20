@@ -1,14 +1,9 @@
-import { BreadcrumbSkeleton } from "@/app/components/Link/BreadcrumbSkeleton";
 import { EndpointGroupItemSkeleton } from "@/app/(pages)/project/[id]/components/EndpointGroupItem/EndpointGroupItemSkeleton";
 import { EndpointItemSkeleton } from "@/app/(pages)/project/[id]/components/EndpointItem/EndpointItemSkeleton";
 
 export default function Loading() {
   return (
     <div>
-      <div className="flex justify-start">
-        <BreadcrumbSkeleton />
-      </div>
-
       <div className="flex flex-col mt-4 gap-4 xl:flex-row xl:gap-8">
         <div className="xl:w-1/4">
           <div className="rounded-2xl border border-gray-300 bg-white shadow-sm animate-pulse">

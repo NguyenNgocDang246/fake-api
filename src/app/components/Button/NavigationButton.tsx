@@ -2,12 +2,22 @@ import React, { ReactNode } from "react";
 import Link from "next/link";
 import { twMerge } from "tailwind-merge";
 
+const variantClasses: Record<string, string> = {
+  primary:
+    "bg-linear-to-r from-indigo-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-800",
+  outline: "border-2 border-gray-300 text-gray-700 hover:bg-gray-100",
+  ghost:
+    "bg-inherit text-gray-600 hover:bg-inherit hover:text-gray-900 hover:underline underline-offset-4",
+  inverse: "bg-white text-blue-700 hover:bg-blue-50 shadow-lg",
+};
+
 interface NavigationButtonProps {
   href: string;
   label?: string;
   children?: ReactNode;
   disabled?: boolean;
   className?: string;
+  variant?: keyof typeof variantClasses;
   target?: React.HTMLAttributeAnchorTarget;
   rel?: string;
 }
@@ -18,6 +28,7 @@ export const NavigationButton: React.FC<NavigationButtonProps> = ({
   children,
   disabled = false,
   className,
+  variant,
   target,
   rel,
 }) => {
@@ -46,7 +57,8 @@ export const NavigationButton: React.FC<NavigationButtonProps> = ({
       target={target}
       rel={mergedRel}
       className={twMerge(
-        "rounded-lg bg-inherit px-4 py-2 font-medium hover:bg-blue-200 transition-colors text-center cursor-pointer",
+        "rounded-lg px-4 py-2 font-medium transition-colors text-center cursor-pointer",
+        variant ? variantClasses[variant] : "bg-inherit hover:bg-blue-200",
         className
       )}
     >

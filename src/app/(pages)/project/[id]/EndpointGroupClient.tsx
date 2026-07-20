@@ -1,10 +1,7 @@
 "use client";
 import { useEndpointGroupViewModel } from "@/app/(pages)/project/[id]/viewmodel";
 import { EndpointItem } from "@/app/(pages)/project/[id]/components/EndpointItem/EndpointItem";
-import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
-import { BreadcrumbSkeleton } from "@/app/components/Link/BreadcrumbSkeleton";
 import { ActionButton } from "@/app/components/Button/ActionButton";
-import { PAGE_ROUTES } from "@/app/libs/routes";
 import { Spinner } from "@/app/components/Loading/Spinner";
 import { NoContentText } from "@/app/components/Text/NoContentText";
 import { useCreateEndpointViewModel } from "@/app/(pages)/project/[id]/components/CreateEndpointForm/viewmodel";
@@ -36,23 +33,6 @@ export default function EndpointGroupClient({
 
   return (
     <div>
-      <div className="flex justify-start">
-        {projectInfoState.isFetching ? (
-          <BreadcrumbSkeleton />
-        ) : (
-          <Breadcrumb
-            items={[
-              { label: "Home", href: PAGE_ROUTES.HOME },
-              { label: "Project", href: PAGE_ROUTES.PROJECT },
-              {
-                label: projectInfoState.data?.name ?? "",
-                href: PAGE_ROUTES.PROJECT + "/" + projectInfoState.data?.public_id,
-              },
-            ]}
-          />
-        )}
-      </div>
-
       <div className="flex flex-col mt-4 gap-4 xl:flex-row xl:gap-8">
         <div className="xl:w-1/4">
           <EndpointGroupContainer
@@ -74,7 +54,7 @@ export default function EndpointGroupClient({
             <div className="flex flex-row gap-2 justify-center sm:justify-end mt-3">
               <ActionButton
                 label="New Endpoint"
-                type="create"
+                variant="create"
                 className="w-full sm:w-auto"
                 onClick={() => {
                   openCreateEndpointModal(selectedGroupId);
@@ -83,7 +63,7 @@ export default function EndpointGroupClient({
               />
               <ActionButton
                 label="Delete all"
-                type="delete"
+                variant="delete"
                 className="w-full sm:w-auto"
                 onClick={() => {
                   openDeleteAllEndpointModal();
