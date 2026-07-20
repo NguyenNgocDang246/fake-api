@@ -52,7 +52,8 @@ export const EndpointGroupContainer = ({
                     />
                   ))}
                   className="w-full border border-gray-300 bg-white shadow-sm rounded-xl"
-                  btnClassName="bg-inherit rounded-xl w-full hover:bg-blue-200 cursor-pointer"
+                  variant="subtle"
+                  btnClassName="rounded-xl w-full cursor-pointer"
                   boxClassName="w-full bg-white text-black"
                   optionClassName="hover:bg-inherit"
                   onSelect={(index) => {
@@ -75,7 +76,7 @@ export const EndpointGroupContainer = ({
           )}
         </div>
         <ActionButton
-          type="create"
+          variant="create"
           onClick={() => {
             openCreateEndpointGroupModal();
           }}
@@ -102,14 +103,14 @@ export const EndpointGroupContainer = ({
           />
         </div>
 
-        <button
-          type="button"
+        <ActionButton
+          variant="create"
           onClick={() => openCreateEndpointGroupModal()}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 mb-4 font-medium text-white transition hover:bg-blue-700 cursor-pointer"
+          className="flex w-full items-center justify-center gap-2 py-2.5 mb-4"
         >
           <Plus size={18} />
           Create new
-        </button>
+        </ActionButton>
 
         <div className="space-y-1">
           {!endpointGroupsState.isFetched ? (

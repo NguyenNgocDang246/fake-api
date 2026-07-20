@@ -1,15 +1,15 @@
 "use client";
-import { ActionButton } from "@/app/components/Button/ActionButton";
 import { useResendEmailViewModel } from "@/app/(pages)/auth/email/verify/components/ResendEmailForm/viewmodel";
 
 export function ResendVerificationButton() {
   const { openResendEmailModal } = useResendEmailViewModel();
   return (
-    <ActionButton
+    <button
+      type="button"
       onClick={() => openResendEmailModal()}
-      className="bg-gray-900 text-white hover:bg-gray-800 hover:text-blue-400"
+      className="rounded-lg px-4 py-2 font-medium transition-colors outline-0 cursor-pointer disabled:opacity-50 truncate bg-gray-900 text-white hover:bg-gray-800 hover:text-blue-400"
     >
       Resend Verification Email
-    </ActionButton>
+    </button>
   );
 }

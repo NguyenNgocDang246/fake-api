@@ -57,7 +57,7 @@ export function RegisterForm() {
         <div className="text-center my-4">
           <span>
             Already have an account?{" "}
-            <TextLink className="text-red-500 hover:underline" href={PAGE_ROUTES.AUTH.LOGIN}>
+            <TextLink variant="muted" href={PAGE_ROUTES.AUTH.LOGIN}>
               Login
             </TextLink>
           </span>
