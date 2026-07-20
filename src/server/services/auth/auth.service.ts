@@ -36,7 +36,7 @@ class AuthService {
     try {
       const password = Date.now().toString() + process.env["DUMMY_PASSWORD_SALT"];
       const user = await this.register({ ...data, password });
-      await userService.verifyUserEmail({ id: user.id });
+      await userService.verifyUserEmail({ public_id: user.public_id });
       return user;
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
@@ -57,7 +57,7 @@ class AuthService {
         await MailService.sendVerificationEmail({
           to: user.email,
           token: await tokenService.createVerifyEmailToken({
-            id: user.id,
+            public_id: user.public_id,
             token_version: user.token_version,
           }),
         });
@@ -76,10 +76,10 @@ class AuthService {
       }
 
       const refreshToken = await tokenService.createRefreshToken({
-        id: user.id,
+        public_id: user.public_id,
         token_version: user.token_version,
       });
-      const accessToken = await tokenService.createAccessToken({ id: user.id });
+      const accessToken = await tokenService.createAccessToken({ public_id: user.public_id });
 
       return LoginResponseSchema.parse({
         access_token: accessToken,
@@ -101,10 +101,10 @@ class AuthService {
       }
 
       const refreshToken = await tokenService.createRefreshToken({
-        id: user.id,
+        public_id: user.public_id,
         token_version: user.token_version,
       });
-      const accessToken = await tokenService.createAccessToken({ id: user.id });
+      const accessToken = await tokenService.createAccessToken({ public_id: user.public_id });
 
       return LoginResponseSchema.parse({
         access_token: accessToken,
@@ -115,9 +115,9 @@ class AuthService {
     }
   }
 
-  async updatePassword({ id, password }: UpdatePasswordDTO) {
+  async updatePassword({ public_id, password }: UpdatePasswordDTO) {
     try {
-      const user = await userService.getUserById({ id });
+      const user = await userService.getUserById({ public_id });
       if (!user) {
         throw new AppError({
           statusCode: STATUS_CODE.NO_CONTENT,
@@ -126,7 +126,7 @@ class AuthService {
       }
 
       const hashedPassword = await hashPassword(password);
-      return await userService.updatePassword({ id, password: hashedPassword });
+      return await userService.updatePassword({ public_id, password: hashedPassword });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

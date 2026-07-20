@@ -42,14 +42,14 @@ describe("GET src/app/api/auth/google/callback/route.ts", () => {
   });
 
   it("returns 400 if code is missing", async () => {
-    const res = await GET(new Request("http://localhost/api/auth/google/callback") as any);
+    const res = await GET(new Request("http://localhost/api/auth/google/callback"));
     await expectError(res, STATUS_CODE.BAD_REQUEST, GOOGLE_AUTH_MESSAGES.NO_CODE);
   });
 
   it("returns 400 if email missing", async () => {
     userinfoGet.mockResolvedValue({ data: { email: null, name: "Alice" } });
     const res = await GET(
-      new Request("http://localhost/api/auth/google/callback?code=abc") as any
+      new Request("http://localhost/api/auth/google/callback?code=abc")
     );
     await expectError(res, STATUS_CODE.BAD_REQUEST, GOOGLE_AUTH_MESSAGES.NO_EMAIL);
   });
@@ -63,8 +63,8 @@ describe("GET src/app/api/auth/google/callback/route.ts", () => {
       refresh_token: "refresh",
     });
 
-    const res: any = await GET(
-      new Request("http://localhost/api/auth/google/callback?code=abc") as any
+    const res = await GET(
+      new Request("http://localhost/api/auth/google/callback?code=abc")
     );
     expect(res.status).toBe(307);
     expect(res.headers.get("Location")).toContain(PAGE_ROUTES.PROJECT);

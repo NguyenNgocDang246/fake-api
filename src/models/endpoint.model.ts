@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PublicIdSchema } from "@/app/libs/helpers/publicId";
 
 export const JsonSchema = z.string().transform((val, ctx) => {
   try {
@@ -20,13 +21,13 @@ export const JsonSchema = z.string().transform((val, ctx) => {
 
 export const EndpointSchema = z
   .object({
-    id: z.union([z.bigint(), z.string().transform((str) => BigInt(str))]),
-    endpoint_groups_id: z.union([z.bigint(), z.string().transform((str) => BigInt(str))]),
+    public_id: PublicIdSchema,
+    endpoint_groups_public_id: PublicIdSchema,
     method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
     path: z
       .string()
-      .regex(/^\/(?:[a-zA-Z0-9]+(?:\/[a-zA-Z0-9]+)*)?$/, "Đường dẫn không hợp lệ")
-      .max(255, "Đường dẫn không được quá 255 ký tự"),
+      .regex(/^\/(?:[a-zA-Z0-9]+(?:\/[a-zA-Z0-9]+)*)?$/, "Đường dẫn không hợp lệ")
+      .max(255, "Đường dẫn không được quá 255 ký tự"),
     status_code: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
     response_body: JsonSchema,
     delay_ms: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
@@ -45,7 +46,11 @@ const JsonValue: z.ZodType<unknown> = z.lazy(() =>
   ])
 );
 
-export const EndpointInfoSchema = EndpointSchema.omit({ response_body: true, id: true })
+export const EndpointInfoSchema = EndpointSchema.omit({
+  response_body: true,
+  public_id: true,
+  endpoint_groups_public_id: true,
+})
   .extend({
     response_body: z.preprocess(
       (val) => {
@@ -83,7 +88,7 @@ export const ClientCreateEndpointSchema = EndpointInfoSchema.pick({
 export type ClientCreateEndpointDTO = z.infer<typeof ClientCreateEndpointSchema>;
 
 export const CreateEndpointSchema = EndpointSchema.pick({
-  endpoint_groups_id: true,
+  endpoint_groups_public_id: true,
   method: true,
   path: true,
   status_code: true,
@@ -93,7 +98,7 @@ export const CreateEndpointSchema = EndpointSchema.pick({
 export type CreateEndpointDTO = z.infer<typeof CreateEndpointSchema>;
 
 export const DeleteAllEndpointSchema = EndpointSchema.pick({
-  endpoint_groups_id: true,
+  endpoint_groups_public_id: true,
 }).strict();
 export type DeleteAllEndpointDTO = z.infer<typeof DeleteAllEndpointSchema>;
 
@@ -101,7 +106,7 @@ export const ClientUpdateEndpointByIdSchema = ClientCreateEndpointSchema;
 export type ClientUpdateEndpointByIdDTO = z.infer<typeof ClientUpdateEndpointByIdSchema>;
 
 export const UpdateEndpointByIdSchema = EndpointSchema.pick({
-  id: true,
+  public_id: true,
   method: true,
   path: true,
   status_code: true,
@@ -116,12 +121,12 @@ export const ClientDeleteEndpointByIdDTO = EndpointInfoSchema.pick({
 export type ClientDeleteEndpointByIdDTO = z.infer<typeof ClientDeleteEndpointByIdDTO>;
 
 export const DeleteEndpointByIdSchema = EndpointSchema.pick({
-  id: true,
+  public_id: true,
 }).strict();
 export type DeleteEndpointByIdDTO = z.infer<typeof DeleteEndpointByIdSchema>;
 
 export const GetEndpointByIdSchema = EndpointSchema.pick({
-  id: true,
+  public_id: true,
 }).strict();
 export type GetEndpointByIdDTO = z.infer<typeof GetEndpointByIdSchema>;
 

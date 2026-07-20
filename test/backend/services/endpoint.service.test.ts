@@ -19,13 +19,13 @@ import { AppError } from "@/server/core/errors";
 
 describe("src/server/services/endpoint.service.ts", () => {
   it("checkPermissions returns true when record exists", async () => {
-    (prisma.endpoints.findUnique as jest.Mock).mockResolvedValue({ id: 1n });
+    (prisma.endpoints.findUnique as jest.Mock).mockResolvedValue({ public_id: "endpoint1" });
     await expect(
       endpointService.checkPermissions({
-        userProps: { id: 1n },
-        projectProps: { id: 1n },
-        endpointGroupProps: { id: 10n },
-        endpointProps: { id: 100n },
+        userProps: { public_id: "user1" },
+        projectProps: { public_id: "proj1" },
+        endpointGroupProps: { public_id: "group1" },
+        endpointProps: { public_id: "endpoint1" },
       })
     ).resolves.toBe(true);
   });
@@ -34,10 +34,10 @@ describe("src/server/services/endpoint.service.ts", () => {
     (prisma.endpoints.findUnique as jest.Mock).mockRejectedValue(new Error("boom"));
     await expect(
       endpointService.checkPermissions({
-        userProps: { id: 1n },
-        projectProps: { id: 1n },
-        endpointGroupProps: { id: 10n },
-        endpointProps: { id: 100n },
+        userProps: { public_id: "user1" },
+        projectProps: { public_id: "proj1" },
+        endpointGroupProps: { public_id: "group1" },
+        endpointProps: { public_id: "endpoint1" },
       })
     ).rejects.toThrow("boom");
   });
@@ -45,8 +45,7 @@ describe("src/server/services/endpoint.service.ts", () => {
   it("getEndpointByPath wraps error into AppError", async () => {
     (prisma.endpoints.findFirst as jest.Mock).mockRejectedValue(new Error("db down"));
     await expect(
-      endpointService.getEndpointByPath({ project_id: 1n, path: "/x", method: "GET" })
+      endpointService.getEndpointByPath({ project_public_id: "proj1", path: "/x", method: "GET" })
     ).rejects.toBeInstanceOf(AppError);
   });
 });
-

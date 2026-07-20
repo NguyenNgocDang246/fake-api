@@ -6,29 +6,31 @@ import { AppError } from "@/server/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { validateData } from "@/server/core/validation";
 import projectService from "@/server/services/project.service";
-import IdConverter from "@/app/libs/helpers/idConverter";
 import { ProjectInfoSchema, UpdateProjectByIdSchema } from "@/models/project.model";
 
 export async function GET(req: NextRequest, props: { params: Promise<{ projectId: string }> }) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
     const params = await props.params;
-    const projectIdRaw = IdConverter.decode(params.projectId);
-    const validation = validateData({ id: projectIdRaw }, GetProjectByIdSchema);
+    const validation = validateData({ public_id: params.projectId }, GetProjectByIdSchema);
     if (!validation.success) {
       return validation.response;
     }
-    const projectId = validation.data.id;
+    const projectId = validation.data.public_id;
 
-    const project = await projectService.getProjectById({ id: projectId });
+    const project = await projectService.getProjectById({ public_id: projectId });
     if (project === null) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.NOT_FOUND,
         statusCode: STATUS_CODE.NOT_FOUND,
       });
     }
-    if (userId !== project.user_id) {
+    const hasPermission = await projectService.checkPermission({
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+    });
+    if (!hasPermission) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.FORBIDDEN,
         statusCode: STATUS_CODE.FORBIDDEN,
@@ -37,10 +39,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
 
     const projectInfoValidation = validateData(
       {
-        public_id: IdConverter.encode(project.id),
+        public_id: project.public_id,
         name: project.name,
         description: project.description,
-        user_id: IdConverter.encode(project.user_id),
+        user_id: userId,
       },
       ProjectInfoSchema
     );
@@ -63,23 +65,26 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
 export async function PUT(req: NextRequest, props: { params: Promise<{ projectId: string }> }) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
     const params = await props.params;
-    const projectIdRaw = IdConverter.decode(params.projectId);
-    const validation = validateData({ id: projectIdRaw }, GetProjectByIdSchema);
+    const validation = validateData({ public_id: params.projectId }, GetProjectByIdSchema);
     if (!validation.success) {
       return validation.response;
     }
-    const projectId = validation.data.id;
+    const projectId = validation.data.public_id;
 
-    const project = await projectService.getProjectById({ id: projectId });
+    const project = await projectService.getProjectById({ public_id: projectId });
     if (project === null) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.NO_CONTENT,
         statusCode: STATUS_CODE.NO_CONTENT,
       });
     }
-    if (userId !== project.user_id) {
+    const hasPermission = await projectService.checkPermission({
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+    });
+    if (!hasPermission) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.FORBIDDEN,
         statusCode: STATUS_CODE.FORBIDDEN,
@@ -87,7 +92,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ projectId
     }
 
     const body = await req.json();
-    const projectRaw = { ...body, id: projectId };
+    const projectRaw = { ...body, public_id: projectId };
     const updateProjectValidation = validateData(projectRaw, UpdateProjectByIdSchema);
     if (!updateProjectValidation.success) {
       return updateProjectValidation.response;
@@ -96,10 +101,10 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ projectId
     const projectUpdated = await projectService.updateProjectById(updateProject);
     const projectInfoValidation = validateData(
       {
-        public_id: IdConverter.encode(projectUpdated.id),
+        public_id: projectUpdated.public_id,
         name: projectUpdated.name,
         description: projectUpdated.description,
-        user_id: IdConverter.encode(projectUpdated.user_id),
+        user_id: userId,
       },
       ProjectInfoSchema
     );
@@ -122,30 +127,33 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ projectId
 export async function DELETE(req: NextRequest, props: { params: Promise<{ projectId: string }> }) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
     const params = await props.params;
-    const projectIdRaw = IdConverter.decode(params.projectId);
-    const validation = validateData({ id: projectIdRaw }, GetProjectByIdSchema);
+    const validation = validateData({ public_id: params.projectId }, GetProjectByIdSchema);
     if (!validation.success) {
       return validation.response;
     }
-    const projectId = validation.data.id;
+    const projectId = validation.data.public_id;
 
-    const project = await projectService.getProjectById({ id: projectId });
+    const project = await projectService.getProjectById({ public_id: projectId });
     if (project === null) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.NO_CONTENT,
         statusCode: STATUS_CODE.NO_CONTENT,
       });
     }
-    if (userId !== project.user_id) {
+    const hasPermission = await projectService.checkPermission({
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+    });
+    if (!hasPermission) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.FORBIDDEN,
         statusCode: STATUS_CODE.FORBIDDEN,
       });
     }
 
-    await projectService.deleteProjectById({ id: projectId });
+    await projectService.deleteProjectById({ public_id: projectId });
     return ApiResponse.success();
   } catch (error) {
     if (error instanceof AppError) {

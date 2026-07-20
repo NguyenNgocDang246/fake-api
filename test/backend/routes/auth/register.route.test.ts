@@ -27,7 +27,7 @@ describe("POST src/app/api/auth/register/route.ts", () => {
   it("registers user, sends verification email, returns user info", async () => {
     (UserService.getUserByEmail as jest.Mock).mockResolvedValue(null);
     (authService.register as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 0n,
       name: "Alice",
       email: "alice@example.com",
@@ -42,7 +42,7 @@ describe("POST src/app/api/auth/register/route.ts", () => {
         name: "Alice",
         email: "alice@example.com",
         password: "123456",
-      }) as any
+      })
     );
 
     await expectSuccess(res, 200);
@@ -62,7 +62,7 @@ describe("POST src/app/api/auth/register/route.ts", () => {
         name: "Alice",
         email: "alice@example.com",
         password: "123456",
-      }) as any
+      })
     );
     await expectError(res, STATUS_CODE.CONFLICT, AUTH_MESSAGES.EMAIL_DUPLICATED);
   });
@@ -74,7 +74,7 @@ describe("POST src/app/api/auth/register/route.ts", () => {
         email: "alice@example.com",
         password: "123456",
         foo: "bar",
-      }) as any
+      })
     );
     await expectError(res, STATUS_CODE.BAD_REQUEST, ERROR_MESSAGES.VALIDATION_FAILED);
   });
@@ -82,7 +82,7 @@ describe("POST src/app/api/auth/register/route.ts", () => {
   it("returns 400 if output UserInfo validation fails", async () => {
     (UserService.getUserByEmail as jest.Mock).mockResolvedValue(null);
     (authService.register as jest.Mock).mockResolvedValue({
-      id: 1n,
+      public_id: "aaaaaaaaaaaa",
       token_version: 0n,
       name: "",
       email: "alice@example.com",
@@ -97,7 +97,7 @@ describe("POST src/app/api/auth/register/route.ts", () => {
         name: "Alice",
         email: "alice@example.com",
         password: "123456",
-      }) as any
+      })
     );
     await expectError(res, STATUS_CODE.BAD_REQUEST, ERROR_MESSAGES.VALIDATION_FAILED);
   });

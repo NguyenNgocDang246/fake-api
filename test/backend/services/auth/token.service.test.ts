@@ -26,20 +26,22 @@ jest.mock("jose", () => {
 });
 
 import tokenService from "@/server/services/auth/token.service";
-import IdConverter from "@/app/libs/helpers/idConverter";
 import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
 import { jwtVerify } from "jose";
 
+const PUBLIC_ID = "abcdefghijkm";
+
 describe("src/server/services/auth/token.service.ts", () => {
   it("createAccessToken returns a string token", async () => {
-    const token = await tokenService.createAccessToken({ id: 1n });
+    const token = await tokenService.createAccessToken({ public_id: PUBLIC_ID });
     expect(token).toContain("token:");
   });
 
-  it("verifyAccessToken decodes public_id to id", async () => {
-    const public_id = IdConverter.encode(1n);
-    const token = `token:${JSON.stringify({ public_id })}`;
-    await expect(tokenService.verifyAccessToken(token)).resolves.toEqual({ id: 1n });
+  it("verifyAccessToken decodes public_id from payload", async () => {
+    const token = `token:${JSON.stringify({ public_id: PUBLIC_ID })}`;
+    await expect(tokenService.verifyAccessToken(token)).resolves.toEqual({
+      public_id: PUBLIC_ID,
+    });
   });
 
   it("verifyAccessToken throws 401 invalid/expired for invalid token", async () => {
@@ -50,10 +52,9 @@ describe("src/server/services/auth/token.service.ts", () => {
   });
 
   it("verifyRefreshToken parses token_version into BigInt", async () => {
-    const public_id = IdConverter.encode(1n);
-    const token = `token:${JSON.stringify({ public_id, token_version: "2" })}`;
+    const token = `token:${JSON.stringify({ public_id: PUBLIC_ID, token_version: "2" })}`;
     await expect(tokenService.verifyRefreshToken(token)).resolves.toEqual({
-      id: 1n,
+      public_id: PUBLIC_ID,
       token_version: 2n,
     });
   });
@@ -72,10 +73,8 @@ describe("src/server/services/auth/token.service.ts", () => {
   });
 
   it("delegates jwtVerify to jose", async () => {
-    const public_id = IdConverter.encode(1n);
-    const token = `token:${JSON.stringify({ public_id })}`;
+    const token = `token:${JSON.stringify({ public_id: PUBLIC_ID })}`;
     await tokenService.verifyAccessToken(token);
     expect(jwtVerify).toHaveBeenCalled();
   });
 });
-

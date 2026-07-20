@@ -5,46 +5,44 @@ import { AppError } from "@/server/core/errors";
 import { ERROR_MESSAGES, STATUS_CODE, ENDPOINT_MESSAGES } from "@/server/core/constants";
 import { validateData } from "@/server/core/validation";
 import { GetProjectByIdSchema } from "@/models/project.model";
-import IdConverter from "@/app/libs/helpers/idConverter";
 import { GetEndpointGroupByIdSchema } from "@/models/endpoint_group.model";
-import { EndpointInfoSchema, CreateEndpointSchema, EndpointDTO } from "@/models/endpoint.model";
+import { EndpointInfoSchema, CreateEndpointSchema } from "@/models/endpoint.model";
 import EndpointService from "@/server/services/endpoint.service";
 import endpointGroupService from "@/server/services/endpoint_group.service";
-import { JsonValue } from "@prisma/client/runtime/library";
 export async function GET(
   req: NextRequest,
   props: { params: Promise<{ projectId: string; endpointGroupId: string }> }
 ) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
 
     const projectIdValidation = validateData(
-      { id: IdConverter.decode(projectIdRaw) },
+      { public_id: projectIdRaw },
       GetProjectByIdSchema
     );
     if (!projectIdValidation.success) {
       return projectIdValidation.response;
     }
-    const projectId = projectIdValidation.data.id;
+    const projectId = projectIdValidation.data.public_id;
 
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
-      { id: IdConverter.decode(endpointGroupIdRaw) },
+      { public_id: endpointGroupIdRaw },
       GetEndpointGroupByIdSchema
     );
     if (!endpointGroupIdValidation.success) {
       return endpointGroupIdValidation.response;
     }
-    const endpointGroupId = endpointGroupIdValidation.data.id;
+    const endpointGroupId = endpointGroupIdValidation.data.public_id;
 
     const hasPermission = await endpointGroupService.checkPermission({
-      userProps: { id: userId },
-      projectProps: { id: projectId },
-      endpointGroupProps: { id: endpointGroupId },
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+      endpointGroupProps: { public_id: endpointGroupId },
     });
     if (!hasPermission) {
       return ApiResponse.error({
@@ -53,7 +51,7 @@ export async function GET(
       });
     }
 
-    const endpoints = await EndpointService.getAllEndpoints({ id: endpointGroupId });
+    const endpoints = await EndpointService.getAllEndpoints({ public_id: endpointGroupId });
     if (endpoints.length === 0) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.NO_CONTENT,
@@ -62,14 +60,14 @@ export async function GET(
     }
 
     const endpointInfoValidation = validateData(
-      endpoints.map((e: Omit<EndpointDTO, "response_body"> & { response_body: JsonValue }) => ({
-        public_id: IdConverter.encode(e.id),
+      endpoints.map((e) => ({
+        public_id: e.public_id,
         path: e.path,
         method: e.method,
         status_code: e.status_code,
         response_body: e.response_body,
         delay_ms: e.delay_ms,
-        endpoint_groups_id: IdConverter.encode(e.endpoint_groups_id),
+        endpoint_groups_id: endpointGroupId,
       })),
       [EndpointInfoSchema]
     );
@@ -94,34 +92,34 @@ export async function POST(
 ) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
 
     const projectIdValidation = validateData(
-      { id: IdConverter.decode(projectIdRaw) },
+      { public_id: projectIdRaw },
       GetProjectByIdSchema
     );
     if (!projectIdValidation.success) {
       return projectIdValidation.response;
     }
-    const projectId = projectIdValidation.data.id;
+    const projectId = projectIdValidation.data.public_id;
 
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
-      { id: IdConverter.decode(endpointGroupIdRaw) },
+      { public_id: endpointGroupIdRaw },
       GetEndpointGroupByIdSchema
     );
     if (!endpointGroupIdValidation.success) {
       return endpointGroupIdValidation.response;
     }
-    const endpointGroupId = endpointGroupIdValidation.data.id;
+    const endpointGroupId = endpointGroupIdValidation.data.public_id;
 
     const hasPermission = await endpointGroupService.checkPermission({
-      userProps: { id: userId },
-      projectProps: { id: projectId },
-      endpointGroupProps: { id: endpointGroupId },
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+      endpointGroupProps: { public_id: endpointGroupId },
     });
     if (!hasPermission) {
       return ApiResponse.error({
@@ -132,7 +130,7 @@ export async function POST(
 
     const body = await req.json();
     const endpointValidation = validateData(
-      { ...body, endpoint_groups_id: endpointGroupId },
+      { ...body, endpoint_groups_public_id: endpointGroupId },
       CreateEndpointSchema
     );
     if (!endpointValidation.success) {
@@ -140,7 +138,7 @@ export async function POST(
     }
     const endpoint = endpointValidation.data;
     const endpointExists = await EndpointService.getEndpointByPath({
-      project_id: projectId,
+      project_public_id: projectId,
       path: endpoint.path,
       method: endpoint.method,
     });
@@ -153,13 +151,13 @@ export async function POST(
     const endpointCreate = await EndpointService.createEndpoint(endpoint);
     const endpointInfoValidation = validateData(
       {
-        public_id: IdConverter.encode(endpointCreate.id),
+        public_id: endpointCreate.public_id,
         path: endpointCreate.path,
         method: endpointCreate.method,
         status_code: endpointCreate.status_code,
         response_body: endpointCreate.response_body,
         delay_ms: endpointCreate.delay_ms,
-        endpoint_groups_id: IdConverter.encode(endpointCreate.endpoint_groups_id),
+        endpoint_groups_id: endpointGroupId,
       },
       EndpointInfoSchema
     );
@@ -186,34 +184,34 @@ export async function DELETE(
 ) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
 
     const projectIdValidation = validateData(
-      { id: IdConverter.decode(projectIdRaw) },
+      { public_id: projectIdRaw },
       GetProjectByIdSchema
     );
     if (!projectIdValidation.success) {
       return projectIdValidation.response;
     }
-    const projectId = projectIdValidation.data.id;
+    const projectId = projectIdValidation.data.public_id;
 
     const endpointGroupIdRaw = params.endpointGroupId;
     const endpointGroupIdValidation = validateData(
-      { id: IdConverter.decode(endpointGroupIdRaw) },
+      { public_id: endpointGroupIdRaw },
       GetEndpointGroupByIdSchema
     );
     if (!endpointGroupIdValidation.success) {
       return endpointGroupIdValidation.response;
     }
-    const endpointGroupId = endpointGroupIdValidation.data.id;
+    const endpointGroupId = endpointGroupIdValidation.data.public_id;
 
     const hasPermission = await endpointGroupService.checkPermission({
-      userProps: { id: userId },
-      projectProps: { id: projectId },
-      endpointGroupProps: { id: endpointGroupId },
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
+      endpointGroupProps: { public_id: endpointGroupId },
     });
     if (!hasPermission) {
       return ApiResponse.error({
@@ -223,7 +221,7 @@ export async function DELETE(
     }
 
     const result = await EndpointService.deleteAllEndpoints({
-      endpoint_groups_id: endpointGroupId,
+      endpoint_groups_public_id: endpointGroupId,
     });
     if (result.count === 0) {
       return ApiResponse.error({

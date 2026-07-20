@@ -11,25 +11,24 @@ import {
   EndpointGroupInfoSchema,
 } from "@/models/endpoint_group.model";
 import { STATUS_CODE, ERROR_MESSAGES } from "@/server/core/constants";
-import IdConverter from "@/app/libs/helpers/idConverter";
 
 export async function GET(req: NextRequest, props: { params: Promise<{ projectId: string }> }) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
 
-    const validation = validateData({ id: IdConverter.decode(projectIdRaw) }, GetProjectByIdSchema);
+    const validation = validateData({ public_id: projectIdRaw }, GetProjectByIdSchema);
     if (!validation.success) {
       return validation.response;
     }
-    const projectId = validation.data.id;
+    const projectId = validation.data.public_id;
 
     const hasPermission = await ProjectService.checkPermission({
-      userProps: { id: userId },
-      projectProps: { id: projectId },
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
     });
     if (!hasPermission) {
       return ApiResponse.error({
@@ -37,7 +36,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
         statusCode: STATUS_CODE.FORBIDDEN,
       });
     }
-    const endpointGroups = await EndpointGroupService.getAllEndpointGroups({ id: projectId });
+    const endpointGroups = await EndpointGroupService.getAllEndpointGroups({
+      public_id: projectId,
+    });
     if (endpointGroups.length === 0) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.NO_CONTENT,
@@ -46,9 +47,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
     }
     const endpointGroupInfoValidation = validateData(
       endpointGroups.map((e) => ({
-        public_id: IdConverter.encode(e.id),
+        public_id: e.public_id,
         name: e.name,
-        project_id: IdConverter.encode(e.project_id),
+        project_id: projectId,
         endpoint_count: e._count.endpoints,
       })),
       [EndpointGroupInfoSchema]
@@ -72,22 +73,22 @@ export async function GET(req: NextRequest, props: { params: Promise<{ projectId
 export async function POST(req: NextRequest, props: { params: Promise<{ projectId: string }> }) {
   try {
     const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ id }).id;
+    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
 
     const params = await props.params;
     const projectIdRaw = params.projectId;
     const projectIdValidation = validateData(
-      { id: IdConverter.decode(projectIdRaw) },
+      { public_id: projectIdRaw },
       GetProjectByIdSchema
     );
     if (!projectIdValidation.success) {
       return projectIdValidation.response;
     }
-    const projectId = projectIdValidation.data.id;
+    const projectId = projectIdValidation.data.public_id;
 
     const hasPermission = await ProjectService.checkPermission({
-      userProps: { id: userId },
-      projectProps: { id: projectId },
+      userProps: { public_id: userId },
+      projectProps: { public_id: projectId },
     });
     if (!hasPermission) {
       return ApiResponse.error({
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ projectI
 
     const body = await req.json();
     const endpointGroupValidation = validateData(
-      { ...body, project_id: projectId },
+      { ...body, project_public_id: projectId },
       CreateEndpointGroupSchema
     );
     if (!endpointGroupValidation.success) {
@@ -108,9 +109,9 @@ export async function POST(req: NextRequest, props: { params: Promise<{ projectI
     const endpointGroupCreated = await EndpointGroupService.createEndpointGroup(endpointGroup);
     const endpointGroupInfoValidation = validateData(
       {
-        public_id: IdConverter.encode(endpointGroupCreated.id),
+        public_id: endpointGroupCreated.public_id,
         name: endpointGroupCreated.name,
-        project_id: IdConverter.encode(endpointGroupCreated.project_id),
+        project_id: projectId,
         endpoint_count: 0,
       },
       EndpointGroupInfoSchema

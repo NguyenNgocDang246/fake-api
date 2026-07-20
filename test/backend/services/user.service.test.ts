@@ -28,10 +28,10 @@ describe("src/server/services/user.service.ts", () => {
   });
 
   it("increaseTokenVersion calls prisma.users.update with increment", async () => {
-    (prisma.users.update as jest.Mock).mockResolvedValue({ id: 1n });
-    await userService.increaseTokenVersion({ id: 1n });
+    (prisma.users.update as jest.Mock).mockResolvedValue({ public_id: "user1" });
+    await userService.increaseTokenVersion({ public_id: "user1" });
     expect(prisma.users.update).toHaveBeenCalledWith({
-      where: { id: 1n },
+      where: { public_id: "user1" },
       data: { token_version: { increment: 1 } },
     });
   });

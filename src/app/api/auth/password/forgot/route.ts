@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
     if (user.is_verified == false) return ApiResponse.success();
     const token = await TokenService.createResetPasswordToken({
-      id: user.id,
+      public_id: user.public_id,
       token_version: user.token_version,
     });
     await MailService.sendForgotPasswordEmail({

@@ -1,3 +1,5 @@
+import type { NextRequest, NextResponse } from "next/server";
+
 export type MockHeadersInit = Record<string, string | undefined>;
 
 export function createHeaders(init: MockHeadersInit = {}) {
@@ -8,70 +10,53 @@ export function createHeaders(init: MockHeadersInit = {}) {
   return headers;
 }
 
-export function createJsonRequest<T>(
-  body: T,
-  {
-    headers = {},
-    pathname,
-  }: {
-    headers?: MockHeadersInit;
-    pathname?: string;
-  } = {}
-) {
-  const req: any = {
+interface MockRequestInit {
+  headers?: MockHeadersInit;
+  pathname?: string;
+}
+
+export function createJsonRequest<T>(body: T, init: MockRequestInit = {}): NextRequest {
+  const { headers = {}, pathname } = init;
+  const req = {
     headers: createHeaders(headers),
     async json() {
       return body;
     },
+    ...(pathname ? { nextUrl: { pathname } } : {}),
   };
-
-  if (pathname) {
-    req.nextUrl = { pathname };
-  }
-
-  return req;
+  return req as unknown as NextRequest;
 }
 
 export function createThrowingJsonRequest(
   error: unknown = new Error("Invalid JSON"),
-  {
-    headers = {},
-    pathname,
-  }: {
-    headers?: MockHeadersInit;
-    pathname?: string;
-  } = {}
-) {
-  const req: any = {
+  init: MockRequestInit = {}
+): NextRequest {
+  const { headers = {}, pathname } = init;
+  const req = {
     headers: createHeaders(headers),
     async json() {
       throw error;
     },
+    ...(pathname ? { nextUrl: { pathname } } : {}),
   };
-
-  if (pathname) {
-    req.nextUrl = { pathname };
-  }
-
-  return req;
+  return req as unknown as NextRequest;
 }
 
-export async function readJson(res: any) {
+export async function readJson(res: NextResponse) {
   return await res.json();
 }
 
-export async function expectSuccess(res: any, status = 200) {
+export async function expectSuccess(res: NextResponse, status = 200) {
   expect(res.status).toBe(status);
   if (status === 204) return;
   const body = await readJson(res);
   expect(body).toHaveProperty("status", "success");
 }
 
-export async function expectError(res: any, status: number, message?: string) {
+export async function expectError(res: NextResponse, status: number, message?: string) {
   expect(res.status).toBe(status);
   if (status === 204) return;
   const body = await readJson(res);
   expect(body).toHaveProperty("status", "error");
   if (message !== undefined) expect(body).toHaveProperty("message", message);
 }
-
