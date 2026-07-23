@@ -35,7 +35,7 @@ export function FormModal({ title, children, onSubmit, onClose }: FormModalProps
         <form onSubmit={handleSubmit}>
           <div className="overflow-y-auto max-h-[70vh] p-1">{children}</div>
 
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex sm:flex-grow flex-col-reverse justify-end gap-2 mt-4">
             <ActionButton
               label="Cancel"
               onClick={onClose}

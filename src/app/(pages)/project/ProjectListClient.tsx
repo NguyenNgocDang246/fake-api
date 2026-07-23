@@ -13,18 +13,16 @@ export function ProjectListClient() {
 
   return (
     <div className="mt-4 flex flex-col justify-center">
-      <div className="mb-4 flex items-center justify-end">
+      <div className="mb-4 flex gap-4 items-center justify-end">
         <ActionButton
           label="Create new"
           variant="create"
-          className="ml-4 "
           onClick={() => openCreateProjectModal()}
         />
         <ActionButton
           label="Delete all"
           variant="delete"
           disabled={!hasProjects}
-          className="ml-4"
           onClick={() => openDeleteAllProjectModal()}
         />
       </div>
@@ -33,9 +31,7 @@ export function ProjectListClient() {
           <Spinner />
         </div>
       ) : projectsState.isError ? (
-        <div className="text-center mt-24 text-red-500">
-          {String(projectsState.error.message)}
-        </div>
+        <div className="text-center mt-24 text-red-500">{String(projectsState.error.message)}</div>
       ) : (
         <div>
           {hasProjects ? (
