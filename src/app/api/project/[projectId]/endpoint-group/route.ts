@@ -10,7 +10,7 @@ import {
   CreateEndpointGroupSchema,
   EndpointGroupInfoSchema,
 } from "@/models/endpoint_group.model";
-import { STATUS_CODE, ERROR_MESSAGES } from "@/server/core/constants";
+import { STATUS_CODE, ERROR_MESSAGES, LIMIT_MESSAGES } from "@/server/core/constants";
 
 export async function GET(req: NextRequest, props: { params: Promise<{ projectId: string }> }) {
   try {
@@ -93,6 +93,17 @@ export async function POST(req: NextRequest, props: { params: Promise<{ projectI
     if (!hasPermission) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.FORBIDDEN,
+        statusCode: STATUS_CODE.FORBIDDEN,
+      });
+    }
+
+    const canCreate = await EndpointGroupService.canCreateEndpointGroup({
+      user_public_id: userId,
+      project_public_id: projectId,
+    });
+    if (!canCreate) {
+      return ApiResponse.error({
+        message: LIMIT_MESSAGES.ENDPOINT_GROUP_LIMIT_REACHED,
         statusCode: STATUS_CODE.FORBIDDEN,
       });
     }

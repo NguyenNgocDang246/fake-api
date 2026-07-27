@@ -2,7 +2,12 @@ import { NextRequest } from "next/server";
 import ApiResponse from "@/server/core/api_response";
 import { GetUserByIdSchema } from "@/models/user.model";
 import { AppError } from "@/server/core/errors";
-import { ERROR_MESSAGES, STATUS_CODE, ENDPOINT_MESSAGES } from "@/server/core/constants";
+import {
+  ERROR_MESSAGES,
+  STATUS_CODE,
+  ENDPOINT_MESSAGES,
+  LIMIT_MESSAGES,
+} from "@/server/core/constants";
 import { validateData } from "@/server/core/validation";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import { GetEndpointGroupByIdSchema } from "@/models/endpoint_group.model";
@@ -124,6 +129,17 @@ export async function POST(
     if (!hasPermission) {
       return ApiResponse.error({
         message: ERROR_MESSAGES.FORBIDDEN,
+        statusCode: STATUS_CODE.FORBIDDEN,
+      });
+    }
+
+    const canCreate = await EndpointService.canCreateEndpoint({
+      user_public_id: userId,
+      endpoint_groups_public_id: endpointGroupId,
+    });
+    if (!canCreate) {
+      return ApiResponse.error({
+        message: LIMIT_MESSAGES.ENDPOINT_LIMIT_REACHED,
         statusCode: STATUS_CODE.FORBIDDEN,
       });
     }

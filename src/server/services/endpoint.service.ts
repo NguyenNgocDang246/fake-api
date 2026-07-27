@@ -1,6 +1,6 @@
 import { prisma } from "@/server/prisma/prisma_provider";
 import { AppError } from "@/server/core/errors";
-import { GetUserByIdDTO } from "@/models/user.model";
+import { GetUserByIdDTO, UserSchema } from "@/models/user.model";
 import { GetProjectByIdDTO } from "@/models/project.model";
 import { GetEndpointGroupByIdDTO } from "@/models/endpoint_group.model";
 import {
@@ -12,8 +12,26 @@ import {
   UpdateEndpointByIdDTO,
 } from "@/models/endpoint.model";
 import { createWithUniquePublicId } from "@/server/core/prisma_retry";
+import userService from "@/server/services/user.service";
+import { ROLE_LIMITS } from "@/server/core/role_limits";
 
 class EndpointService {
+  async canCreateEndpoint({
+    user_public_id,
+    endpoint_groups_public_id,
+  }: {
+    user_public_id: string;
+    endpoint_groups_public_id: string;
+  }) {
+    const user = await userService.getUserById({ public_id: user_public_id });
+    if (!user) return false;
+    const role = UserSchema.shape.role.parse(user.role);
+    const endpointCount = await prisma.endpoints.count({
+      where: { endpoint_groups: { public_id: endpoint_groups_public_id } },
+    });
+    return endpointCount < ROLE_LIMITS[role].maxEndpointsPerGroup;
+  }
+
   async checkPermissions({
     userProps,
     projectProps,
