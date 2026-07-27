@@ -51,6 +51,7 @@ export enum AUTH_MESSAGES {
   USER_ALREADY_EXISTS = "An account with this information already exists.",
   USER_NOT_FOUND = "We couldn't find an account with that information.",
   INVALID_CREDENTIALS = "Incorrect email or password. Please try again.",
+  INVALID_CURRENT_PASSWORD = "Your current password is incorrect.",
 }
 
 

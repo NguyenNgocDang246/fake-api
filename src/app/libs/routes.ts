@@ -55,6 +55,7 @@ export const PAGE_ROUTES = {
     REGISTER: "/auth/register",
     PASSWORD: {
       RESET: "/auth/password/reset",
+      CHANGE: "/auth/password/change",
     },
     EMAIL: {
       VERIFY: "/auth/email/verify",

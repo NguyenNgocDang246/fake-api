@@ -1,7 +1,7 @@
 "use client";
 import { useForgotPasswordViewModel } from "./viemwodel";
 import { ErrorText } from "@/app/components/Text/ErrorText";
-import { FloatingInput } from "@/app/components/Input/FloatingInput";
+import { PasswordInput } from "@/app/components/Input/PasswordInput";
 import { SubmitButton } from "@/app/components/Button/SubmitButton";
 export default function ResetPasswordPage() {
   const { register, handleSubmit, errors } = useForgotPasswordViewModel();
@@ -12,10 +12,9 @@ export default function ResetPasswordPage() {
         <p className="text-3xl font-bold mb-4 text-center"> Reset Password</p>
         <form onSubmit={handleSubmit}>
           <div>
-            <FloatingInput
+            <PasswordInput
               label="New Password"
               register={register("password")}
-              type="password"
               id="password"
               required
             />
@@ -25,10 +24,9 @@ export default function ResetPasswordPage() {
           </div>
 
           <div className="my-4">
-            <FloatingInput
+            <PasswordInput
               label="Confirm Password"
               register={register("confirmPassword")}
-              type="password"
               id="confirm-password"
               required
             />
