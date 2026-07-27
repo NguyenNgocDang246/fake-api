@@ -4,6 +4,8 @@ import {
   GetUserByIdDTO,
   GetUserByEmailDTO,
   UpdatePasswordDTO,
+  UserDTO,
+  UserSchema,
 } from "@/models/user.model";
 import { AppError } from "@/server/core/errors";
 import { createWithUniquePublicId } from "@/server/core/prisma_retry";
@@ -16,11 +18,12 @@ class UserService {
       throw error instanceof AppError ? error : new AppError();
     }
   }
-  async createUser(user: CreateUserDTO) {
+  async createUser(user: CreateUserDTO): Promise<UserDTO> {
     try {
-      return await createWithUniquePublicId((public_id) =>
+      const createdUser = await createWithUniquePublicId((public_id) =>
         prisma.users.create({ data: { ...user, public_id } })
       );
+      return { ...createdUser, role: UserSchema.shape.role.parse(createdUser.role) };
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

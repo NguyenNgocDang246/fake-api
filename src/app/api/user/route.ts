@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
         public_id: user.public_id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
       UserInfoSchema
     );
