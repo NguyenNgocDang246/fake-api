@@ -13,7 +13,7 @@ import { createWithUniquePublicId } from "@/server/core/prisma_retry";
 class UserService {
   async getAllUsers() {
     try {
-      return await prisma.users.findMany();
+      return await prisma.users.findMany({ orderBy: { updated_at: "desc" } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

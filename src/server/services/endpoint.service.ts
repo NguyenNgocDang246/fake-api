@@ -110,7 +110,10 @@ class EndpointService {
 
   async getAllEndpoints({ public_id }: GetEndpointGroupByIdDTO) {
     try {
-      return await prisma.endpoints.findMany({ where: { endpoint_groups: { public_id } } });
+      return await prisma.endpoints.findMany({
+        where: { endpoint_groups: { public_id } },
+        orderBy: { updated_at: "desc" },
+      });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

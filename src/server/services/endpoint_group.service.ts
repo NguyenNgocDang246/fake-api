@@ -55,6 +55,7 @@ class EndpointGroupService {
       return await prisma.endpoint_groups.findMany({
         where: { projects: { public_id } },
         include: { _count: { select: { endpoints: true } } },
+        orderBy: { updated_at: "desc" },
       });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();

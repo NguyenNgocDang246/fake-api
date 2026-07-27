@@ -31,3 +31,4 @@ To add a new email: add a `mail_template/<name>/` pair (follow `verify_email/` a
 ## Conventions
 
 - **Error normalization**: every method in every service wraps its body in `try { ... } catch (error) { throw error instanceof AppError ? error : new AppError(); }` — this normalizes every thrown value into a single `AppError` type.
+- **Default list ordering**: every `findMany` that lists rows for a client orders by `{ updated_at: "desc" }` (most recently updated first). `updated_at` is a Prisma `@updatedAt` column on all four models, auto-set on create/update.

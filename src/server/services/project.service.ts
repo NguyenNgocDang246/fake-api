@@ -43,7 +43,7 @@ class ProjectService {
 
   async getAllProjects() {
     try {
-      return await prisma.projects.findMany();
+      return await prisma.projects.findMany({ orderBy: { updated_at: "desc" } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
@@ -63,6 +63,7 @@ class ProjectService {
     try {
       return await prisma.projects.findMany({
         where: { users: { public_id: user_public_id } },
+        orderBy: { updated_at: "desc" },
       });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
