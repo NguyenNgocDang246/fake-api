@@ -60,3 +60,19 @@ export const ClientResetPasswordSchema = UpdatePasswordSchema.pick({
   .extend({ token: z.string() })
   .strict();
 export type ClientResetPasswordDTO = z.infer<typeof ClientResetPasswordSchema>;
+
+export const ChangePasswordSchema = UserSchema.pick({ public_id: true })
+  .extend({
+    oldPassword: UserSchema.shape.password,
+    newPassword: UserSchema.shape.password,
+  })
+  .strict();
+export type ChangePasswordDTO = z.infer<typeof ChangePasswordSchema>;
+
+export const ClientChangePasswordSchema = z
+  .object({
+    oldPassword: UserSchema.shape.password,
+    newPassword: UserSchema.shape.password,
+  })
+  .strict();
+export type ClientChangePasswordDTO = z.infer<typeof ClientChangePasswordSchema>;

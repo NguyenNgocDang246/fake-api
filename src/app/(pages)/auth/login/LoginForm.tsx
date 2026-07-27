@@ -2,6 +2,7 @@
 
 import { useLoginViewModel } from "@/app/(pages)/auth/login/viewmodel";
 import { FloatingInput } from "@/app/components/Input/FloatingInput";
+import { PasswordInput } from "@/app/components/Input/PasswordInput";
 import { SubmitButton } from "@/app/components/Button/SubmitButton";
 import { TextLink } from "@/app/components/Link/TextLink";
 import { ErrorText } from "@/app/components/Text/ErrorText";
@@ -30,10 +31,9 @@ export function LoginForm() {
           </div>
 
           <div className="my-4">
-            <FloatingInput
+            <PasswordInput
               label="Password"
               register={register("password")}
-              type="password"
               id="password"
               required
             />
