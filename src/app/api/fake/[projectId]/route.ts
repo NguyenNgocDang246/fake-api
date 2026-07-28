@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import ApiResponse from "@/server/core/api_response";
 import EndpointService from "@/server/services/endpoint.service";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
-import { EndpointMethod, EndpointResponseSchema } from "@/models/endpoint.model";
+import {
+  EndpointMethod,
+  EndpointResponseSchema,
+  getEndpointByPathSchema,
+} from "@/models/endpoint.model";
 import { validateData } from "@/server/core/validation";
 
 function sleep(ms: number) {
@@ -10,7 +14,8 @@ function sleep(ms: number) {
 }
 
 async function handle(req: NextRequest, method: EndpointMethod["method"]) {
-  const segments = req.nextUrl.pathname.split("/").filter(Boolean);
+  const rawPathname = req.nextUrl.pathname.split(/[?#]/)[0] ?? "";
+  const segments = rawPathname.split("/").filter(Boolean);
   const publicId = segments[0];
   if (!publicId)
     return ApiResponse.error({
@@ -19,11 +24,23 @@ async function handle(req: NextRequest, method: EndpointMethod["method"]) {
     });
   const pathname = "/" + segments.slice(1).join("/");
 
-  const endpoint = await EndpointService.getEndpointByPath({
+  const pathValidation = validateData({ path: pathname, method }, getEndpointByPathSchema);
+  if (!pathValidation.success)
+    return ApiResponse.error({
+      message: ERROR_MESSAGES.NOT_FOUND,
+      statusCode: STATUS_CODE.NOT_FOUND,
+    });
+
+  let endpoint = await EndpointService.getEndpointByPath({
     project_public_id: publicId,
-    path: pathname,
-    method,
+    ...pathValidation.data,
   });
+  if (!endpoint) {
+    endpoint = await EndpointService.getEndpointByDynamicPath({
+      project_public_id: publicId,
+      ...pathValidation.data,
+    });
+  }
   if (!endpoint)
     return ApiResponse.error({
       message: ERROR_MESSAGES.NOT_FOUND,

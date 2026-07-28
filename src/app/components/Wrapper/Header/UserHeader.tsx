@@ -1,7 +1,7 @@
 "use client";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
 import Image from "next/image";
-import { User } from "lucide-react";
+import { User, KeyRound } from "lucide-react";
 import { DropdownButton } from "@/app/components/Button/DropdownButton";
 import { LogoutButton } from "@/app/components/Button/LogoutButton";
 import { TextLink } from "@/app/components/Link/TextLink";
@@ -41,7 +41,17 @@ export function UserHeader() {
           btnClassName="p-0 size-9 flex items-center justify-center rounded-full"
           boxClassName="w-52"
           title={`Hello, ${user?.name}`}
-          options={[<LogoutButton key="logout" />]}
+          options={[
+            <TextLink
+              key="change-password"
+              href={PAGE_ROUTES.AUTH.PASSWORD.CHANGE}
+              className="flex items-center gap-2"
+            >
+              <KeyRound size={16} />
+              Change Password
+            </TextLink>,
+            <LogoutButton key="logout" />,
+          ]}
           onSelect={() => {}}
         >
           <User size={18} />

@@ -9,7 +9,7 @@ import { QueryWrapper } from "@/app/components/Wrapper/QueryClient/QueryWrapper"
 import { MinWidthGuard } from "@/app/components/Wrapper/MinWidth/MinWidthGuard";
 import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/Constants";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, Slide } from "react-toastify";
 
 export const baloo2 = Baloo_2({
   subsets: ["latin", "vietnamese"],
@@ -60,7 +60,15 @@ export default async function RootLayout({
                 </ModalWrapper>
               </HydrationBoundary>
             </QueryWrapper>
-            <ToastContainer position="bottom-right" />
+            <ToastContainer
+              position="bottom-right"
+              autoClose={4000}
+              newestOnTop
+              closeOnClick
+              pauseOnHover
+              theme="light"
+              transition={Slide}
+            />
           </div>
 
           <footer className="flex mb-4 mt-4 justify-center text-sm text-gray-500">

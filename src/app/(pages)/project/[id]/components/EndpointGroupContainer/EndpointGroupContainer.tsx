@@ -77,11 +77,11 @@ export const EndpointGroupContainer = ({
         </div>
         <ActionButton
           variant="create"
-          onClick={() => {
-            openCreateEndpointGroupModal();
-          }}
+          onClick={openCreateEndpointGroupModal}
+          className="sm:w-auto w-10 h-10 p-0 sm:p-2 flex items-center justify-center rounded-xl"
         >
-          New group
+          <Plus size={18} />
+          <span className="hidden sm:inline ml-2">New group</span>
         </ActionButton>
       </div>
       <div className="xl:block hidden rounded-2xl border border-gray-200 bg-white shadow-sm p-4">

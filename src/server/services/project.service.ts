@@ -6,13 +6,25 @@ import {
   UpdateProjectByIdDTO,
   GetProjectByUserIdDTO,
 } from "@/models/project.model";
-import { GetUserByIdDTO } from "@/models/user.model";
+import { GetUserByIdDTO, UserSchema } from "@/models/user.model";
 import { prisma } from "@/server/prisma/prisma_provider";
 import { AppError } from "@/server/core/errors";
 import { createWithUniquePublicId } from "@/server/core/prisma_retry";
 import endpointGroupService from "@/server/services/endpoint_group.service";
+import userService from "@/server/services/user.service";
+import { ROLE_LIMITS } from "@/server/core/role_limits";
 
 class ProjectService {
+  async canCreateProject(user_public_id: string) {
+    const user = await userService.getUserById({ public_id: user_public_id });
+    if (!user) return false;
+    const role = UserSchema.shape.role.parse(user.role);
+    const projectCount = await prisma.projects.count({
+      where: { users: { public_id: user_public_id } },
+    });
+    return projectCount < ROLE_LIMITS[role].maxProjects;
+  }
+
   async checkPermission({
     userProps,
     projectProps,
@@ -31,7 +43,7 @@ class ProjectService {
 
   async getAllProjects() {
     try {
-      return await prisma.projects.findMany();
+      return await prisma.projects.findMany({ orderBy: { updated_at: "desc" } });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
@@ -51,6 +63,7 @@ class ProjectService {
     try {
       return await prisma.projects.findMany({
         where: { users: { public_id: user_public_id } },
+        orderBy: { updated_at: "desc" },
       });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();

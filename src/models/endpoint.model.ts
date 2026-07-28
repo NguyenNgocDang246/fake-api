@@ -26,7 +26,7 @@ export const EndpointSchema = z
     method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
     path: z
       .string()
-      .regex(/^\/(?:[a-zA-Z0-9]+(?:\/[a-zA-Z0-9]+)*)?$/, "Đường dẫn không hợp lệ")
+      .regex(/^\/(?:[a-zA-Z0-9_.~:@-]+(?:\/[a-zA-Z0-9_.~:@-]+)*)?$/, "Đường dẫn không hợp lệ")
       .max(255, "Đường dẫn không được quá 255 ký tự"),
     status_code: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
     response_body: JsonSchema,

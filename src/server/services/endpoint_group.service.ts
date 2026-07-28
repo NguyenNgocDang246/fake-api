@@ -6,11 +6,29 @@ import {
   UpdateEndpointGroupByIdDTO,
   DeleteEndpointGroupByIdDTO,
 } from "@/models/endpoint_group.model";
-import { GetUserByIdDTO } from "@/models/user.model";
+import { GetUserByIdDTO, UserSchema } from "@/models/user.model";
 import { prisma } from "@/server/prisma/prisma_provider";
 import { createWithUniquePublicId } from "@/server/core/prisma_retry";
+import userService from "@/server/services/user.service";
+import { ROLE_LIMITS } from "@/server/core/role_limits";
 
 class EndpointGroupService {
+  async canCreateEndpointGroup({
+    user_public_id,
+    project_public_id,
+  }: {
+    user_public_id: string;
+    project_public_id: string;
+  }) {
+    const user = await userService.getUserById({ public_id: user_public_id });
+    if (!user) return false;
+    const role = UserSchema.shape.role.parse(user.role);
+    const groupCount = await prisma.endpoint_groups.count({
+      where: { projects: { public_id: project_public_id } },
+    });
+    return groupCount < ROLE_LIMITS[role].maxGroupsPerProject;
+  }
+
   async checkPermission({
     userProps,
     projectProps,
@@ -37,6 +55,7 @@ class EndpointGroupService {
       return await prisma.endpoint_groups.findMany({
         where: { projects: { public_id } },
         include: { _count: { select: { endpoints: true } } },
+        orderBy: { updated_at: "desc" },
       });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();

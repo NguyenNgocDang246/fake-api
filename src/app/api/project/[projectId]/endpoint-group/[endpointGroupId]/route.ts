@@ -1,242 +1,133 @@
-import { NextRequest } from "next/server";
 import ApiResponse from "@/server/core/api_response";
-import { GetUserByIdSchema } from "@/models/user.model";
-import { validateData } from "@/server/core/validation";
-import { GetProjectByIdSchema } from "@/models/project.model";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
-import EndpointGroupService from "@/server/services/endpoint_group.service";
-import {
-  GetEndpointGroupByIdSchema,
-  UpdateEndpointGroupByIdSchema,
-  EndpointGroupInfoSchema,
-} from "@/models/endpoint_group.model";
-import { AppError } from "@/server/core/errors";
+import { validateData } from "@/server/core/validation";
 import endpointGroupService from "@/server/services/endpoint_group.service";
+import { UpdateEndpointGroupByIdSchema, EndpointGroupInfoSchema } from "@/models/endpoint_group.model";
+import {
+  createRouteHandler,
+  withEndpointGroupId,
+  withProjectId,
+  withUserId,
+} from "@/server/core/route_helpers";
 
-export async function GET(
-  req: NextRequest,
-  props: { params: Promise<{ projectId: string; endpointGroupId: string }> }
-) {
-  try {
-    const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
+type EndpointGroupRouteParams = { projectId: string; endpointGroupId: string };
 
-    const params = await props.params;
-    const projectIdRaw = params.projectId;
+export const GET = createRouteHandler<EndpointGroupRouteParams>(
+  withUserId(
+    withProjectId(
+      withEndpointGroupId(async (_req, _params, ctx) => {
+        const hasPermission = await endpointGroupService.checkPermission({
+          userProps: { public_id: ctx.userId },
+          projectProps: { public_id: ctx.projectId },
+          endpointGroupProps: { public_id: ctx.endpointGroupId },
+        });
+        if (!hasPermission) {
+          return ApiResponse.error({
+            message: ERROR_MESSAGES.FORBIDDEN,
+            statusCode: STATUS_CODE.FORBIDDEN,
+          });
+        }
 
-    const projectIdValidation = validateData(
-      { public_id: projectIdRaw },
-      GetProjectByIdSchema
-    );
-    if (!projectIdValidation.success) {
-      return projectIdValidation.response;
-    }
-    const projectId = projectIdValidation.data.public_id;
+        const endpointgroup = await endpointGroupService.getEndpointGroupById({
+          public_id: ctx.endpointGroupId,
+        });
+        if (endpointgroup === null) {
+          return ApiResponse.error({
+            message: ERROR_MESSAGES.NOT_FOUND,
+            statusCode: STATUS_CODE.NOT_FOUND,
+          });
+        }
+        const endpointGroupInfoValidation = validateData(
+          {
+            public_id: endpointgroup.public_id,
+            name: endpointgroup.name,
+            project_id: ctx.projectId,
+            endpoint_count: endpointgroup._count.endpoints,
+          },
+          EndpointGroupInfoSchema
+        );
+        if (!endpointGroupInfoValidation.success) return endpointGroupInfoValidation.response;
+        return ApiResponse.success({ data: endpointGroupInfoValidation.data });
+      })
+    )
+  )
+);
 
-    const endpointGroupIdRaw = params.endpointGroupId;
-    const endpointGroupIdValidation = validateData(
-      { public_id: endpointGroupIdRaw },
-      GetEndpointGroupByIdSchema
-    );
+export const DELETE = createRouteHandler<EndpointGroupRouteParams>(
+  withUserId(
+    withProjectId(
+      withEndpointGroupId(async (_req, _params, ctx) => {
+        const hasPermission = await endpointGroupService.checkPermission({
+          userProps: { public_id: ctx.userId },
+          projectProps: { public_id: ctx.projectId },
+          endpointGroupProps: { public_id: ctx.endpointGroupId },
+        });
+        if (!hasPermission) {
+          return ApiResponse.error({
+            message: ERROR_MESSAGES.FORBIDDEN,
+            statusCode: STATUS_CODE.FORBIDDEN,
+          });
+        }
 
-    if (!endpointGroupIdValidation.success) {
-      return endpointGroupIdValidation.response;
-    }
-    const endpointGroupId = endpointGroupIdValidation.data.public_id;
+        const result = await endpointGroupService.deleteEndpointGroupById({
+          public_id: ctx.endpointGroupId,
+        });
+        if (!result) {
+          return ApiResponse.error({
+            message: ERROR_MESSAGES.NO_CONTENT,
+            statusCode: STATUS_CODE.NO_CONTENT,
+          });
+        }
+        return ApiResponse.success();
+      })
+    )
+  )
+);
 
-    const hasPermission = await endpointGroupService.checkPermission({
-      userProps: { public_id: userId },
-      projectProps: { public_id: projectId },
-      endpointGroupProps: { public_id: endpointGroupId },
-    });
-    if (!hasPermission) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.FORBIDDEN,
-        statusCode: STATUS_CODE.FORBIDDEN,
-      });
-    }
+export const PUT = createRouteHandler<EndpointGroupRouteParams>(
+  withUserId(
+    withProjectId(
+      withEndpointGroupId(async (req, _params, ctx) => {
+        const hasPermission = await endpointGroupService.checkPermission({
+          userProps: { public_id: ctx.userId },
+          projectProps: { public_id: ctx.projectId },
+          endpointGroupProps: { public_id: ctx.endpointGroupId },
+        });
+        if (!hasPermission) {
+          return ApiResponse.error({
+            message: ERROR_MESSAGES.FORBIDDEN,
+            statusCode: STATUS_CODE.FORBIDDEN,
+          });
+        }
 
-    const endpointgroup = await EndpointGroupService.getEndpointGroupById({
-      public_id: endpointGroupId,
-    });
-    if (endpointgroup === null) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.NOT_FOUND,
-        statusCode: STATUS_CODE.NOT_FOUND,
-      });
-    }
-    const endpointGroupInfoValidation = validateData(
-      {
-        public_id: endpointgroup.public_id,
-        name: endpointgroup.name,
-        project_id: projectId,
-        endpoint_count: endpointgroup._count.endpoints,
-      },
-      EndpointGroupInfoSchema
-    );
-    if (!endpointGroupInfoValidation.success) {
-      return endpointGroupInfoValidation.response;
-    }
-    const endpointGroupInfo = endpointGroupInfoValidation.data;
-    return ApiResponse.success({ data: endpointGroupInfo });
-  } catch (error) {
-    if (error instanceof AppError) {
-      return ApiResponse.error({
-        message: error.message,
-        statusCode: error.statusCode,
-      });
-    }
-    return ApiResponse.error();
-  }
-}
+        const data = await req.json();
+        const updateEndpointGroupValidation = validateData(
+          { ...data, public_id: ctx.endpointGroupId },
+          UpdateEndpointGroupByIdSchema
+        );
+        if (!updateEndpointGroupValidation.success) return updateEndpointGroupValidation.response;
 
-export async function DELETE(
-  req: NextRequest,
-  props: { params: Promise<{ projectId: string; endpointGroupId: string }> }
-) {
-  try {
-    const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
-
-    const params = await props.params;
-    const projectIdRaw = params.projectId;
-
-    const projectIdValidation = validateData(
-      { public_id: projectIdRaw },
-      GetProjectByIdSchema
-    );
-    if (!projectIdValidation.success) {
-      return projectIdValidation.response;
-    }
-    const projectId = projectIdValidation.data.public_id;
-
-    const endpointGroupIdRaw = params.endpointGroupId;
-    const endpointGroupIdValidation = validateData(
-      { public_id: endpointGroupIdRaw },
-      GetEndpointGroupByIdSchema
-    );
-
-    if (!endpointGroupIdValidation.success) {
-      return endpointGroupIdValidation.response;
-    }
-    const endpointGroupId = endpointGroupIdValidation.data.public_id;
-
-    const hasPermission = await endpointGroupService.checkPermission({
-      userProps: { public_id: userId },
-      projectProps: { public_id: projectId },
-      endpointGroupProps: { public_id: endpointGroupId },
-    });
-    if (!hasPermission) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.FORBIDDEN,
-        statusCode: STATUS_CODE.FORBIDDEN,
-      });
-    }
-
-    const result = await EndpointGroupService.deleteEndpointGroupById({
-      public_id: endpointGroupId,
-    });
-    if (!result)
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.NO_CONTENT,
-        statusCode: STATUS_CODE.NO_CONTENT,
-      });
-    return ApiResponse.success();
-  } catch (error) {
-    if (error instanceof AppError) {
-      return ApiResponse.error({
-        message: error.message,
-        statusCode: error.statusCode,
-      });
-    }
-    return ApiResponse.error();
-  }
-}
-
-export async function PUT(
-  req: NextRequest,
-  props: { params: Promise<{ projectId: string; endpointGroupId: string }> }
-) {
-  try {
-    const id = req.headers.get("x-userId");
-    const userId = GetUserByIdSchema.parse({ public_id: id }).public_id;
-
-    const params = await props.params;
-    const projectIdRaw = params.projectId;
-
-    const projectIdValidation = validateData(
-      { public_id: projectIdRaw },
-      GetProjectByIdSchema
-    );
-    if (!projectIdValidation.success) {
-      return projectIdValidation.response;
-    }
-    const projectId = projectIdValidation.data.public_id;
-
-    const endpointGroupIdRaw = params.endpointGroupId;
-    const endpointGroupIdValidation = validateData(
-      { public_id: endpointGroupIdRaw },
-      GetEndpointGroupByIdSchema
-    );
-
-    if (!endpointGroupIdValidation.success) {
-      return endpointGroupIdValidation.response;
-    }
-    const endpointGroupId = endpointGroupIdValidation.data.public_id;
-
-    const hasPermission = await endpointGroupService.checkPermission({
-      userProps: { public_id: userId },
-      projectProps: { public_id: projectId },
-      endpointGroupProps: { public_id: endpointGroupId },
-    });
-    if (!hasPermission) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.FORBIDDEN,
-        statusCode: STATUS_CODE.FORBIDDEN,
-      });
-    }
-
-    const data = await req.json();
-    const endpointGroupRaw = { ...data, public_id: endpointGroupId };
-    const updateEndpointGroupValidation = validateData(
-      endpointGroupRaw,
-      UpdateEndpointGroupByIdSchema
-    );
-    if (!updateEndpointGroupValidation.success) {
-      return updateEndpointGroupValidation.response;
-    }
-    const endpointGroupInfo = updateEndpointGroupValidation.data;
-    const endpointGroupUpdated = await EndpointGroupService.updateEndpointGroupById(
-      endpointGroupInfo
-    );
-    if (!endpointGroupUpdated) {
-      return ApiResponse.error({
-        message: ERROR_MESSAGES.NO_CONTENT,
-        statusCode: STATUS_CODE.NO_CONTENT,
-      });
-    }
-    const endpointGroupInfoValidation = validateData(
-      {
-        public_id: endpointGroupUpdated.public_id,
-        name: endpointGroupUpdated.name,
-        project_id: projectId,
-        endpoint_count: endpointGroupUpdated._count.endpoints,
-      },
-      EndpointGroupInfoSchema
-    );
-    if (!endpointGroupInfoValidation.success) {
-      return endpointGroupInfoValidation.response;
-    }
-    return ApiResponse.success({
-      data: endpointGroupInfoValidation.data,
-    });
-  } catch (error) {
-    if (error instanceof AppError) {
-      return ApiResponse.error({
-        message: error.message,
-        statusCode: error.statusCode,
-      });
-    }
-    return ApiResponse.error();
-  }
-}
+        const endpointGroupUpdated = await endpointGroupService.updateEndpointGroupById(
+          updateEndpointGroupValidation.data
+        );
+        if (!endpointGroupUpdated) {
+          return ApiResponse.error({
+            message: ERROR_MESSAGES.NO_CONTENT,
+            statusCode: STATUS_CODE.NO_CONTENT,
+          });
+        }
+        const endpointGroupInfoValidation = validateData(
+          {
+            public_id: endpointGroupUpdated.public_id,
+            name: endpointGroupUpdated.name,
+            project_id: ctx.projectId,
+            endpoint_count: endpointGroupUpdated._count.endpoints,
+          },
+          EndpointGroupInfoSchema
+        );
+        if (!endpointGroupInfoValidation.success) return endpointGroupInfoValidation.response;
+        return ApiResponse.success({ data: endpointGroupInfoValidation.data });
+      })
+    )
+  )
+);

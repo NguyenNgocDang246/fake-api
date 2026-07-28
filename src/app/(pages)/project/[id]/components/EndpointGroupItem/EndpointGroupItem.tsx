@@ -26,12 +26,15 @@ export const EndpointGroupItem: React.FC<EndpointGroupItemProps> = ({
     <div
       onClick={() => onclick(public_id)}
       className={`
-        flex items-center justify-between gap-2 rounded-xl px-3 py-2 cursor-pointer transition
+        w-full flex items-center justify-between gap-2 rounded-xl py-2 sm:px-3 cursor-pointer transition
         ${isChosen ? "bg-blue-100 text-blue-700" : "text-gray-800 hover:bg-gray-100"}
       `}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <Folder size={20} className={isChosen ? "text-blue-600" : "text-gray-400"} />
+        <Folder
+          size={20}
+          className={`sm:block hidden ${isChosen ? "text-blue-600" : "text-gray-400"}`}
+        />
         <div className="min-w-0">
           <h3 className="truncate font-medium">{name}</h3>
           <p className={`text-xs truncate ${isChosen ? "text-blue-600" : "text-gray-500"}`}>
@@ -39,29 +42,57 @@ export const EndpointGroupItem: React.FC<EndpointGroupItemProps> = ({
           </p>
         </div>
       </div>
-      <DropdownButton
-        variant="light"
-        btnClassName="p-2 rounded-full"
-        boxClassName="w-52"
-        position="right"
-        title="Endpoint Group Action"
-        options={[
-          <div key="edit" className="flex items-center gap-2">
-            <Pencil size={16} />
-            Edit
-          </div>,
-          <div key="delete" className="flex items-center gap-2 text-red-600">
-            <Trash2 size={16} />
-            Delete
-          </div>,
-        ]}
-        onSelect={(index) => {
-          if (index === 0) openUpdateEndpointGroupModal();
-          if (index === 1) openDeleteEndpointGroupModal({ public_id });
-        }}
-      >
-        <MoreVertical size={18} className={isChosen ? "text-blue-600" : "text-gray-400"} />
-      </DropdownButton>
+      <div className="sm:hidden block">
+        <DropdownButton
+          variant="light"
+          btnClassName="p-2 rounded-full"
+          boxClassName="w-52 sm:hidden block"
+          position="left"
+          title="Endpoint Group Action"
+          options={[
+            <div key="edit" className="flex items-center gap-2">
+              <Pencil size={16} />
+              Edit
+            </div>,
+            <div key="delete" className="flex items-center gap-2 text-red-600">
+              <Trash2 size={16} />
+              Delete
+            </div>,
+          ]}
+          onSelect={(index) => {
+            if (index === 0) openUpdateEndpointGroupModal();
+            if (index === 1) openDeleteEndpointGroupModal({ public_id });
+          }}
+        >
+          <MoreVertical size={18} className={isChosen ? "text-blue-600" : "text-gray-400"} />
+        </DropdownButton>
+      </div>
+
+      <div className="sm:block hidden">
+        <DropdownButton
+          variant="light"
+          btnClassName="p-2 rounded-full"
+          boxClassName="w-52"
+          position="right"
+          title="Endpoint Group Action"
+          options={[
+            <div key="edit" className="flex items-center gap-2">
+              <Pencil size={16} />
+              Edit
+            </div>,
+            <div key="delete" className="flex items-center gap-2 text-red-600">
+              <Trash2 size={16} />
+              Delete
+            </div>,
+          ]}
+          onSelect={(index) => {
+            if (index === 0) openUpdateEndpointGroupModal();
+            if (index === 1) openDeleteEndpointGroupModal({ public_id });
+          }}
+        >
+          <MoreVertical size={18} className={isChosen ? "text-blue-600" : "text-gray-400"} />
+        </DropdownButton>
+      </div>
     </div>
   );
 };

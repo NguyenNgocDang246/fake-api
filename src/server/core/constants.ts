@@ -51,6 +51,7 @@ export enum AUTH_MESSAGES {
   USER_ALREADY_EXISTS = "An account with this information already exists.",
   USER_NOT_FOUND = "We couldn't find an account with that information.",
   INVALID_CREDENTIALS = "Incorrect email or password. Please try again.",
+  INVALID_CURRENT_PASSWORD = "Your current password is incorrect.",
 }
 
 
@@ -62,6 +63,12 @@ export enum GOOGLE_AUTH_MESSAGES {
 
 export enum ENDPOINT_MESSAGES {
   ENDPOINT_DUPLICATED = "This endpoint already exists.",
+}
+
+export enum LIMIT_MESSAGES {
+  PROJECT_LIMIT_REACHED = "You have reached the maximum number of projects allowed for your account.",
+  ENDPOINT_GROUP_LIMIT_REACHED = "You have reached the maximum number of groups allowed for this project.",
+  ENDPOINT_LIMIT_REACHED = "You have reached the maximum number of endpoints allowed for this group.",
 }
 
 export enum TOKEN_MESSAGE {

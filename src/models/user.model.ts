@@ -18,13 +18,16 @@ export const UserSchema = z
       .max(255, "Mật khẩu không được quá 255 ký tự"),
     is_verified: z.boolean().default(false),
     token_version: z.bigint(),
+    role: z.enum(["USER", "GUEST", "USER_VIP"]).default("USER"),
   })
   .strict();
 export type UserDTO = z.infer<typeof UserSchema>;
+export type UserRole = UserDTO["role"];
 
 export const UserInfoSchema = UserSchema.pick({
   name: true,
   email: true,
+  role: true,
 })
   .extend({ public_id: z.string() })
   .strict();
@@ -60,3 +63,19 @@ export const ClientResetPasswordSchema = UpdatePasswordSchema.pick({
   .extend({ token: z.string() })
   .strict();
 export type ClientResetPasswordDTO = z.infer<typeof ClientResetPasswordSchema>;
+
+export const ChangePasswordSchema = UserSchema.pick({ public_id: true })
+  .extend({
+    oldPassword: UserSchema.shape.password,
+    newPassword: UserSchema.shape.password,
+  })
+  .strict();
+export type ChangePasswordDTO = z.infer<typeof ChangePasswordSchema>;
+
+export const ClientChangePasswordSchema = z
+  .object({
+    oldPassword: UserSchema.shape.password,
+    newPassword: UserSchema.shape.password,
+  })
+  .strict();
+export type ClientChangePasswordDTO = z.infer<typeof ClientChangePasswordSchema>;
