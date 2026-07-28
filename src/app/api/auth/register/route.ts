@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
         public_id: registeredUser.public_id,
         name: registeredUser.name,
         email: registeredUser.email,
+        role: registeredUser.role,
       },
       UserInfoSchema
     );

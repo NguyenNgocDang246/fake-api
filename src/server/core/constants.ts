@@ -65,6 +65,12 @@ export enum ENDPOINT_MESSAGES {
   ENDPOINT_DUPLICATED = "This endpoint already exists.",
 }
 
+export enum LIMIT_MESSAGES {
+  PROJECT_LIMIT_REACHED = "You have reached the maximum number of projects allowed for your account.",
+  ENDPOINT_GROUP_LIMIT_REACHED = "You have reached the maximum number of groups allowed for this project.",
+  ENDPOINT_LIMIT_REACHED = "You have reached the maximum number of endpoints allowed for this group.",
+}
+
 export enum TOKEN_MESSAGE {
   INVALID_TOKEN = "The token provided is invalid.",
   EXPIRED_TOKEN = "The token has expired.",

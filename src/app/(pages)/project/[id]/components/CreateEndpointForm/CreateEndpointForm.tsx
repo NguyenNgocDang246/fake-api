@@ -120,7 +120,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
               register={register("path")}
               type="text"
               id="path"
-              placeholder="/api/user"
+              placeholder="/api/user/:id"
             />
             {errors.path && <ErrorText message={errors.path.message} />}
           </div>

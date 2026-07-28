@@ -1,6 +1,6 @@
 import { prisma } from "@/server/prisma/prisma_provider";
 import { AppError } from "@/server/core/errors";
-import { GetUserByIdDTO } from "@/models/user.model";
+import { GetUserByIdDTO, UserSchema } from "@/models/user.model";
 import { GetProjectByIdDTO } from "@/models/project.model";
 import { GetEndpointGroupByIdDTO } from "@/models/endpoint_group.model";
 import {
@@ -12,8 +12,33 @@ import {
   UpdateEndpointByIdDTO,
 } from "@/models/endpoint.model";
 import { createWithUniquePublicId } from "@/server/core/prisma_retry";
+import userService from "@/server/services/user.service";
+import { ROLE_LIMITS } from "@/server/core/role_limits";
+
+export function matchPathTemplate(template: string, pathname: string): boolean {
+  const templateSegments = template.split("/").filter(Boolean);
+  const pathSegments = pathname.split("/").filter(Boolean);
+  if (templateSegments.length !== pathSegments.length) return false;
+  return templateSegments.every((segment, i) => segment.startsWith(":") || segment === pathSegments[i]);
+}
 
 class EndpointService {
+  async canCreateEndpoint({
+    user_public_id,
+    endpoint_groups_public_id,
+  }: {
+    user_public_id: string;
+    endpoint_groups_public_id: string;
+  }) {
+    const user = await userService.getUserById({ public_id: user_public_id });
+    if (!user) return false;
+    const role = UserSchema.shape.role.parse(user.role);
+    const endpointCount = await prisma.endpoints.count({
+      where: { endpoint_groups: { public_id: endpoint_groups_public_id } },
+    });
+    return endpointCount < ROLE_LIMITS[role].maxEndpointsPerGroup;
+  }
+
   async checkPermissions({
     userProps,
     projectProps,
@@ -90,9 +115,34 @@ class EndpointService {
     }
   }
 
+  async getEndpointByDynamicPath({
+    project_public_id,
+    path,
+    method,
+  }: GetEndpointByPathDTO & {
+    project_public_id: GetProjectByIdDTO["public_id"];
+  }) {
+    try {
+      const candidates = await prisma.endpoints.findMany({
+        where: {
+          method,
+          path: { contains: ":" },
+          endpoint_groups: { projects: { public_id: project_public_id } },
+        },
+        orderBy: { updated_at: "desc" },
+      });
+      return candidates.find((candidate) => matchPathTemplate(candidate.path, path)) ?? null;
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
   async getAllEndpoints({ public_id }: GetEndpointGroupByIdDTO) {
     try {
-      return await prisma.endpoints.findMany({ where: { endpoint_groups: { public_id } } });
+      return await prisma.endpoints.findMany({
+        where: { endpoint_groups: { public_id } },
+        orderBy: { updated_at: "desc" },
+      });
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
