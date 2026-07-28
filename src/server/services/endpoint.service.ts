@@ -15,6 +15,13 @@ import { createWithUniquePublicId } from "@/server/core/prisma_retry";
 import userService from "@/server/services/user.service";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
 
+export function matchPathTemplate(template: string, pathname: string): boolean {
+  const templateSegments = template.split("/").filter(Boolean);
+  const pathSegments = pathname.split("/").filter(Boolean);
+  if (templateSegments.length !== pathSegments.length) return false;
+  return templateSegments.every((segment, i) => segment.startsWith(":") || segment === pathSegments[i]);
+}
+
 class EndpointService {
   async canCreateEndpoint({
     user_public_id,
@@ -103,6 +110,28 @@ class EndpointService {
       return await prisma.endpoints.findFirst({
         where: { path, method, endpoint_groups: { projects: { public_id: project_public_id } } },
       });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async getEndpointByDynamicPath({
+    project_public_id,
+    path,
+    method,
+  }: GetEndpointByPathDTO & {
+    project_public_id: GetProjectByIdDTO["public_id"];
+  }) {
+    try {
+      const candidates = await prisma.endpoints.findMany({
+        where: {
+          method,
+          path: { contains: ":" },
+          endpoint_groups: { projects: { public_id: project_public_id } },
+        },
+        orderBy: { updated_at: "desc" },
+      });
+      return candidates.find((candidate) => matchPathTemplate(candidate.path, path)) ?? null;
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

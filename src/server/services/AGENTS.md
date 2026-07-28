@@ -10,6 +10,7 @@ Business logic layer. One domain per file, except `auth/` and `mail/` which are 
 
 - `user.service.ts` — CRUD on `users` (`getAllUsers`, `createUser`, `getUserById`, `getUserByEmail`, `verifyUserEmail`, `updatePassword`, `increaseTokenVersion`). `increaseTokenVersion` is the token-revocation primitive used by `auth/`.
 - `project.service.ts`, `endpoint_group.service.ts`, `endpoint.service.ts` — CRUD scoped to a user/project, plus role-limit checks before create. Read the file directly, no further doc needed.
+- `endpoint.service.ts` also resolves incoming fake-API requests to a stored endpoint row: `getEndpointByPath` is an exact literal match (tried first, from `src/app/api/fake/[projectId]/route.ts`); `getEndpointByDynamicPath` is the fallback, matching `:paramName` segments in `path` (e.g. `/user/:id`) via the pure `matchPathTemplate(template, pathname)` helper. Static match always wins — dynamic is only attempted when the exact lookup returns nothing.
 
 ### `auth/` — split into three files by responsibility
 

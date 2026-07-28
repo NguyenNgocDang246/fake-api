@@ -31,10 +31,16 @@ async function handle(req: NextRequest, method: EndpointMethod["method"]) {
       statusCode: STATUS_CODE.NOT_FOUND,
     });
 
-  const endpoint = await EndpointService.getEndpointByPath({
+  let endpoint = await EndpointService.getEndpointByPath({
     project_public_id: publicId,
     ...pathValidation.data,
   });
+  if (!endpoint) {
+    endpoint = await EndpointService.getEndpointByDynamicPath({
+      project_public_id: publicId,
+      ...pathValidation.data,
+    });
+  }
   if (!endpoint)
     return ApiResponse.error({
       message: ERROR_MESSAGES.NOT_FOUND,
