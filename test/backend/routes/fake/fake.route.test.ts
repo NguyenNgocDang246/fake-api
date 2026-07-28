@@ -44,6 +44,36 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
     expect(res.status).toBe(204);
   });
 
+  it("ignores query string when matching endpoint path", async () => {
+    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+      method: "GET",
+      path: "/users",
+      status_code: 200,
+      response_body: "{}",
+      delay_ms: 0,
+    });
+    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users?active=true" }));
+    expect(res.status).toBe(200);
+    expect(EndpointService.getEndpointByPath).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "/users" })
+    );
+  });
+
+  it("ignores hash fragment when matching endpoint path", async () => {
+    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+      method: "GET",
+      path: "/users",
+      status_code: 200,
+      response_body: "{}",
+      delay_ms: 0,
+    });
+    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users#section" }));
+    expect(res.status).toBe(200);
+    expect(EndpointService.getEndpointByPath).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "/users" })
+    );
+  });
+
   it("honors delay_ms (fake timers)", async () => {
     jest.useFakeTimers();
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({

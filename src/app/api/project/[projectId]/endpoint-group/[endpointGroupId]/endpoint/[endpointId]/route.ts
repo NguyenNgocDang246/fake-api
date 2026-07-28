@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import ApiResponse from "@/server/core/api_response";
 import { GetUserByIdSchema } from "@/models/user.model";
 import { AppError } from "@/server/core/errors";
-import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { ENDPOINT_MESSAGES, ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { validateData } from "@/server/core/validation";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import { GetEndpointGroupByIdSchema } from "@/models/endpoint_group.model";
@@ -165,6 +165,18 @@ export async function PUT(
       return updateEndpointInfoValidation.response;
     }
     const endpointInfo = updateEndpointInfoValidation.data;
+
+    const endpointExists = await EndpointService.getEndpointByPath({
+      project_public_id: projectId,
+      path: endpointInfo.path,
+      method: endpointInfo.method,
+    });
+    if (endpointExists && endpointExists.public_id !== endpointId) {
+      return ApiResponse.error({
+        message: ENDPOINT_MESSAGES.ENDPOINT_DUPLICATED,
+        statusCode: STATUS_CODE.CONFLICT,
+      });
+    }
 
     const endpointUpdated = await EndpointService.updateEndpointById(endpointInfo);
     if (!endpointUpdated) {
