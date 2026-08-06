@@ -245,8 +245,23 @@ export default async function DocsPage() {
   "delay_ms": 500,
   "status_code": 200
 }`}</CodeBlock>
-            <p className="text-gray-600 leading-relaxed mt-4">
+            <p className="text-gray-600 leading-relaxed mt-4 mb-6">
               Click Save, the endpoint list updates right away with the new endpoint.
+            </p>
+
+            <h3 className="text-lg font-semibold mb-2">Dynamic routes</h3>
+            <p className="text-gray-600 leading-relaxed mb-3">
+              Prefix a path segment with <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">:</code>{" "}
+              to turn it into a dynamic parameter that matches any value, for example{" "}
+              <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">/api/users/:id</code>. That
+              single endpoint responds to <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">/api/users/1</code>,{" "}
+              <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">/api/users/42</code>, and any
+              other value in that position, so you don&apos;t need a separate endpoint per id.
+            </p>
+            <p className="text-gray-600 leading-relaxed">
+              If both a literal path and a dynamic path could match the same request, the literal
+              (exact) match always wins, the dynamic route is only used as a fallback when no exact
+              match is found.
             </p>
           </section>
 
