@@ -61,6 +61,7 @@ export const PAGE_ROUTES = {
       VERIFY: "/auth/email/verify",
     },
   },
+  DOCS: "/docs",
   HOME: "/",
   PROJECT: "/project",
 };

@@ -4,7 +4,6 @@ import { NavigationButton } from "@/app/components/Button/NavigationButton";
 import { TextLink } from "@/app/components/Link/TextLink";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 export function GuestHeader() {
-  const docs_url = process.env["NEXT_PUBLIC_DOCS_URL"] || "./";
   return (
     <div className="sticky top-0 z-20 flex justify-between items-center lg:px-24 md:px-16 sm:px-8 px-4 py-4 bg-white border-b border-gray-200">
       <TextLink
@@ -22,7 +21,7 @@ export function GuestHeader() {
       </TextLink>
       <div className="flex justify-between items-center gap-6">
         <NavigationButton
-          href={docs_url}
+          href={PAGE_ROUTES.DOCS}
           label="Docs"
           target="_blank"
           variant="ghost"
