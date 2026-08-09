@@ -78,7 +78,6 @@ const STEPS = [
 export default async function Home() {
   const user = await getCurrentUser();
   const DOMAIN = process.env["NEXT_PUBLIC_DOMAIN"];
-  const docsUrl = process.env["NEXT_PUBLIC_DOCS_URL"] || "./";
   const ctaHref = user ? PAGE_ROUTES.PROJECT : PAGE_ROUTES.AUTH.LOGIN;
 
   return (
@@ -123,7 +122,7 @@ export default async function Home() {
           <NavigationButton
             variant="outline"
             className="text-lg transition-all hover:scale-[1.03] active:scale-[0.98]"
-            href={docsUrl}
+            href={PAGE_ROUTES.DOCS}
             target="_blank"
           >
             View docs
