@@ -95,7 +95,7 @@ export function ConfirmModal({
           </div>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex flex-grow flex-col-reverse sm:flex-row justify-end gap-2 mt-4">
           <ActionButton
             label="Cancel"
             onClick={handleCancel}
