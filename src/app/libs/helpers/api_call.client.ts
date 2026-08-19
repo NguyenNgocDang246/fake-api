@@ -12,14 +12,19 @@ const ignoreAuthAPIRoute = [
   API_ROUTES.AUTH.EMAIL.RESEND,
 ];
 
+// Same-origin today, so "/" stays the fallback and nothing changes when the variable
+// is unset. Reading it from env is what lets the API move to its own host later without
+// touching this file. NEXT_PUBLIC_* is inlined at build time, hence the literal access.
+const BASE_URL = process.env["NEXT_PUBLIC_DOMAIN"] ?? "/";
+
 export function createApi() {
   const api = axios.create({
-    baseURL: "/",
+    baseURL: BASE_URL,
     withCredentials: true,
   });
 
   const plainApi = axios.create({
-    baseURL: "/",
+    baseURL: BASE_URL,
     withCredentials: true,
   });
 

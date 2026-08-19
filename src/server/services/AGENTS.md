@@ -25,6 +25,7 @@ To add a new token type: mirror `createResetPasswordToken`/`verifyResetPasswordT
 ### `mail/` — mail sending + templates
 
 - `mail.service.ts` — wraps the `Resend` client. `sendEmail({ to, subject, html })` is the generic primitive; `sendVerificationEmail`/`sendForgotPasswordEmail` are the higher-level call sites used from `auth.service.ts`. Each renders a template and builds a link containing a token from `token.service.ts`.
+  - The `@react-email/render` dependency exists only to satisfy `resend`'s optional peer dependency. `resend` dynamic-imports it inside its own `render()`, and Turbopack resolves that specifier at build time even though the code path is never taken. Nothing here imports it: `sendEmail` always passes a pre-rendered `html` string, never `react:`. Do not prune it as unused, the build fails with `Module not found: Can't resolve '@react-email/render'` without it.
 - `mail_template/<name>/` — one folder per email, two files each: `<name>_template.ts` (raw HTML with `{{placeholder}}` markers) and `<name>.ts` (`render<Name>Template(props)`, regex-replaces `{{key}}` → `props[key]`). No templating engine; placeholder names must match the props interface exactly.
 
 To add a new email: add a `mail_template/<name>/` pair (follow `verify_email/` as reference), add a `send<Name>Email` method to `mail.service.ts`, wrap it in the standard `AppError` try/catch.

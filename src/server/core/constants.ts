@@ -59,7 +59,11 @@ export enum GOOGLE_AUTH_MESSAGES {
   NO_CODE = "Authorization code is missing.",
   NO_EMAIL = "Email address is missing.",
   NO_NAME = "User name is missing.",
+  INVALID_STATE = "Invalid or missing OAuth state.",
 }
+
+export const OAUTH_STATE_COOKIE = "oauth_state";
+export const OAUTH_STATE_EXPIRATION_TIME_IN_SECONDS = 600;
 
 export enum ENDPOINT_MESSAGES {
   ENDPOINT_DUPLICATED = "This endpoint already exists.",

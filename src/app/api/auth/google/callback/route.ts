@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import { serialize } from "cookie";
+import { parse, serialize } from "cookie";
 import { getOauth2Client } from "@/app/api/auth/google/google.OAuth2";
 import { AppError } from "@/server/core/errors";
 import {
@@ -7,6 +7,7 @@ import {
   STATUS_CODE,
   ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
   REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
+  OAUTH_STATE_COOKIE,
 } from "@/server/core/constants";
 import ApiResponse from "@/server/core/api_response";
 import UserService from "@/server/services/user.service";
@@ -22,6 +23,16 @@ export async function GET(req: Request) {
     if (!code) {
       return ApiResponse.error({
         message: GOOGLE_AUTH_MESSAGES.NO_CODE,
+        statusCode: STATUS_CODE.BAD_REQUEST,
+      });
+    }
+
+    // Verify state before spending a token exchange on a request we did not start.
+    const state = searchParams.get("state");
+    const expectedState = parse(req.headers.get("cookie") ?? "")[OAUTH_STATE_COOKIE];
+    if (!state || !expectedState || state !== expectedState) {
+      return ApiResponse.error({
+        message: GOOGLE_AUTH_MESSAGES.INVALID_STATE,
         statusCode: STATUS_CODE.BAD_REQUEST,
       });
     }
@@ -67,6 +78,16 @@ export async function GET(req: Request) {
         secure: process.env["NODE_ENV"] === "production",
         sameSite: "lax",
         maxAge: REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
+        path: "/",
+      }),
+    );
+    res.headers.append(
+      "Set-Cookie",
+      serialize(OAUTH_STATE_COOKIE, "", {
+        httpOnly: true,
+        secure: process.env["NODE_ENV"] === "production",
+        sameSite: "lax",
+        maxAge: 0,
         path: "/",
       }),
     );

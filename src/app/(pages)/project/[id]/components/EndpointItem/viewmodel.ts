@@ -7,6 +7,7 @@ import buildUrl from "@/app/libs/helpers/url_builder";
 import { API_ROUTES } from "@/app/libs/routes";
 import Notify from "@/app/components/Notify";
 import { useModal } from "@/app/components/Wrapper/Modal/ModalWrapper";
+import { mockEndpointUrl } from "@/app/libs/helpers/mock_url";
 export const useEndpointViewmodel = (project_id: string, endpoint_groups_id: string) => {
   const queryClient = useQueryClient();
   const modal = useModal();
@@ -49,9 +50,8 @@ export const useEndpointViewmodel = (project_id: string, endpoint_groups_id: str
     });
   };
 
-  const DOMAIN = process.env["NEXT_PUBLIC_DOMAIN"];
   const copyPathToClipboard = (projectId: string, path: string) => {
-    navigator.clipboard.writeText(`${DOMAIN}/${projectId}${path}`);
+    navigator.clipboard.writeText(mockEndpointUrl(projectId, path));
     Notify.success("Copied to clipboard");
   };
   return { openDeleteEndpointModal, copyPathToClipboard };

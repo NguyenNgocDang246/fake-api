@@ -18,6 +18,7 @@ import { TextLink } from "@/app/components/Link/TextLink";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 import { CodeBlock } from "@/app/(pages)/docs/components/CodeBlock";
+import { mockEndpointUrl } from "@/app/libs/helpers/mock_url";
 import { WarningCallout } from "@/app/(pages)/docs/components/WarningCallout";
 import { DocsToc } from "@/app/(pages)/docs/components/DocsToc";
 
@@ -88,7 +89,6 @@ const TIPS = [
 
 export default async function DocsPage() {
   const user = await getCurrentUser();
-  const DOMAIN = process.env["NEXT_PUBLIC_DOMAIN"];
   const ctaHref = user ? PAGE_ROUTES.PROJECT : PAGE_ROUTES.AUTH.LOGIN;
 
   return (
@@ -131,7 +131,7 @@ export default async function DocsPage() {
               You attach this to a path and define the JSON body, HTTP status code, and delay for each
               endpoint. The final URL format is:
             </p>
-            <CodeBlock lang="url">{`${DOMAIN}/{projectId}{your_created_path}`}</CodeBlock>
+            <CodeBlock lang="url">{mockEndpointUrl("{projectId}", "{your_created_path}")}</CodeBlock>
           </section>
 
           {/* Account & Login */}
@@ -288,7 +288,7 @@ export default async function DocsPage() {
                 <span>
                   <strong>Copy URL:</strong> click the copy icon to copy the full{" "}
                   <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">
-                    {`${DOMAIN}/{projectId}{path}`}
+                    {mockEndpointUrl("{projectId}", "{path}")}
                   </code>{" "}
                   URL, ready to paste into your code.
                 </span>
@@ -304,12 +304,12 @@ export default async function DocsPage() {
               shown in the API Endpoint card on your project&apos;s detail page:
             </p>
             <div className="flex flex-col gap-4 mb-6">
-              <CodeBlock lang="bash">{`curl -X GET ${DOMAIN}/QGONEwKEqJg/api/user/1`}</CodeBlock>
-              <CodeBlock lang="fetch">{`fetch('${DOMAIN}/QGONEwKEqJg/api/users/1')
+              <CodeBlock lang="bash">{`curl -X GET ${mockEndpointUrl("QGONEwKEqJg", "/api/user/1")}`}</CodeBlock>
+              <CodeBlock lang="fetch">{`fetch('${mockEndpointUrl("QGONEwKEqJg", "/api/users/1")}')
   .then(response => response.json())
   .then(data => console.log(data))
   .catch(error => console.error('Error:', error));`}</CodeBlock>
-              <CodeBlock lang="axios">{`axios.get('${DOMAIN}/QGONEwKEqJg/api/users/1')
+              <CodeBlock lang="axios">{`axios.get('${mockEndpointUrl("QGONEwKEqJg", "/api/users/1")}')
   .then(response => console.log(response.data))
   .catch(error => console.error('Error:', error));`}</CodeBlock>
             </div>

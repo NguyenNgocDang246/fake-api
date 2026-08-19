@@ -6,6 +6,7 @@ import { Spinner } from "@/app/components/Loading/Spinner";
 import { NoContentText } from "@/app/components/Text/NoContentText";
 import { useCreateEndpointViewModel } from "@/app/(pages)/project/[id]/components/CreateEndpointForm/viewmodel";
 import { EndpointGroupContainer } from "@/app/(pages)/project/[id]/components/EndpointGroupContainer/EndpointGroupContainer";
+import { mockBaseUrl } from "@/app/libs/helpers/mock_url";
 
 interface EndpointGroupClientProps {
   projectId: string;
@@ -16,7 +17,6 @@ export default function EndpointGroupClient({
   projectId,
   initialSelectedGroupId,
 }: EndpointGroupClientProps) {
-  const DOMAIN = process.env["NEXT_PUBLIC_DOMAIN"];
   const {
     projectInfoState,
     endpointGroupsState,
@@ -45,7 +45,7 @@ export default function EndpointGroupClient({
             <div>
               <div className="font-semibold text-lg">API Endpoint: </div>
               <div className="text-blue-800 py-2 min-w-full flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto">
-                <span>{DOMAIN}/</span>
+                <span>{mockBaseUrl()}/</span>
                 <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">{projectId}</span>
                 <span>/</span>
                 <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">:path</span>
