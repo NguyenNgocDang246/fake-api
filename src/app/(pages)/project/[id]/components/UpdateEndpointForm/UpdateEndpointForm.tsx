@@ -8,6 +8,7 @@ import { DefaultInput } from "@/app/components/Input/DefaultInput";
 import { ErrorText } from "@/app/components/Text/ErrorText";
 import { SelectInput } from "@/app/components/Input/SelectInput";
 import { JsonEditor } from "@/app/components/Input/JsonEditor";
+import { AiEndpointSection } from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
 import { API_ROUTES } from "@/app/libs/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
@@ -40,6 +41,7 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
       register,
       handleSubmit,
       reset,
+      control,
       formState: { errors },
     } = useForm<ClientUpdateEndpointByIdDTO>({
       resolver: customResolver,
@@ -139,6 +141,14 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
           />
           {errors.response_body && <ErrorText message={errors.response_body.message} />}
         </div>
+
+        <AiEndpointSection
+          control={control}
+          register={register}
+          projectId={projectId}
+          endpointGroupId={props.endpointGroupId}
+          errorMessage={errors.ai_fields?.message}
+        />
 
         <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
           <div className="flex-1 flex flex-col gap-1">

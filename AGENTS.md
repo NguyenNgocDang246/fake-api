@@ -7,7 +7,7 @@ Next.js (App Router) app that lets a user define mock REST endpoints (project �
 ## Content
 
 - `src/app/` — Next.js routes: `api/**` (route handlers) and the UI pages.
-- `src/server/` — backend layer (core utilities, middlewares, Prisma, services). See [src/server/AGENTS.md](src/server/AGENTS.md).
+- `src/server/` — backend layer (core utilities, middlewares, Prisma, services, and the shared LLM layer under `services/ai/`). See [src/server/AGENTS.md](src/server/AGENTS.md).
 - `src/models/` — DTOs and Zod schemas, one file per domain (`auth`, `user`, `project`, `endpoint`, `endpoint_group`, `mail`, `api_response`).
 - `src/middleware.ts` — Next.js middleware entry point, dispatches to `src/server/middlewares/*`.
 - `test/backend/` — Jest tests for `src/app/api/**` and `src/server/services/**`. See `test/backend/README.md`.

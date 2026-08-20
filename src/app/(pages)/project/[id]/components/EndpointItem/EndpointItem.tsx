@@ -1,4 +1,4 @@
-import { Trash2, Copy } from "lucide-react";
+import { Trash2, Copy, Sparkles } from "lucide-react";
 import { useEndpointViewmodel } from "./viewmodel";
 import { useUpdateEndpointViewModel } from "@/app/(pages)/project/[id]/components/UpdateEndpointForm/viewmodel";
 interface EndpointItemProps {
@@ -10,6 +10,9 @@ interface EndpointItemProps {
   status_code: number;
   project_id: string;
   endpoint_groups_id: string;
+  ai_enabled: boolean;
+  ai_fields: string[];
+  ai_prompt: string | null;
 }
 
 export const EndpointItem: React.FC<EndpointItemProps> = ({
@@ -21,6 +24,9 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
   status_code,
   project_id,
   endpoint_groups_id,
+  ai_enabled,
+  ai_fields,
+  ai_prompt,
 }) => {
   const methodColor: Record<string, string> = {
     GET: "bg-green-100 text-green-700",
@@ -54,6 +60,9 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
             method,
             response_body,
             status_code: String(status_code),
+            ai_enabled,
+            ai_fields,
+            ai_prompt,
           },
         });
       }}
@@ -70,6 +79,15 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
         <h3 className="font-medium text-gray-800 truncate flex-1 min-w-0">
           {path}
         </h3>
+        {ai_enabled && ai_fields.length > 0 && (
+          <span
+            className="flex shrink-0 items-center gap-1 rounded bg-violet-100 px-2 py-1 text-xs font-semibold text-violet-700"
+            title={`AI đa dạng hoá ${ai_fields.length} field`}
+          >
+            <Sparkles size={12} />
+            AI
+          </span>
+        )}
         <span
           className={`px-2 py-1 text-xs font-semibold rounded ${statusColor} sm:hidden ml-auto`}
         >

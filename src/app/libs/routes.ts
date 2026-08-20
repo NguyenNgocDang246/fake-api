@@ -46,6 +46,14 @@ export const API_ROUTES = {
     UPDATE_BY_ID: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
     DELETE_BY_ID: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
     DELETE_ALL: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint",
+    // Preview sits on the collection, not on `:endpointId`: the create form needs it before
+    // any endpoint exists, and it renders what is in the form rather than what is stored.
+    AI_PREVIEW: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint/ai-preview",
+    AI_VARIANTS:
+      "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId/ai-variants",
+  },
+  AI: {
+    STATUS: "/api/ai/status",
   },
 };
 

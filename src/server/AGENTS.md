@@ -8,7 +8,7 @@ Backend layer: cross-cutting utilities, middleware, Prisma schema, and business-
 
 - `core/` — cross-cutting utilities shared by every service. Not domain-specific. See [core/AGENTS.md](core/AGENTS.md).
 - `middlewares/` — request middleware dispatched from `src/middleware.ts`. See [middlewares/AGENTS.md](middlewares/AGENTS.md).
-- `prisma/` — `schema.prisma` (models: `users`, `projects`, `endpoint_groups`, `endpoints`), `prisma_provider.ts` (singleton client), `scripts/` (one-off migration scripts).
+- `prisma/` — `schema.prisma` (models: `users`, `projects`, `endpoint_groups`, `endpoints`, `endpoint_ai_variants`), `prisma_provider.ts` (singleton client), `scripts/` (one-off migration scripts).
 - `services/` — business logic, one class/object per domain. See [services/AGENTS.md](services/AGENTS.md).
 
 ## Conventions

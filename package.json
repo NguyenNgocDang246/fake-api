@@ -17,6 +17,8 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.120.0",
+    "@google/genai": "^2.18.0",
     "@hookform/resolvers": "^5.2.1",
     "@prisma/client": "^6.16.3",
     "@react-email/render": "^2.1.0",

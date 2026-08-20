@@ -71,6 +71,15 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
   const historyIndexRef = useRef(0);
   const lastPushAtRef = useRef(0);
 
+  // This component sets its own onChange after {...register}, which overrides
+  // register.onChange, and the Tab/Enter/brace/undo branches assign textarea.value directly,
+  // which never fires React's onChange either. The form state therefore only catches up on
+  // blur. Calling register.onChange by hand after every content change makes watch() see the
+  // text as it is typed.
+  const syncFormValue = (textarea: HTMLTextAreaElement) => {
+    void register.onChange({ target: textarea, type: "change" });
+  };
+
   const pushHistory = (value: string, caret: number, coalesce = false) => {
     const history = historyRef.current;
     const current = history[historyIndexRef.current];
@@ -107,6 +116,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
     textarea.value = entry.value;
     setColoredJson(jsonToColoredSpans(entry.value));
+    syncFormValue(textarea);
 
     // đặt lại con trỏ đúng chỗ của trạng thái đó
     textarea.selectionStart = textarea.selectionEnd = entry.caret;
@@ -119,6 +129,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
   const onChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setColoredJson(jsonToColoredSpans(value));
+    void register.onChange(e);
     pushHistory(value, e.target.selectionStart, true);
 
     if (textareaRef.current) {
@@ -160,6 +171,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
         textarea.value = newValue;
         setColoredJson(jsonToColoredSpans(newValue));
+        syncFormValue(textarea);
         pushHistory(newValue, start + 1);
 
         textarea.selectionStart = textarea.selectionEnd = start + 1;
@@ -216,6 +228,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
       textarea.value = newValue;
       setColoredJson(jsonToColoredSpans(newValue));
+      syncFormValue(textarea);
       pushHistory(newValue, start + insertText.length);
 
       textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
@@ -243,6 +256,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
       textarea.value = newValue;
       setColoredJson(jsonToColoredSpans(newValue));
+      syncFormValue(textarea);
       pushHistory(newValue, start + 1);
 
       // đặt caret và phục hồi màu ngay lập tức
@@ -271,6 +285,8 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
       textareaRef.current.value = formatted;
       setColoredJson(jsonToColoredSpans(formatted));
+      // The form must hold the formatted text being displayed, not the raw initial string.
+      syncFormValue(textareaRef.current);
 
       // trạng thái gốc: undo xa nhất là quay về đây
       historyRef.current = [{ value: formatted, caret: formatted.length }];

@@ -92,6 +92,9 @@ export default function EndpointGroupClient({
                         response_body: JSON.stringify(endpoint.response_body),
                         endpoint_groups_id: endpoint.endpoint_groups_id,
                         project_id: projectInfoState.data?.public_id ?? "",
+                        ai_enabled: endpoint.ai_enabled,
+                        ai_fields: endpoint.ai_fields,
+                        ai_prompt: endpoint.ai_prompt,
                       }}
                     />
                   </div>

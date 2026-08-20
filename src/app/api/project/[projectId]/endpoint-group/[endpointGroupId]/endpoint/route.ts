@@ -1,9 +1,15 @@
+import { after } from "next/server";
 import ApiResponse from "@/server/core/api_response";
 import { ERROR_MESSAGES, STATUS_CODE, ENDPOINT_MESSAGES, LIMIT_MESSAGES } from "@/server/core/constants";
 import { validateData } from "@/server/core/validation";
-import { EndpointInfoSchema, CreateEndpointSchema } from "@/models/endpoint.model";
+import {
+  EndpointInfoSchema,
+  CreateEndpointSchema,
+  toEndpointInfoInput,
+} from "@/models/endpoint.model";
 import endpointService from "@/server/services/endpoint.service";
 import endpointGroupService from "@/server/services/endpoint_group.service";
+import endpointVariantService from "@/server/services/endpoint_variant.service";
 import {
   createRouteHandler,
   withEndpointGroupId,
@@ -38,15 +44,7 @@ export const GET = createRouteHandler<EndpointCollectionRouteParams>(
         }
 
         const endpointInfoValidation = validateData(
-          endpoints.map((e) => ({
-            public_id: e.public_id,
-            path: e.path,
-            method: e.method,
-            status_code: e.status_code,
-            response_body: e.response_body,
-            delay_ms: e.delay_ms,
-            endpoint_groups_id: ctx.endpointGroupId,
-          })),
+          endpoints.map((e) => toEndpointInfoInput(e, ctx.endpointGroupId)),
           [EndpointInfoSchema]
         );
         if (!endpointInfoValidation.success) return endpointInfoValidation.response;
@@ -103,16 +101,14 @@ export const POST = createRouteHandler<EndpointCollectionRouteParams>(
         }
 
         const endpointCreate = await endpointService.createEndpoint(endpointValidation.data);
+
+        // Fill the pool in the background: the endpoint appears at once, with no wait on a model.
+        if (endpointCreate.ai_enabled && endpointCreate.ai_fields.length > 0) {
+          after(() => endpointVariantService.refillIfNeeded(endpointCreate));
+        }
+
         const endpointInfoValidation = validateData(
-          {
-            public_id: endpointCreate.public_id,
-            path: endpointCreate.path,
-            method: endpointCreate.method,
-            status_code: endpointCreate.status_code,
-            response_body: endpointCreate.response_body,
-            delay_ms: endpointCreate.delay_ms,
-            endpoint_groups_id: ctx.endpointGroupId,
-          },
+          toEndpointInfoInput(endpointCreate, ctx.endpointGroupId),
           EndpointInfoSchema
         );
         if (!endpointInfoValidation.success) return endpointInfoValidation.response;

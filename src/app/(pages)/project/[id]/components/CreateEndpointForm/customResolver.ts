@@ -1,5 +1,6 @@
 import { ClientCreateEndpointDTO, ClientCreateEndpointSchema } from "@/models/endpoint.model";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { validateAiFields } from "@/app/(pages)/project/[id]/components/validateAiFields";
 import { Resolver, FieldErrors } from "react-hook-form";
 
 function isValidJson(str: string): boolean {
@@ -29,7 +30,6 @@ const customResolver: Resolver<ClientCreateEndpointDTO> = async (values, context
   }
 
   if (!isValidJson(values.response_body)) {
-    console.log(values);
     errors.response_body = {
       type: "manual",
       message: "Invalid JSON",
@@ -49,6 +49,9 @@ const customResolver: Resolver<ClientCreateEndpointDTO> = async (values, context
       message: "Status code must be a number",
     };
   }
+
+  const aiFieldsError = validateAiFields(values);
+  if (aiFieldsError) errors.ai_fields = aiFieldsError;
 
   if (Object.keys(errors).length > 0) {
     return {

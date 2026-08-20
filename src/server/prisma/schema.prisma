@@ -28,22 +28,44 @@ enum HttpMethod {
 }
 
 model endpoints {
-  id                 BigInt          @id @default(autoincrement())
-  public_id          String          @unique @db.VarChar(12)
-  endpoint_groups_id BigInt
-  method             HttpMethod
-  path               String          @db.VarChar(255)
-  status_code        Int             @default(200)
-  response_body      String
-  delay_ms           Int             @default(0)
-  updated_at         DateTime?       @default(now()) @updatedAt @db.Timestamp(6)
-  endpoint_groups    endpoint_groups @relation(fields: [endpoint_groups_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                   BigInt                 @id @default(autoincrement())
+  public_id            String                 @unique @db.VarChar(12)
+  endpoint_groups_id   BigInt
+  method               HttpMethod
+  path                 String                 @db.VarChar(255)
+  status_code          Int                    @default(200)
+  response_body        String
+  delay_ms             Int                    @default(0)
+  ai_enabled           Boolean                @default(false)
+  ai_fields            String[]
+  ai_prompt            String?                @db.VarChar(500)
+  ai_refill_started_at DateTime?              @db.Timestamp(6)
+  updated_at           DateTime?              @default(now()) @updatedAt @db.Timestamp(6)
+  endpoint_groups      endpoint_groups        @relation(fields: [endpoint_groups_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ai_variants          endpoint_ai_variants[]
 
   // Mock lookup resolves the project first, then joins into endpoints on
   // endpoint_groups_id and filters by method + path. One composite index in that
   // order serves the join, the filter, and the plain FK lookups (count, list) as a
   // prefix. Verified against EXPLAIN ANALYZE, see docs/00-assessment.md.
   @@index([endpoint_groups_id, method, path])
+}
+
+/// Pool of AI generated response variants for one endpoint.
+/// Deliberately has no `public_id`: this is an internal cache that never appears in a URL
+/// or an API response, and it needs `createMany` to load a whole pool in one write.
+model endpoint_ai_variants {
+  id            BigInt    @id @default(autoincrement())
+  endpoints_id  BigInt
+  response_body String
+  used_count    Int       @default(0)
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  endpoints     endpoints @relation(fields: [endpoints_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  /// Serves the ordered pick: least used variant of an endpoint, ties broken by id.
+  @@index([endpoints_id, used_count, id])
+  /// Serves the daily quota count.
+  @@index([created_at])
 }
 
 model projects {

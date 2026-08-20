@@ -52,6 +52,10 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
+      id: 1n,
+      ai_enabled: false,
+      ai_fields: [],
+      ai_prompt: null,
     });
     const res = await GET(
       createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
@@ -70,6 +74,10 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
+      id: 1n,
+      ai_enabled: false,
+      ai_fields: [],
+      ai_prompt: null,
     });
     const res = await PUT(
       createJsonRequest(
@@ -93,6 +101,10 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
+      id: 1n,
+      ai_enabled: false,
+      ai_fields: [],
+      ai_prompt: null,
     });
     const res = await PUT(
       createJsonRequest(

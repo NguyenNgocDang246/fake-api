@@ -5,6 +5,7 @@ import api from "@/app/libs/helpers/api_call.server";
 import url_builder from "@/app/libs/helpers/url_builder";
 import { API_ROUTES, PAGE_ROUTES } from "@/app/libs/routes";
 import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/Constants";
+import { isAiConfigured } from "@/server/services/ai/ai_router.service";
 import { ApiSuccessResponse } from "@/models/api_response.model";
 import { ProjectInfoDTO } from "@/models/project.model";
 import { EndpointGroupInfoDTO } from "@/models/endpoint_group.model";
@@ -51,6 +52,12 @@ export default async function ProjectDetailPage({
     queryKey: [QUERY_KEY.PROJECT.ONE, projectId],
     queryFn: () => fetchProjectInfo(projectId),
   });
+
+  // Whether AI is configured is decided by env at boot and never changes while the process
+  // runs, so seed it here instead of letting the endpoint form ask over HTTP. That also
+  // spares the form a first render where the AI block is hidden because the answer has not
+  // arrived yet.
+  queryClient.setQueryData([QUERY_KEY.AI.STATUS], isAiConfigured());
 
   let endpointGroups: EndpointGroupInfoDTO[] = [];
   try {

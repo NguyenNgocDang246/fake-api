@@ -95,7 +95,34 @@ jest.mock("next/server", () => {
     }
   }
 
-  return { NextResponse };
+  // Route handlers schedule background work (AI variant refills) with `after`. Queue the
+  // callbacks instead of running them, so a suite only pays for that work when it asks:
+  // call `__flushAfter()` to run what is queued.
+  const afterCallbacks: (() => unknown)[] = [];
+
+  function after(callback: () => unknown) {
+    afterCallbacks.push(callback);
+  }
+
+  async function __flushAfter() {
+    for (const callback of afterCallbacks.splice(0)) await callback();
+  }
+
+  function __clearAfter() {
+    afterCallbacks.length = 0;
+  }
+
+  function __afterCount() {
+    return afterCallbacks.length;
+  }
+
+  return { NextResponse, after, __flushAfter, __clearAfter, __afterCount };
+});
+
+beforeEach(() => {
+  // `clearMocks` resets jest.fn()s but not the queue held inside the next/server mock.
+  const server = jest.requireMock("next/server") as { __clearAfter: () => void };
+  server.__clearAfter();
 });
 
 jest.mock("next/headers", () => {

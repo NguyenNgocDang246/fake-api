@@ -3,6 +3,7 @@ import {
   ClientUpdateEndpointByIdSchema,
 } from "@/models/endpoint.model";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { validateAiFields } from "@/app/(pages)/project/[id]/components/validateAiFields";
 import { Resolver, FieldErrors } from "react-hook-form";
 
 function isValidJson(str: string): boolean {
@@ -51,6 +52,9 @@ const customResolver: Resolver<ClientUpdateEndpointByIdDTO> = async (values, con
       message: "Status code must be a number",
     };
   }
+
+  const aiFieldsError = validateAiFields(values);
+  if (aiFieldsError) errors.ai_fields = aiFieldsError;
 
   if (Object.keys(errors).length > 0) {
     return {
