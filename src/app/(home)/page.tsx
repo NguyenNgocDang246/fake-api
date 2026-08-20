@@ -11,6 +11,7 @@ import {
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
+import { mockEndpointUrl } from "@/app/libs/helpers/mock_url";
 
 const FEATURES = [
   {
@@ -77,7 +78,6 @@ const STEPS = [
 
 export default async function Home() {
   const user = await getCurrentUser();
-  const DOMAIN = process.env["NEXT_PUBLIC_DOMAIN"];
   const ctaHref = user ? PAGE_ROUTES.PROJECT : PAGE_ROUTES.AUTH.LOGIN;
 
   return (
@@ -144,7 +144,7 @@ export default async function Home() {
             <span className="inline-block rounded bg-green-500/15 px-1.5 py-0.5 text-xs font-bold text-green-400 align-middle">
               GET
             </span>{" "}
-            <span className="text-gray-300">{`${DOMAIN}/6V7sc4oUGQto/api/user/1`}</span>
+            <span className="text-gray-300">{mockEndpointUrl("6V7sc4oUGQto", "/api/user/1")}</span>
             {`\n\n`}
             {`{\n    `}
             <span className="text-sky-400">&quot;id&quot;</span>

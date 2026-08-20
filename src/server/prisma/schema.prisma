@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model endpoint_groups {
@@ -15,6 +16,8 @@ model endpoint_groups {
   updated_at DateTime?   @default(now()) @updatedAt @db.Timestamp(6)
   projects   projects    @relation(fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   endpoints  endpoints[]
+
+  @@index([project_id])
 }
 enum HttpMethod {
   GET
@@ -35,6 +38,12 @@ model endpoints {
   delay_ms           Int             @default(0)
   updated_at         DateTime?       @default(now()) @updatedAt @db.Timestamp(6)
   endpoint_groups    endpoint_groups @relation(fields: [endpoint_groups_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  // Mock lookup resolves the project first, then joins into endpoints on
+  // endpoint_groups_id and filters by method + path. One composite index in that
+  // order serves the join, the filter, and the plain FK lookups (count, list) as a
+  // prefix. Verified against EXPLAIN ANALYZE, see docs/00-assessment.md.
+  @@index([endpoint_groups_id, method, path])
 }
 
 model projects {
@@ -47,6 +56,8 @@ model projects {
   updated_at      DateTime?         @default(now()) @updatedAt @db.Timestamp(6)
   endpoint_groups endpoint_groups[]
   users           users             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id])
 }
 
 model users {
