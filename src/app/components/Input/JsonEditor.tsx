@@ -4,6 +4,14 @@ import { UseFormRegisterReturn } from "react-hook-form";
 import { twMerge } from "tailwind-merge";
 import React, { useState, useRef, useEffect, ChangeEvent } from "react";
 
+const HISTORY_LIMIT = 200;
+const TYPING_MERGE_MS = 500;
+
+interface HistoryEntry {
+  value: string;
+  caret: number;
+}
+
 interface JsonEditorInputProps {
   register: UseFormRegisterReturn;
   id: string;
@@ -57,9 +65,61 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
   const [height, setHeight] = useState("auto");
   const [caretColor, setCaretColor] = useState("black");
 
+  // Các nhánh Tab/Enter/{ [ gán thẳng textarea.value nên undo stack của trình duyệt không
+  // dùng được. Tự lưu lịch sử ở đây, mỗi phần tử là một trạng thái (nội dung + vị trí caret).
+  const historyRef = useRef<HistoryEntry[]>([]);
+  const historyIndexRef = useRef(0);
+  const lastPushAtRef = useRef(0);
+
+  const pushHistory = (value: string, caret: number, coalesce = false) => {
+    const history = historyRef.current;
+    const current = history[historyIndexRef.current];
+
+    if (current?.value === value) {
+      current.caret = caret;
+      return;
+    }
+
+    // gõ liên tục trong TYPING_MERGE_MS thì gộp chung vào một bước undo
+    const now = Date.now();
+    if (coalesce && historyIndexRef.current > 0 && now - lastPushAtRef.current < TYPING_MERGE_MS) {
+      history[historyIndexRef.current] = { value, caret };
+      lastPushAtRef.current = now;
+      return;
+    }
+
+    history.splice(historyIndexRef.current + 1); // bỏ nhánh redo cũ
+    history.push({ value, caret });
+    if (history.length > HISTORY_LIMIT) history.shift();
+
+    historyIndexRef.current = history.length - 1;
+    lastPushAtRef.current = now;
+  };
+
+  // offset = -1 là undo, +1 là redo
+  const applyHistory = (offset: number) => {
+    const textarea = textareaRef.current;
+    const entry = historyRef.current[historyIndexRef.current + offset];
+    if (!textarea || !entry) return;
+
+    historyIndexRef.current += offset;
+    lastPushAtRef.current = 0; // không gộp thao tác kế tiếp vào bước vừa khôi phục
+
+    textarea.value = entry.value;
+    setColoredJson(jsonToColoredSpans(entry.value));
+
+    // đặt lại con trỏ đúng chỗ của trạng thái đó
+    textarea.selectionStart = textarea.selectionEnd = entry.caret;
+
+    textarea.style.height = "auto";
+    textarea.style.height = textarea.scrollHeight + "px";
+    setHeight(textarea.scrollHeight + "px");
+  };
+
   const onChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setColoredJson(jsonToColoredSpans(value));
+    pushHistory(value, e.target.selectionStart, true);
 
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -72,6 +132,22 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
     const textarea = textareaRef.current!;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
+    const modifier = e.ctrlKey || e.metaKey; // Ctrl trên Win/Linux, Cmd trên Mac
+    const key = e.key.toLowerCase();
+
+    // Undo: Ctrl/Cmd + Z
+    if (modifier && key === "z" && !e.shiftKey) {
+      e.preventDefault();
+      applyHistory(-1);
+      return;
+    }
+
+    // Redo: Ctrl/Cmd + Shift + Z hoặc Ctrl + Y
+    if (modifier && ((key === "z" && e.shiftKey) || key === "y")) {
+      e.preventDefault();
+      applyHistory(1);
+      return;
+    }
 
     // Tab
     if (e.key === "Tab") {
@@ -84,6 +160,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
         textarea.value = newValue;
         setColoredJson(jsonToColoredSpans(newValue));
+        pushHistory(newValue, start + 1);
 
         textarea.selectionStart = textarea.selectionEnd = start + 1;
         setCaretColor("black");
@@ -120,6 +197,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
         setColoredJson(jsonToColoredSpans(newValue));
 
         const newPos = start + tabPrefix.length + 2; // vị trí con trỏ bên trong indent
+        pushHistory(newValue, newPos);
         setTimeout(() => {
           textarea.selectionStart = textarea.selectionEnd = newPos;
           setCaretColor("black");
@@ -138,6 +216,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
       textarea.value = newValue;
       setColoredJson(jsonToColoredSpans(newValue));
+      pushHistory(newValue, start + insertText.length);
 
       textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
       setCaretColor("black");
@@ -164,6 +243,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
       textarea.value = newValue;
       setColoredJson(jsonToColoredSpans(newValue));
+      pushHistory(newValue, start + 1);
 
       // đặt caret và phục hồi màu ngay lập tức
       textarea.selectionStart = textarea.selectionEnd = start + 1;
@@ -191,6 +271,12 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
       textareaRef.current.value = formatted;
       setColoredJson(jsonToColoredSpans(formatted));
+
+      // trạng thái gốc: undo xa nhất là quay về đây
+      historyRef.current = [{ value: formatted, caret: formatted.length }];
+      historyIndexRef.current = 0;
+      lastPushAtRef.current = 0;
+
       requestAnimationFrame(() => {
         if (textareaRef.current) {
           textareaRef.current.style.height = "auto"; // reset
