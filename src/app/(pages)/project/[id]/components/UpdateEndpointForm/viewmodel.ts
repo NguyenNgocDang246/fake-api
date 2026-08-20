@@ -18,6 +18,7 @@ export const useUpdateEndpointViewModel = () => {
       type: "form",
       props: {
         title: "Update new endpoint",
+        size: "wide",
         onSubmit: async () => {
           const result = await formRef.current?.submit?.();
           return result ?? false;

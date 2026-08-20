@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
+import { twMerge } from "tailwind-merge";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { AlertTriangle, HelpCircle, Check } from "lucide-react";
+import { MODAL_PANEL_CLASSES, MODAL_SIZE_CLASSES, ModalSize } from "./Constants";
 
 const CONFIRM_TEXT = "Fake API";
 export interface ConfirmModalProps {
@@ -10,6 +12,7 @@ export interface ConfirmModalProps {
   onCancel?: () => void;
   onClose: () => void;
   critical?: boolean;
+  size?: ModalSize;
 }
 
 export function ConfirmModal({
@@ -18,6 +21,7 @@ export function ConfirmModal({
   onCancel,
   onClose,
   critical = false,
+  size = "normal",
 }: ConfirmModalProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -44,7 +48,7 @@ export function ConfirmModal({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-      <div className="bg-white p-6 rounded-xl shadow-xl w-96">
+      <div className={twMerge(MODAL_PANEL_CLASSES, MODAL_SIZE_CLASSES[size])}>
         <div className="flex items-center gap-3 mb-4">
           {critical ? (
             <div className="w-12 h-12 rounded-full bg-red-200 flex pt-2.5 justify-center">

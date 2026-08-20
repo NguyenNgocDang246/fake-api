@@ -9,6 +9,7 @@ export const useCreateEndpointViewModel = () => {
       type: "form",
       props: {
         title: "Create new endpoint",
+        size: "wide",
         onSubmit: async () => {
           const result = await formRef.current?.submit?.();
           return result ?? false;
