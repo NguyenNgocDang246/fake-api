@@ -19,7 +19,7 @@ import {
   buildVariantUserMessage,
   EditableField,
   VARIANT_SYSTEM_PROMPT,
-} from "@/server/services/endpoint_variant_prompt";
+} from "@/server/services/endpoint/endpoint_variant_prompt";
 
 /**
  * Generates response variants for one endpoint.

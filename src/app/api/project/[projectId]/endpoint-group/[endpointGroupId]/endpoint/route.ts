@@ -7,9 +7,9 @@ import {
   CreateEndpointSchema,
   toEndpointInfoInput,
 } from "@/models/endpoint.model";
-import endpointService from "@/server/services/endpoint.service";
+import endpointService from "@/server/services/endpoint/endpoint.service";
 import endpointGroupService from "@/server/services/endpoint_group.service";
-import endpointVariantService from "@/server/services/endpoint_variant.service";
+import endpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
 import {
   createRouteHandler,
   withEndpointGroupId,

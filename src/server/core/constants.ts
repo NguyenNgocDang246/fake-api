@@ -104,10 +104,15 @@ export enum AI_MESSAGES {
 // generates a fresh batch and drops it, so a client polling the endpoint keeps seeing new data.
 // That sets the cost: one model call buys `AI_POOL_SIZE * AI_VARIANT_MAX_USES` responses, so a
 // lower `AI_VARIANT_MAX_USES` means more variety per token spent.
+// `AI_POOL_LOW_WATER` is compared against the variants that still have uses left, not the raw
+// row count, so a full pool of worn out rows is topped up before it runs dry.
+// `AI_REFILL_LOCK_MS` sizes two things at once: how long one refill may hold the endpoint, and
+// how long the next attempt waits after a refill that produced nothing. It has to outlast a
+// slow model call for a full batch, or a second process takes the lock mid-generation.
 export const AI_POOL_SIZE = 10;
 export const AI_POOL_LOW_WATER = 3;
-export const AI_VARIANT_MAX_USES = 3;
-export const AI_REFILL_LOCK_MS = 60_000;
+export const AI_VARIANT_MAX_USES = 2;
+export const AI_REFILL_LOCK_MS = 180_000;
 
 // The array element cap (`MAX_AI_ARRAY_ITEMS`) lives in `@/models/endpoint.model` because
 // the UI needs the same number to show the limit next to the checkbox.

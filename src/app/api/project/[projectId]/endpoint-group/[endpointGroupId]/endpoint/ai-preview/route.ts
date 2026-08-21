@@ -3,8 +3,8 @@ import { AI_MESSAGES, ERROR_MESSAGES, LIMIT_MESSAGES, STATUS_CODE } from "@/serv
 import { validateData } from "@/server/core/validation";
 import { AiPreviewSchema } from "@/models/endpoint.model";
 import endpointGroupService from "@/server/services/endpoint_group.service";
-import endpointVariantService from "@/server/services/endpoint_variant.service";
-import { generateVariants } from "@/server/services/endpoint_variant_generator.service";
+import endpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
+import { generateVariants } from "@/server/services/endpoint/endpoint_variant_generator.service";
 import { isAiConfigured } from "@/server/services/ai/ai_router.service";
 import {
   createRouteHandler,

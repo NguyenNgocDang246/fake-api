@@ -1,7 +1,7 @@
 import { after, NextRequest, NextResponse } from "next/server";
 import ApiResponse from "@/server/core/api_response";
-import EndpointService from "@/server/services/endpoint.service";
-import EndpointVariantService from "@/server/services/endpoint_variant.service";
+import EndpointService from "@/server/services/endpoint/endpoint.service";
+import EndpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import {
   EndpointMethod,

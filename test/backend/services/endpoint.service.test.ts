@@ -14,10 +14,10 @@ jest.mock("@/server/prisma/prisma_provider", () => ({
 }));
 
 import { prisma } from "@/server/prisma/prisma_provider";
-import endpointService, { matchPathTemplate } from "@/server/services/endpoint.service";
+import endpointService, { matchPathTemplate } from "@/server/services/endpoint/endpoint.service";
 import { AppError } from "@/server/core/errors";
 
-describe("src/server/services/endpoint.service.ts", () => {
+describe("src/server/services/endpoint/endpoint.service.ts", () => {
   it("checkPermissions returns true when record exists", async () => {
     (prisma.endpoints.findUnique as jest.Mock).mockResolvedValue({ public_id: "endpoint1" });
     await expect(

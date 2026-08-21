@@ -1,9 +1,9 @@
-jest.mock("@/server/services/endpoint.service", () => ({
+jest.mock("@/server/services/endpoint/endpoint.service", () => ({
   __esModule: true,
   default: { getEndpointByPath: jest.fn(), getEndpointByDynamicPath: jest.fn() },
 }));
 
-jest.mock("@/server/services/endpoint_variant.service", () => ({
+jest.mock("@/server/services/endpoint/endpoint_variant.service", () => ({
   __esModule: true,
   default: {
     pickVariant: jest.fn(),
@@ -12,8 +12,8 @@ jest.mock("@/server/services/endpoint_variant.service", () => ({
   },
 }));
 
-import EndpointService from "@/server/services/endpoint.service";
-import EndpointVariantService from "@/server/services/endpoint_variant.service";
+import EndpointService from "@/server/services/endpoint/endpoint.service";
+import EndpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
 import { GET, POST } from "@/app/api/fake/[projectId]/route";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { createJsonRequest, expectError, readJson } from "../../helpers/http";

@@ -1,4 +1,4 @@
-jest.mock("@/server/services/endpoint.service", () => ({
+jest.mock("@/server/services/endpoint/endpoint.service", () => ({
   __esModule: true,
   default: {
     getAllEndpoints: jest.fn(),
@@ -12,7 +12,7 @@ jest.mock("@/server/services/endpoint_group.service", () => ({
   default: { checkPermission: jest.fn() },
 }));
 
-import EndpointService from "@/server/services/endpoint.service";
+import EndpointService from "@/server/services/endpoint/endpoint.service";
 import endpointGroupService from "@/server/services/endpoint_group.service";
 import { GET, POST, DELETE } from "@/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpoint/route";
 import { ENDPOINT_MESSAGES, ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";

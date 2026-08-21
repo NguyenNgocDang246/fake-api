@@ -16,7 +16,7 @@ import {
   generateVariants,
   planBatch,
   validateVariantPatch,
-} from "@/server/services/endpoint_variant_generator.service";
+} from "@/server/services/endpoint/endpoint_variant_generator.service";
 
 const BASE = {
   id: 1,

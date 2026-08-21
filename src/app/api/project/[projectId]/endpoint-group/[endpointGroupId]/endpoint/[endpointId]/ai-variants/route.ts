@@ -6,8 +6,8 @@ import {
   LIMIT_MESSAGES,
   STATUS_CODE,
 } from "@/server/core/constants";
-import endpointService from "@/server/services/endpoint.service";
-import endpointVariantService from "@/server/services/endpoint_variant.service";
+import endpointService from "@/server/services/endpoint/endpoint.service";
+import endpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
 import { isAiConfigured } from "@/server/services/ai/ai_router.service";
 import {
   createRouteHandler,

@@ -32,13 +32,25 @@ Rules:
    date and time format, same id or code shape, same currency and unit, same
    casing, and a similar length. If the sample reads as Vietnamese data, produce
    Vietnamese data.
-5. Vary meaningfully across variants. Do not repeat a value already used in an
-   earlier variant of this batch, and do not merely tweak one character. Where a
-   field is enum-like, spread the variants across the plausible values rather
-   than repeating one.
-6. Use plausible everyday data, not placeholders. No "string", no "foo", no lorem
+5. Randomize aggressively. Treat every value as a fresh draw from the whole space
+   of plausible values, never as an edit of the current one. Reject the first
+   candidate that comes to mind and the most common or canonical choice: spread
+   names across different origins and lengths, numbers across their whole
+   plausible range instead of clustering near the sample, dates and times across
+   the whole plausible window instead of one day or one round hour. Where a field
+   is enum-like, spread the variants across the plausible values instead of
+   repeating one. Randomness applies to the value only, never to its shape: rule
+   4 still binds.
+6. Vary across calls, not only within this batch. This same request is sent again
+   for this endpoint every time its pool is refilled, and you cannot see what
+   earlier batches produced. Assume the obvious choices were already taken, and
+   choose differently each time, so a client polling this endpoint keeps seeing
+   new data rather than the same handful of values recycling.
+7. Never repeat a value already used in an earlier variant of this batch, and
+   never produce a variant that merely tweaks one character of another.
+8. Use plausible everyday data, not placeholders. No "string", no "foo", no lorem
    ipsum, no test@test.com.
-7. Output raw JSON only. No markdown fences, no commentary.
+9. Output raw JSON only. No markdown fences, no commentary.
 
 The body may be abbreviated to save space: long arrays keep only their first few
 elements followed by a note, long strings are cut with an ellipsis, and deeply

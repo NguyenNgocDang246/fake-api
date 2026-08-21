@@ -1,4 +1,4 @@
-jest.mock("@/server/services/endpoint.service", () => ({
+jest.mock("@/server/services/endpoint/endpoint.service", () => ({
   __esModule: true,
   default: {
     checkPermissions: jest.fn(),
@@ -9,7 +9,7 @@ jest.mock("@/server/services/endpoint.service", () => ({
   },
 }));
 
-import EndpointService from "@/server/services/endpoint.service";
+import EndpointService from "@/server/services/endpoint/endpoint.service";
 import { GET, PUT, DELETE } from "@/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpoint/[endpointId]/route";
 import { ENDPOINT_MESSAGES, ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { createJsonRequest, expectError, expectSuccess } from "../../helpers/http";
