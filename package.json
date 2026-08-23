@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test": "jest",
+    "test": "node test/backend/run-jest.cjs",
     "test:backend": "node test/backend/run-jest.cjs",
     "type-check": "tsc --noEmit",
     "dev": "next dev --turbopack",

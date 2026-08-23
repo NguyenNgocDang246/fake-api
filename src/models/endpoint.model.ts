@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { PublicIdSchema } from "@/app/libs/helpers/publicId";
+import {
+  buildFieldTree,
+  collectSelectablePaths,
+  getAtPath,
+  isArrayPath,
+} from "@/app/libs/helpers/json_path";
 
 export const JsonSchema = z.string().transform((val, ctx) => {
   try {
@@ -22,16 +28,42 @@ export const JsonSchema = z.string().transform((val, ctx) => {
 export const MAX_AI_FIELDS = 50;
 export const MAX_AI_PROMPT_LENGTH = 500;
 
-/**
- * Upper bound on how many array elements get regenerated. A path like `items[].price` over
- * a 5000 element array would make the model return 5000 values per variant, so only the
- * first N elements are varied.
- *
- * It lives in the model file because both the UI (which shows the limit next to the
- * checkbox) and the service (which caps the array before calling the model) need the very
- * same number.
- */
 export const MAX_AI_ARRAY_ITEMS = 50;
+
+export const MAX_AI_VALUES = 150;
+
+export const MIN_STATUS_CODE = 100;
+export const MAX_STATUS_CODE = 599;
+export const MAX_DELAY_MS = 60_000;
+
+function toInteger(value: number | string): number {
+  if (typeof value === "number") return value;
+  return value.trim() === "" ? NaN : Number(value);
+}
+
+function isIntegerInRange(value: number | string, min: number, max: number): boolean {
+  const parsed = toInteger(value);
+  return Number.isInteger(parsed) && parsed >= min && parsed <= max;
+}
+
+function IntegerFromInput({ min, max, message }: { min: number; max: number; message: string }) {
+  return z.union([z.number(), z.string()]).transform((value, ctx) => {
+    if (!isIntegerInRange(value, min, max)) {
+      ctx.addIssue({ code: "custom", message });
+      return z.NEVER;
+    }
+    return toInteger(value);
+  });
+}
+
+export function countAiValues(body: unknown, paths: string[]): number {
+  return paths.reduce((total, path) => {
+    if (!isArrayPath(path)) return total + 1;
+
+    const values = getAtPath(body, path, MAX_AI_ARRAY_ITEMS);
+    return total + (Array.isArray(values) ? values.length : 0);
+  }, 0);
+}
 
 export const EndpointSchema = z
   .object({
@@ -42,10 +74,17 @@ export const EndpointSchema = z
       .string()
       .regex(/^\/(?:[a-zA-Z0-9_.~:@-]+(?:\/[a-zA-Z0-9_.~:@-]+)*)?$/, "Đường dẫn không hợp lệ")
       .max(255, "The path cannot be longer than 255 characters"),
-    status_code: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
+    status_code: IntegerFromInput({
+      min: MIN_STATUS_CODE,
+      max: MAX_STATUS_CODE,
+      message: `The status code must be a whole number between ${MIN_STATUS_CODE} and ${MAX_STATUS_CODE}`,
+    }),
     response_body: JsonSchema,
-    delay_ms: z.union([z.number(), z.string().transform((str) => parseInt(str, 10))]),
-    // AI options. Existing endpoints do not send these three, so each has a default.
+    delay_ms: IntegerFromInput({
+      min: 0,
+      max: MAX_DELAY_MS,
+      message: `The delay must be a whole number of milliseconds between 0 and ${MAX_DELAY_MS}`,
+    }),
     ai_enabled: z.boolean().default(false),
     ai_fields: z
       .array(z.string())
@@ -113,12 +152,21 @@ export const ClientCreateEndpointSchema = EndpointInfoSchema.pick({
 })
   .extend({
     response_body: z.string(),
-    delay_ms: z.string(),
-    status_code: z.string(),
-    // Spelled out rather than picked from EndpointSchema so the AI fields carry no
-    // `.default()`. A default makes the zod input type optional while the output type is
-    // required, and react-hook-form's Resolver needs one type for both. The form always
-    // supplies these three through `defaultValues`, so a default here buys nothing.
+    delay_ms: z
+      .string()
+      .refine(
+        (value) => isIntegerInRange(value, 0, MAX_DELAY_MS),
+        `The delay must be a whole number of milliseconds between 0 and ${MAX_DELAY_MS}`,
+      ),
+    status_code: z
+      .string()
+      .refine(
+        (value) => isIntegerInRange(value, MIN_STATUS_CODE, MAX_STATUS_CODE),
+        `The status code must be a whole number between ${MIN_STATUS_CODE} and ${MAX_STATUS_CODE}`,
+      ),
+    // Spelled out rather than picked from EndpointSchema so these carry no `.default()`: a
+    // default makes the zod input type optional while the output stays required, and the
+    // Resolver needs one type for both.
     ai_enabled: z.boolean(),
     ai_fields: z.array(z.string()).max(MAX_AI_FIELDS, `You can select at most ${MAX_AI_FIELDS} fields`),
     ai_prompt: z
@@ -128,6 +176,52 @@ export const ClientCreateEndpointSchema = EndpointInfoSchema.pick({
   })
   .strict();
 export type ClientCreateEndpointDTO = z.infer<typeof ClientCreateEndpointSchema>;
+
+function checkAiFieldList(
+  values: { ai_fields: string[]; response_body: string },
+  ctx: z.RefinementCtx,
+) {
+  if (values.ai_fields.length === 0) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["ai_fields"],
+      message: "Select at least one field for the AI to vary",
+    });
+    return;
+  }
+
+  // `response_body` has already been through `JsonSchema`, so it parses to an object here.
+  const body: unknown = JSON.parse(values.response_body);
+
+  // The element cap has to match the generator's, or a path is refused over an element the
+  // model would never have been asked to produce.
+  const selectable = new Set(collectSelectablePaths(buildFieldTree(body, MAX_AI_ARRAY_ITEMS)));
+  const unusable = values.ai_fields.filter((path) => !selectable.has(path));
+  if (unusable.length > 0) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["ai_fields"],
+      message: `These fields cannot be varied by the AI: ${unusable.join(", ")}`,
+    });
+    return;
+  }
+
+  if (countAiValues(body, values.ai_fields) > MAX_AI_VALUES) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["ai_fields"],
+      message: `This selection asks the AI for more than ${MAX_AI_VALUES} values at once. Select fewer fields, or a field over a shorter array.`,
+    });
+  }
+}
+
+function checkAiFields(
+  values: { ai_enabled: boolean; ai_fields: string[]; response_body: string },
+  ctx: z.RefinementCtx,
+) {
+  if (!values.ai_enabled) return;
+  checkAiFieldList(values, ctx);
+}
 
 export const CreateEndpointSchema = EndpointSchema.pick({
   endpoint_groups_public_id: true,
@@ -139,7 +233,9 @@ export const CreateEndpointSchema = EndpointSchema.pick({
   ai_enabled: true,
   ai_fields: true,
   ai_prompt: true,
-}).strict();
+})
+  .strict()
+  .superRefine(checkAiFields);
 export type CreateEndpointDTO = z.infer<typeof CreateEndpointSchema>;
 
 export const DeleteAllEndpointSchema = EndpointSchema.pick({
@@ -160,7 +256,9 @@ export const UpdateEndpointByIdSchema = EndpointSchema.pick({
   ai_enabled: true,
   ai_fields: true,
   ai_prompt: true,
-}).strict();
+})
+  .strict()
+  .superRefine(checkAiFields);
 export type UpdateEndpointByIdDTO = z.infer<typeof UpdateEndpointByIdSchema>;
 
 export const ClientDeleteEndpointByIdDTO = EndpointInfoSchema.pick({
@@ -178,12 +276,6 @@ export const GetEndpointByIdSchema = EndpointSchema.pick({
 }).strict();
 export type GetEndpointByIdDTO = z.infer<typeof GetEndpointByIdSchema>;
 
-/**
- * Shape one `endpoints` row into the input `EndpointInfoSchema` expects.
- *
- * Four routes (GET all, POST, GET by id, PUT) return the same shape, so it lives here and
- * adding a field means editing one place.
- */
 export function toEndpointInfoInput(
   endpoint: {
     public_id: string;
@@ -212,10 +304,6 @@ export function toEndpointInfoInput(
   };
 }
 
-/**
- * Previewing variants from the form, including before the endpoint has been saved. That is
- * why this schema takes the form contents directly instead of referencing a stored endpoint.
- */
 export const AiPreviewSchema = EndpointSchema.pick({
   method: true,
   path: true,
@@ -224,7 +312,8 @@ export const AiPreviewSchema = EndpointSchema.pick({
   ai_prompt: true,
 })
   .extend({ count: z.coerce.number().int().min(1).max(5).default(3) })
-  .strict();
+  .strict()
+  .superRefine(checkAiFieldList);
 export type AiPreviewDTO = z.infer<typeof AiPreviewSchema>;
 
 export const getEndpointByPathSchema = EndpointSchema.pick({ path: true, method: true }).strict();

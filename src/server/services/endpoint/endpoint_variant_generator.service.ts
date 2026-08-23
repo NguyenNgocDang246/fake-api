@@ -6,6 +6,8 @@ import {
   AI_CONTEXT_STRING_CHARS,
   AI_MAX_OUTPUT_TOKENS,
   AI_MESSAGES,
+  AI_MIN_OUTPUT_TOKENS,
+  AI_THINKING_RESERVE,
   AI_TOKENS_PER_VALUE,
   STATUS_CODE,
 } from "@/server/core/constants";
@@ -21,15 +23,6 @@ import {
   VARIANT_SYSTEM_PROMPT,
 } from "@/server/services/endpoint/endpoint_variant_prompt";
 
-/**
- * Generates response variants for one endpoint.
- *
- * The safety rule: the model never returns a whole body. It only returns
- * `path -> new value` pairs for the fields the user allowed, and the server clones the base
- * body and overwrites exactly those paths. Even if the model returns garbage, a field that
- * was not allowed is structurally incapable of changing.
- */
-
 const ELLIPSIS = "…";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -42,7 +35,6 @@ function jsonTypeOf(value: unknown): string {
   return typeof value;
 }
 
-/** Every prefix of the editable paths, so we know which branches must not be shrunk. */
 function buildProtectedPrefixes(paths: string[]): Set<string> {
   const prefixes = new Set<string>();
 
@@ -60,20 +52,10 @@ function buildProtectedPrefixes(paths: string[]): Set<string> {
 }
 
 export interface ContextBody {
-  /** The shrunk JSON, already stringified for the prompt. */
   text: string;
   truncated: boolean;
 }
 
-/**
- * Build the shrunk copy of the body that travels with the prompt as context.
- *
- * Sending the whole body matters: the model has to see `user.email` sitting next to
- * `user.name` to produce an email that matches the name. But sending 5000 near-identical
- * array elements just burns tokens, so long arrays, long strings and deep branches are all
- * abbreviated, except along the branches that lead to an editable field, which are always
- * kept intact.
- */
 export function buildContextBody(base: unknown, allowedPaths: string[]): ContextBody {
   const full = JSON.stringify(base, null, 2);
   if (full !== undefined && full.length <= AI_CONTEXT_FULL_CHARS) {
@@ -87,8 +69,6 @@ export function buildContextBody(base: unknown, allowedPaths: string[]): Context
     const isProtected = protectedPrefixes.has(path);
 
     if (typeof value === "string") {
-      // A string at an editable field is kept whole: the model needs the original length
-      // to produce something comparable.
       if (isProtected || value.length <= AI_CONTEXT_STRING_CHARS) return value;
       truncated = true;
       return value.slice(0, AI_CONTEXT_STRING_CHARS) + ELLIPSIS;
@@ -126,28 +106,43 @@ export function buildContextBody(base: unknown, allowedPaths: string[]): Context
   const text = JSON.stringify(shrink(base, "", 0), null, 2) ?? "{}";
   if (text.length <= AI_CONTEXT_MAX_CHARS) return { text, truncated };
 
-  // Last resort for an enormous body. The cut is no longer valid JSON, but the prompt says
-  // the body may be abbreviated, so the model still reads the structure it does get.
   return { text: text.slice(0, AI_CONTEXT_MAX_CHARS) + `\n${ELLIPSIS} (body truncated)`, truncated: true };
 }
 
-/** Describe the editable fields, applying the upper bound to array paths. */
+function uniformElementType(elements: unknown[]): string | null {
+  const [first, ...rest] = elements;
+  if (first === undefined) return null;
+
+  const type = jsonTypeOf(first);
+  return rest.every((element) => element !== undefined && jsonTypeOf(element) === type)
+    ? type
+    : null;
+}
+
+const PATCHABLE_TYPES: ReadonlySet<string> = new Set(["string", "number", "boolean", "null"]);
+
 export function buildEditableFields(base: unknown, allowedPaths: string[]): EditableField[] {
   return allowedPaths.flatMap((path) => {
     if (!isArrayPath(path)) {
       const currentValue = getAtPath(base, path);
       if (currentValue === undefined) return [];
-      return [{ path, type: jsonTypeOf(currentValue), currentValue }];
+
+      const type = jsonTypeOf(currentValue);
+      if (!PATCHABLE_TYPES.has(type)) return [];
+      return [{ path, type, currentValue }];
     }
 
     const wholeArray = getAtPath(base, path);
     if (!Array.isArray(wholeArray) || wholeArray.length === 0) return [];
 
     const currentValue = wholeArray.slice(0, MAX_AI_ARRAY_ITEMS);
+    const type = uniformElementType(currentValue);
+    if (type === null || !PATCHABLE_TYPES.has(type)) return [];
+
     return [
       {
         path,
-        type: jsonTypeOf(currentValue[0]),
+        type,
         currentValue,
         arrayLength: currentValue.length,
         totalArrayLength: wholeArray.length,
@@ -156,30 +151,38 @@ export function buildEditableFields(base: unknown, allowedPaths: string[]): Edit
   });
 }
 
-/** Values the model must produce per variant, used to size the output token budget. */
 function valuesPerVariant(fields: EditableField[]): number {
   return fields.reduce((total, field) => total + (field.arrayLength ?? 1), 0);
 }
 
-/**
- * How many variants one call can ask for without blowing the output token ceiling.
- * A long array makes each variant cost many values, so the variant count drops to match.
- */
+const BATCH_TOKEN_OVERHEAD = 512;
+
+const JSON_TOKEN_BUDGET = Math.floor(AI_MAX_OUTPUT_TOKENS * (1 - AI_THINKING_RESERVE));
+
 export function planBatch(fields: EditableField[], requested: number) {
   const perVariant = Math.max(valuesPerVariant(fields), 1);
-  const affordable = Math.floor(AI_MAX_OUTPUT_TOKENS / (perVariant * AI_TOKENS_PER_VALUE));
+  const variantTokens = perVariant * AI_TOKENS_PER_VALUE;
+
+  if (variantTokens + BATCH_TOKEN_OVERHEAD > JSON_TOKEN_BUDGET) {
+    throw new AppError({
+      message: AI_MESSAGES.FIELDS_TOO_LARGE,
+      statusCode: STATUS_CODE.BAD_REQUEST,
+    });
+  }
+
+  const affordable = Math.floor((JSON_TOKEN_BUDGET - BATCH_TOKEN_OVERHEAD) / variantTokens);
   const variantCount = Math.max(1, Math.min(requested, affordable));
+  const jsonTokens = variantCount * variantTokens + BATCH_TOKEN_OVERHEAD;
 
   return {
     variantCount,
     maxTokens: Math.min(
       AI_MAX_OUTPUT_TOKENS,
-      variantCount * perVariant * AI_TOKENS_PER_VALUE + 512
+      Math.max(AI_MIN_OUTPUT_TOKENS, Math.ceil(jsonTokens / (1 - AI_THINKING_RESERVE)))
     ),
   };
 }
 
-/** Pull the JSON out of the model's text, tolerating a markdown fence around it. */
 function parseVariantsPayload(text: string): unknown[] {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const candidate = (fenced?.[1] ?? text).trim();
@@ -201,12 +204,6 @@ function matchesType(value: unknown, expected: unknown): boolean {
   return jsonTypeOf(value) === jsonTypeOf(expected);
 }
 
-/**
- * Check one patch before anything is allowed to be written.
- *
- * Returns `null` when the patch is unusable. Extra keys are dropped; a missing key, a wrong
- * type, or an array of the wrong length discards the whole patch.
- */
 export function validateVariantPatch(
   patch: unknown,
   fields: EditableField[]
@@ -233,7 +230,6 @@ export function validateVariantPatch(
   return clean;
 }
 
-/** Apply a validated patch onto a clone of the base body. */
 export function applyPatch(base: unknown, patch: Record<string, unknown>): string | null {
   const draft = structuredClone(base);
 
@@ -244,7 +240,6 @@ export function applyPatch(base: unknown, patch: Record<string, unknown>): strin
   if (!isPlainObject(draft)) return null;
 
   const body = JSON.stringify(draft);
-  // A variant identical to the base adds nothing, so it does not deserve a pool row.
   return body === JSON.stringify(base) ? null : body;
 }
 
@@ -262,11 +257,6 @@ export interface GenerateVariantsResult {
   usage?: { inputTokens: number; outputTokens: number; cacheReadTokens: number };
 }
 
-/**
- * Generate at most `count` variants. A broken or garbage model response yields an empty
- * array rather than an error: the pool stays as it was and the fake API still has the base
- * body to serve.
- */
 export async function generateVariants({
   method,
   path,
@@ -295,7 +285,10 @@ export async function generateVariants({
   const fields = buildEditableFields(base, aiFields);
   if (fields.length === 0) {
     throw new AppError({
-      message: AI_MESSAGES.NO_FIELDS_SELECTED,
+      message:
+        aiFields.length === 0
+          ? AI_MESSAGES.NO_FIELDS_SELECTED
+          : AI_MESSAGES.FIELDS_NOT_PATCHABLE,
       statusCode: STATUS_CODE.BAD_REQUEST,
     });
   }
@@ -304,8 +297,6 @@ export async function generateVariants({
   const { variantCount, maxTokens } = planBatch(fields, count);
 
   const result = await aiRouter.chat({
-    // The system prompt and the context block are identical across refills of the same
-    // endpoint, so they carry the cache breakpoint; the varying part sits in the message.
     system: [
       { text: VARIANT_SYSTEM_PROMPT },
       {
@@ -338,6 +329,13 @@ export async function generateVariants({
     .flatMap((patch) => (patch ? [applyPatch(base, patch)] : []))
     .filter((body): body is string => body !== null);
 
+  if (bodies.length === 0 && result.stopReason === "max_tokens") {
+    throw new AppError({
+      message: AI_MESSAGES.FIELDS_TOO_LARGE,
+      statusCode: STATUS_CODE.BAD_REQUEST,
+    });
+  }
+
   return {
     bodies: [...new Set(bodies)].slice(0, variantCount),
     ...(result.usage
@@ -351,13 +349,3 @@ export async function generateVariants({
       : {}),
   };
 }
-
-const endpointVariantGeneratorService = {
-  generateVariants,
-  buildContextBody,
-  buildEditableFields,
-  planBatch,
-  validateVariantPatch,
-  applyPatch,
-};
-export default endpointVariantGeneratorService;

@@ -2,7 +2,7 @@
 
 import { UseFormRegisterReturn } from "react-hook-form";
 import { twMerge } from "tailwind-merge";
-import React, { useState, useRef, useEffect, ChangeEvent } from "react";
+import React, { useState, useRef, useEffect, useCallback, ChangeEvent } from "react";
 
 const HISTORY_LIMIT = 200;
 const TYPING_MERGE_MS = 500;
@@ -71,14 +71,14 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
   const historyIndexRef = useRef(0);
   const lastPushAtRef = useRef(0);
 
-  // This component sets its own onChange after {...register}, which overrides
-  // register.onChange, and the Tab/Enter/brace/undo branches assign textarea.value directly,
-  // which never fires React's onChange either. The form state therefore only catches up on
-  // blur. Calling register.onChange by hand after every content change makes watch() see the
-  // text as it is typed.
-  const syncFormValue = (textarea: HTMLTextAreaElement) => {
-    void register.onChange({ target: textarea, type: "change" });
-  };
+  const registerRef = useRef(register);
+  registerRef.current = register;
+
+  // Gọi tay register.onChange: component đã ghi đè onChange của register, và các nhánh gán
+  // thẳng textarea.value cũng không kích hoạt onChange của React, nên form chỉ cập nhật khi blur.
+  const syncFormValue = useCallback((textarea: HTMLTextAreaElement) => {
+    void registerRef.current.onChange({ target: textarea, type: "change" });
+  }, []);
 
   const pushHistory = (value: string, caret: number, coalesce = false) => {
     const history = historyRef.current;
@@ -97,7 +97,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       return;
     }
 
-    history.splice(historyIndexRef.current + 1); // bỏ nhánh redo cũ
+    history.splice(historyIndexRef.current + 1);
     history.push({ value, caret });
     if (history.length > HISTORY_LIMIT) history.shift();
 
@@ -105,7 +105,6 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
     lastPushAtRef.current = now;
   };
 
-  // offset = -1 là undo, +1 là redo
   const applyHistory = (offset: number) => {
     const textarea = textareaRef.current;
     const entry = historyRef.current[historyIndexRef.current + offset];
@@ -118,7 +117,6 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
     setColoredJson(jsonToColoredSpans(entry.value));
     syncFormValue(textarea);
 
-    // đặt lại con trỏ đúng chỗ của trạng thái đó
     textarea.selectionStart = textarea.selectionEnd = entry.caret;
 
     textarea.style.height = "auto";
@@ -143,24 +141,21 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
     const textarea = textareaRef.current!;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const modifier = e.ctrlKey || e.metaKey; // Ctrl trên Win/Linux, Cmd trên Mac
+    const modifier = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
 
-    // Undo: Ctrl/Cmd + Z
     if (modifier && key === "z" && !e.shiftKey) {
       e.preventDefault();
       applyHistory(-1);
       return;
     }
 
-    // Redo: Ctrl/Cmd + Shift + Z hoặc Ctrl + Y
     if (modifier && ((key === "z" && e.shiftKey) || key === "y")) {
       e.preventDefault();
       applyHistory(1);
       return;
     }
 
-    // Tab
     if (e.key === "Tab") {
       e.preventDefault();
       setCaretColor("transparent");
@@ -183,7 +178,6 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       }, 0);
     }
 
-    // Enter
     if (e.key === "Enter") {
       e.preventDefault();
       setCaretColor("transparent");
@@ -197,7 +191,6 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       const tabMatch = currentLine.match(/^\t*/);
       const tabPrefix = tabMatch ? tabMatch[0] : "";
 
-      // --- KIỂM TRA AUTO-INDENT --- //
       const charBefore = value[start - 1] || "";
       const charAfter = value[start] || "";
 
@@ -208,7 +201,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
         textarea.value = newValue;
         setColoredJson(jsonToColoredSpans(newValue));
 
-        const newPos = start + tabPrefix.length + 2; // vị trí con trỏ bên trong indent
+        const newPos = start + tabPrefix.length + 2;
         pushHistory(newValue, newPos);
         setTimeout(() => {
           textarea.selectionStart = textarea.selectionEnd = newPos;
@@ -222,7 +215,6 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
         return;
       }
 
-      // --- XỬ LÝ ENTER THÔNG THƯỜNG --- //
       const insertText = "\n" + tabPrefix;
       const newValue = beforeCursor + insertText + afterCursor;
 
@@ -239,7 +231,6 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       setHeight(textarea.scrollHeight + "px");
     }
 
-    // { or [
     if (e.key === "{" || e.key === "[") {
       e.preventDefault();
 
@@ -250,7 +241,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       const afterCursor = value.substring(end);
 
       const pair = e.key === "{" ? "{}" : "[]";
-      const insertText = e.key + pair[1]; // "{ }" hoặc "[ ]"
+      const insertText = e.key + pair[1];
 
       const newValue = beforeCursor + insertText + afterCursor;
 
@@ -259,7 +250,6 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       syncFormValue(textarea);
       pushHistory(newValue, start + 1);
 
-      // đặt caret và phục hồi màu ngay lập tức
       textarea.selectionStart = textarea.selectionEnd = start + 1;
       setCaretColor("black");
 
@@ -272,9 +262,9 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
   function formatJson(value: string) {
     try {
       const parsed = JSON.parse(value);
-      return JSON.stringify(parsed, null, "\t"); // indent 2 spaces
+      return JSON.stringify(parsed, null, "\t");
     } catch {
-      return value; // nếu không phải JSON thì giữ nguyên
+      return value;
     }
   }
 
@@ -285,23 +275,21 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
       textareaRef.current.value = formatted;
       setColoredJson(jsonToColoredSpans(formatted));
-      // The form must hold the formatted text being displayed, not the raw initial string.
       syncFormValue(textareaRef.current);
 
-      // trạng thái gốc: undo xa nhất là quay về đây
       historyRef.current = [{ value: formatted, caret: formatted.length }];
       historyIndexRef.current = 0;
       lastPushAtRef.current = 0;
 
       requestAnimationFrame(() => {
         if (textareaRef.current) {
-          textareaRef.current.style.height = "auto"; // reset
-          textareaRef.current.style.height = textareaRef.current.scrollHeight + "px"; // set lại
-          setHeight(textareaRef.current.scrollHeight + "px"); // overlay dùng height này
+          textareaRef.current.style.height = "auto";
+          textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+          setHeight(textareaRef.current.scrollHeight + "px");
         }
       });
     }
-  }, [defaultValue]);
+  }, [defaultValue, syncFormValue]);
 
   return (
     <div className={twMerge("flex flex-col gap-1", className)}>

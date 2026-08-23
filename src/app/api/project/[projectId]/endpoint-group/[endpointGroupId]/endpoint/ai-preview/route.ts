@@ -15,21 +15,6 @@ import {
 
 type AiPreviewRouteParams = { projectId: string; endpointGroupId: string };
 
-/**
- * Preview a few variants without storing anything.
- *
- * Sits on the endpoint *collection* (`/endpoint/ai-preview`) rather than on a single endpoint,
- * because the create form needs a preview before any endpoint exists, and because a preview
- * renders what is being typed in the form rather than what is stored on a row.
- *
- * `ai-preview` is a static segment next to the dynamic `[endpointId]`, and Next resolves static
- * first, so it can never be swallowed by an endpoint id. Nor can it collide: a `public_id` is
- * exactly `PUBLIC_ID_LENGTH` characters from an alphabet with no hyphen.
- *
- * This is one of the two synchronous paths to the model, so it still goes through the per-role
- * quota. Note the quota only gates it and is never consumed here: nothing is written to
- * `endpoint_ai_variants`, which is what `canGenerate` counts.
- */
 export const POST = createRouteHandler<AiPreviewRouteParams>(
   withUserId(
     withProjectId(

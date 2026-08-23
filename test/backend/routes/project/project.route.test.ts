@@ -4,6 +4,7 @@ jest.mock("@/server/services/project.service", () => ({
     getAllProjectsByUserId: jest.fn(),
     createProject: jest.fn(),
     deleteAllProjectsByUserId: jest.fn(),
+    canCreateProject: jest.fn(),
   },
 }));
 
@@ -46,6 +47,10 @@ describe("src/app/api/project/route.ts", () => {
   });
 
   describe("POST", () => {
+    beforeEach(() => {
+      (projectService.canCreateProject as jest.Mock).mockResolvedValue(true);
+    });
+
     it("creates project and returns info", async () => {
       (projectService.createProject as jest.Mock).mockResolvedValue({
         public_id: PROJECT_PUBLIC_ID,

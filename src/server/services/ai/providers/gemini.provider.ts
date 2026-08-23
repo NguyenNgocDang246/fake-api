@@ -1,12 +1,14 @@
-import { ApiError, GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { ApiError, FinishReason, GoogleGenAI, ThinkingLevel } from "@google/genai";
 import type { GenerateContentParameters, GenerateContentResponse } from "@google/genai";
 import { AppError } from "@/server/core/errors";
-import { AI_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES, AI_REQUEST_TIMEOUT_MS, STATUS_CODE } from "@/server/core/constants";
+import { toAiError } from "@/server/services/ai/ai_errors";
 import {
   AiChatParams,
   AiChatResult,
   AiProvider,
   AiSlot,
+  AiStopReason,
   AiUsage,
   toSystemBlocks,
 } from "@/server/services/ai/ai.types";
@@ -21,9 +23,6 @@ const THINKING_LEVELS: Record<NonNullable<AiChatParams["effort"]>, ThinkingLevel
 };
 
 function buildRequest(params: AiChatParams, slot: AiSlot): GenerateContentParameters {
-  // Gemini caches context through a separate `caches` API rather than an inline flag, so
-  // the `cacheable` marker is ignored here. The contract allows that: the result is still
-  // correct, just not discounted.
   const systemInstruction = toSystemBlocks(params.system)
     .map((block) => block.text)
     .join("\n\n");
@@ -38,6 +37,8 @@ function buildRequest(params: AiChatParams, slot: AiSlot): GenerateContentParame
     config: {
       maxOutputTokens: params.maxTokens,
       thinkingConfig: { thinkingLevel: THINKING_LEVELS[params.effort ?? "low"] },
+      // The SDK sets no deadline of its own, so without this a hung request never returns.
+      httpOptions: { timeout: AI_REQUEST_TIMEOUT_MS },
       ...(systemInstruction ? { systemInstruction } : {}),
       ...(params.jsonSchema
         ? { responseMimeType: "application/json", responseJsonSchema: params.jsonSchema }
@@ -52,22 +53,31 @@ function readUsage(response: GenerateContentResponse): AiUsage | undefined {
 
   return {
     inputTokens: usage.promptTokenCount ?? 0,
-    outputTokens: usage.candidatesTokenCount ?? 0,
+    outputTokens: (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0),
     cacheReadTokens: usage.cachedContentTokenCount ?? 0,
-    // Gemini bills cache creation through the explicit caches API, which this adapter does
-    // not use, so there is never a cache write to report.
     cacheWriteTokens: 0,
   };
 }
 
-/**
- * Normalize an SDK failure into an `AppError`.
- *
- * The message on the returned error is user-facing and therefore vague, so the real cause
- * is logged here and attached as `cause`. Without that, a wrong model name and a revoked
- * key look identical in the logs, which is useless when something breaks in production.
- * The API key is never logged.
- */
+function readStopReason(response: GenerateContentResponse): AiStopReason | undefined {
+  const reason = response.candidates?.[0]?.finishReason;
+  if (!reason) return undefined;
+  if (reason === FinishReason.MAX_TOKENS) return "max_tokens";
+  return reason === FinishReason.STOP ? "stop" : "other";
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError");
+}
+
+// Gemini answers a bad key with 400 as often as 401, so a 400 has to be split on the message.
+const CREDENTIAL_HINTS = ["api key not valid", "api_key_invalid", "invalid authentication"];
+
+function isCredentialFailure(detail: string): boolean {
+  const haystack = detail.toLowerCase();
+  return CREDENTIAL_HINTS.some((hint) => haystack.includes(hint));
+}
+
 function toAppError(error: unknown, slot: AiSlot): AppError {
   if (error instanceof AppError) return error;
 
@@ -80,31 +90,31 @@ function toAppError(error: unknown, slot: AiSlot): AppError {
     detail,
   });
 
+  if (isAbortError(error)) {
+    return toAiError(AI_MESSAGES.PROVIDER_TIMEOUT, error);
+  }
+
   const message = (() => {
     switch (status) {
       case STATUS_CODE.TOO_MANY_REQUESTS:
         return AI_MESSAGES.RATE_LIMITED;
-      // Gemini answers a bad or revoked key with 400 as often as 401, so a rejected
-      // request is treated as a credential problem and the router moves to the next key.
       case STATUS_CODE.BAD_REQUEST:
+        return isCredentialFailure(detail)
+          ? AI_MESSAGES.PROVIDER_AUTH_FAILED
+          : AI_MESSAGES.PROVIDER_REJECTED_REQUEST;
       case STATUS_CODE.UNAUTHORIZED:
       case STATUS_CODE.FORBIDDEN:
         return AI_MESSAGES.PROVIDER_AUTH_FAILED;
       case STATUS_CODE.NOT_FOUND:
-        // Almost always a model name this key cannot reach.
         return AI_MESSAGES.MODEL_NOT_AVAILABLE;
-      // A popular Gemini model answers 503 UNAVAILABLE under load. That is transient, so
-      // it has to stay distinguishable from a dead key or the router cannot know to retry.
-      case STATUS_CODE.BAD_GATEWAY:
-      case STATUS_CODE.SERVICE_UNAVAILABLE:
-      case STATUS_CODE.GATEWAY_TIMEOUT:
-        return AI_MESSAGES.PROVIDER_OVERLOADED;
       default:
-        return AI_MESSAGES.PROVIDER_FAILED;
+        return typeof status === "number" && status >= STATUS_CODE.SERVER_ERROR
+          ? AI_MESSAGES.PROVIDER_OVERLOADED
+          : AI_MESSAGES.PROVIDER_FAILED;
     }
   })();
 
-  return new AppError({ message, cause: error });
+  return toAiError(message, error);
 }
 
 const geminiProvider: AiProvider = {
@@ -116,11 +126,13 @@ const geminiProvider: AiProvider = {
       const client = new GoogleGenAI({ apiKey: slot.apiKey });
       const response = await client.models.generateContent(buildRequest(params, slot));
       const usage = readUsage(response);
+      const stopReason = readStopReason(response);
 
       return {
         text: response.text ?? "",
         provider: slot.provider,
-        model: slot.model,
+        ...(stopReason ? { stopReason } : {}),
+        model: response.modelVersion ?? slot.model,
         ...(usage ? { usage } : {}),
       };
     } catch (error) {

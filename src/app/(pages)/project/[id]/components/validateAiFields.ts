@@ -1,14 +1,16 @@
 import { FieldError } from "react-hook-form";
-import { findMissingPaths } from "@/app/libs/helpers/json_path";
-import { MAX_AI_FIELDS } from "@/models/endpoint.model";
+import {
+  buildFieldTree,
+  collectSelectablePaths,
+  findMissingPaths,
+} from "@/app/libs/helpers/json_path";
+import {
+  countAiValues,
+  MAX_AI_ARRAY_ITEMS,
+  MAX_AI_FIELDS,
+  MAX_AI_VALUES,
+} from "@/models/endpoint.model";
 
-/**
- * Validate the AI field list before saving. Shared by the create and update resolvers,
- * since both forms carry the same fields.
- *
- * It exists to stop dead paths from being saved: if the body is edited so a ticked field
- * disappears, say so now, rather than saving an endpoint that quietly generates nothing.
- */
 export function validateAiFields(values: {
   ai_enabled?: boolean;
   ai_fields?: string[];
@@ -29,7 +31,6 @@ export function validateAiFields(values: {
   try {
     parsed = JSON.parse(values.response_body ?? "");
   } catch {
-    // A broken body already has its own error on the Response body input; no duplicate here.
     return undefined;
   }
 
@@ -38,6 +39,24 @@ export function validateAiFields(values: {
     return {
       type: "manual",
       message: `These fields are no longer in the response body: ${missing.join(", ")}`,
+    };
+  }
+
+  // The element cap has to match the generator's, or a path is refused over an element the
+  // model would never have been asked to produce.
+  const selectable = new Set(collectSelectablePaths(buildFieldTree(parsed, MAX_AI_ARRAY_ITEMS)));
+  const unusable = fields.filter((path) => !selectable.has(path));
+  if (unusable.length > 0) {
+    return {
+      type: "manual",
+      message: `These fields cannot be varied by the AI: ${unusable.join(", ")}`,
+    };
+  }
+
+  if (countAiValues(parsed, fields) > MAX_AI_VALUES) {
+    return {
+      type: "manual",
+      message: `This selection asks the AI for more than ${MAX_AI_VALUES} values at once. Select fewer fields, or a field over a shorter array.`,
     };
   }
 

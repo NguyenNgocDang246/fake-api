@@ -70,6 +70,9 @@ class EndpointService {
     status_code,
     response_body,
     delay_ms,
+    ai_enabled,
+    ai_fields,
+    ai_prompt,
     endpoint_groups_public_id,
   }: CreateEndpointDTO) {
     try {
@@ -82,6 +85,9 @@ class EndpointService {
             status_code,
             response_body,
             delay_ms,
+            ai_enabled,
+            ai_fields,
+            ai_prompt,
             endpoint_groups: { connect: { public_id: endpoint_groups_public_id } },
           },
         })
@@ -132,6 +138,31 @@ class EndpointService {
         orderBy: { updated_at: "desc" },
       });
       return candidates.find((candidate) => matchPathTemplate(candidate.path, path)) ?? null;
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  async findMethodsForPath({
+    project_public_id,
+    path,
+  }: {
+    project_public_id: GetProjectByIdDTO["public_id"];
+    path: string;
+  }) {
+    try {
+      const candidates = await prisma.endpoints.findMany({
+        where: {
+          endpoint_groups: { projects: { public_id: project_public_id } },
+          OR: [{ path }, { path: { contains: ":" } }],
+        },
+        select: { path: true, method: true },
+      });
+
+      const matched = candidates.filter(
+        (candidate) => candidate.path === path || matchPathTemplate(candidate.path, path)
+      );
+      return [...new Set(matched.map((candidate) => candidate.method))];
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }

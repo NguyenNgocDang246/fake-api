@@ -1,41 +1,28 @@
-/**
- * JSON paths shared by the AI variant feature. The UI builds its checkbox tree from the
- * same path set the service uses to read and write values, so the two sides cannot drift.
- *
- * Syntax:
- * - `.` separates object keys: `user.name`
- * - `[]` means "every element of the array": `items[].price`
- *
- * For a path containing `[]`, `getAtPath` returns the array of current values and
- * `setAtPath` takes an array of the same length and writes element-wise, so every element
- * gets its own distinct value.
- *
- * v1 limits:
- * - A key containing `.` or `[` cannot be expressed, so it is not selectable.
- * - Arrays inside arrays (`a[].b[].c`) are unsupported: one `[]` per path.
- */
+// Path syntax: `.` separates object keys (`user.name`), `[]` means every element of an array
+// (`items[].price`). One `[]` per path, so arrays inside arrays cannot be expressed, and nor
+// can a key containing `.` or `[`.
 
 export type JsonLeafType = "string" | "number" | "boolean" | "null";
 
 export interface FieldNode {
-  /** Full path from the root, e.g. `user.name` or `items[].price`. */
   path: string;
-  /** Label shown at one level of the tree, e.g. `name`. */
   label: string;
-  /** Only leaves are selectable; `object` and `array` are parents for grouping. */
   kind: "leaf" | "object" | "array";
   type?: JsonLeafType;
-  /** Current value, to help identify the field. For a `[]` path, the first element. */
   sample?: unknown;
-  /** Length of the owning array; present only on nodes under a `[]`. */
   arrayLength?: number;
   selectable: boolean;
-  /** Why it cannot be selected, shown as a tooltip. */
   disabledReason?: string;
   children?: FieldNode[];
 }
 
 const UNSUPPORTED_KEY = /[.[\]]/;
+
+const NESTED_ARRAY_REASON = "Arrays inside arrays are not supported yet";
+const EMPTY_ARRAY_REASON = "An empty array has no values to vary";
+const RAGGED_ARRAY_REASON = "The elements of this array do not all have the same type";
+const RAGGED_FIELD_REASON =
+  "The elements of this array do not all carry this field with the same type";
 
 function leafTypeOf(value: unknown): JsonLeafType | undefined {
   if (value === null) return "null";
@@ -53,13 +40,35 @@ function joinPath(parent: string, key: string): string {
   return parent ? `${parent}.${key}` : key;
 }
 
-/**
- * Build the field tree the checkbox UI renders.
- *
- * @param insideArray once a `[]` has been crossed, no further array is opened, since arrays
- * inside arrays are unsupported.
- */
-function buildNodes(value: unknown, parentPath: string, insideArray: boolean): FieldNode[] {
+// A `[]` path describes one element type, so a ragged array describes a field no reply can
+// satisfy and must not be offered. `null` counts as its own type, matching
+// `uniformElementType` in the generator, or one side would accept what the other drops.
+function uniformLeafType(elements: unknown[], tail: string[]): JsonLeafType | undefined {
+  const [first, ...rest] = elements;
+  if (first === undefined) return undefined;
+
+  const type = leafTypeOf(readKeys(first, tail));
+  if (!type) return undefined;
+
+  return rest.every((element) => leafTypeOf(readKeys(element, tail)) === type) ? type : undefined;
+}
+
+// The array a `[]` was opened on, carried down so the leaves below are judged against every
+// element rather than against the first one.
+interface ArrayContext {
+  elements: unknown[];
+  tail: string[];
+}
+
+// `limit` is how many array elements are inspected when deciding an element type. It has to
+// match the generator's `MAX_AI_ARRAY_ITEMS`, or a path is refused over an element no call
+// would ever have seen. Passed in because `@/models/endpoint.model` already imports this file.
+function buildNodes(
+  value: unknown,
+  parentPath: string,
+  limit: number | undefined,
+  arrayCtx?: ArrayContext
+): FieldNode[] {
   if (!isPlainObject(value)) return [];
 
   return Object.entries(value).map(([key, child]) => {
@@ -75,44 +84,71 @@ function buildNodes(value: unknown, parentPath: string, insideArray: boolean): F
         : {}),
     };
 
-    const leafType = leafTypeOf(child);
-    if (leafType) {
-      return { ...base, kind: "leaf" as const, type: leafType, sample: child };
+    const ownType = leafTypeOf(child);
+    if (ownType) {
+      const sharedType = arrayCtx
+        ? uniformLeafType(arrayCtx.elements, [...arrayCtx.tail, key])
+        : ownType;
+      if (!sharedType) {
+        return {
+          ...base,
+          kind: "leaf" as const,
+          selectable: false,
+          sample: child,
+          disabledReason: RAGGED_FIELD_REASON,
+        };
+      }
+
+      return { ...base, kind: "leaf" as const, type: sharedType, sample: child };
     }
 
     if (Array.isArray(child)) {
-      if (insideArray) {
+      if (arrayCtx) {
         return {
           ...base,
           kind: "array" as const,
           selectable: false,
-          disabledReason: "Arrays inside arrays are not supported yet",
+          disabledReason: NESTED_ARRAY_REASON,
           arrayLength: child.length,
         };
       }
 
-      const first = child[0];
-      const elementLeafType = leafTypeOf(first);
+      const elements = typeof limit === "number" ? child.slice(0, limit) : child;
+      const elementLeafType = uniformLeafType(elements, []);
 
-      // An array of scalars (["a", "b"]) is itself a leaf, addressed as `tags[]`.
       if (elementLeafType) {
         return {
           ...base,
           path: `${path}[]`,
           kind: "leaf" as const,
           type: elementLeafType,
-          sample: first,
+          sample: elements[0],
           arrayLength: child.length,
         };
       }
 
-      // An array of objects opens its inner fields as `items[].price`.
+      const first = elements[0];
+
+      if (isPlainObject(first)) {
+        return {
+          ...base,
+          kind: "array" as const,
+          selectable: false,
+          arrayLength: child.length,
+          children: buildNodes(first, `${path}[]`, limit, { elements, tail: [] }),
+        };
+      }
+
       return {
         ...base,
         kind: "array" as const,
         selectable: false,
         arrayLength: child.length,
-        children: buildNodes(first, `${path}[]`, true),
+        disabledReason: Array.isArray(first)
+          ? NESTED_ARRAY_REASON
+          : first === undefined
+            ? EMPTY_ARRAY_REASON
+            : RAGGED_ARRAY_REASON,
       };
     }
 
@@ -121,11 +157,15 @@ function buildNodes(value: unknown, parentPath: string, insideArray: boolean): F
         ...base,
         kind: "object" as const,
         selectable: false,
-        children: buildNodes(child, path, insideArray),
+        children: buildNodes(
+          child,
+          path,
+          limit,
+          arrayCtx ? { ...arrayCtx, tail: [...arrayCtx.tail, key] } : undefined
+        ),
       };
     }
 
-    // undefined or a non-JSON type: mark it unselectable rather than dropping it silently.
     return {
       ...base,
       kind: "leaf" as const,
@@ -135,11 +175,10 @@ function buildNodes(value: unknown, parentPath: string, insideArray: boolean): F
   });
 }
 
-export function buildFieldTree(value: unknown): FieldNode[] {
-  return buildNodes(value, "", false);
+export function buildFieldTree(value: unknown, limit?: number): FieldNode[] {
+  return buildNodes(value, "", limit);
 }
 
-/** Flatten every selectable path in a tree, or in one branch of it. */
 export function collectSelectablePaths(nodes: FieldNode[]): string[] {
   return nodes.flatMap((node) => [
     ...(node.selectable && node.kind === "leaf" ? [node.path] : []),
@@ -148,9 +187,9 @@ export function collectSelectablePaths(nodes: FieldNode[]): string[] {
 }
 
 interface ParsedPath {
-  /** Keys before the `[]`. Without a `[]` this is the whole path. */
+  // Keys before the `[]`. Without a `[]` this is the whole path.
   head: string[];
-  /** Keys after the `[]`. `undefined` means the path has no `[]`. */
+  // Keys after the `[]`. `undefined` means the path has no `[]`.
   tail?: string[];
 }
 
@@ -177,13 +216,8 @@ function readKeys(source: unknown, keys: string[]): unknown {
   );
 }
 
-/**
- * Read the value at `path`.
- *
- * A plain path returns that value. A path containing `[]` returns the **array** of values
- * from each element, capped to the first `limit` elements when `limit` is given.
- * Returns `undefined` when the path does not exist.
- */
+// A `[]` path returns the array of values from each element, capped to `limit`. `undefined`
+// when the path does not exist.
 export function getAtPath(source: unknown, path: string, limit?: number): unknown {
   const { head, tail } = parsePath(path);
 
@@ -196,10 +230,6 @@ export function getAtPath(source: unknown, path: string, limit?: number): unknow
   return slice.map((item) => (tail.length === 0 ? item : readKeys(item, tail)));
 }
 
-/**
- * Paths that no longer exist in `value`. Used to stop dead paths from being saved after the
- * body is edited in a way that removes a ticked field.
- */
 export function findMissingPaths(value: unknown, paths: string[]): string[] {
   return paths.filter((path) => getAtPath(value, path) === undefined);
 }
@@ -215,17 +245,9 @@ function writeKeys(target: unknown, keys: string[], value: unknown): boolean {
   return true;
 }
 
-/**
- * Write `value` at `path`, mutating `target` in place.
- *
- * A path containing `[]` requires `value` to be an array and writes element-wise: element i
- * of `value` into element i of the target array. A `value` shorter than the target leaves
- * the remainder untouched, which is exactly how the array upper bound works.
- *
- * Returns `false` when the path does not exist or the type does not match. For a `[]` path
- * the write may have partially happened before the mismatch was found, so callers always
- * work on a clone and discard that whole clone when this returns `false`.
- */
+// Mutates `target` in place, and a `[]` path can be partially written before a mismatch is
+// found, so callers work on a clone and discard the whole clone when this returns `false`.
+// A `value` shorter than the target array leaves the remainder untouched, which is the cap.
 export function setAtPath(target: unknown, path: string, value: unknown): boolean {
   const { head, tail } = parsePath(path);
 

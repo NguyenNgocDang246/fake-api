@@ -2,8 +2,6 @@ import { AppError } from "@/server/core/errors";
 import { AI_MESSAGES, AI_RATE_LIMIT_CALLS, STATUS_CODE } from "@/server/core/constants";
 import type { AiChatParams, AiChatResult, AiProvider, AiSlot } from "@/server/services/ai/ai.types";
 
-// The only providers in this suite are fakes, and nothing from the domain is imported.
-// That is the evidence the AI layer stands on its own.
 const chatMock = jest.fn<Promise<AiChatResult>, [AiChatParams, AiSlot]>();
 const chatStreamMock = jest.fn();
 
@@ -175,7 +173,6 @@ describe("a route narrows which providers a call may use", () => {
     await expect(loaded.chat(params, { providers: ["anthropic"] })).rejects.toMatchObject({
       message: AI_MESSAGES.RATE_LIMITED,
     });
-    // Without the route this same setup falls over to gemini, so the pin is what changed.
     expect((await loaded.chat(params)).model).toBe("gemini");
   });
 
@@ -194,7 +191,6 @@ describe("a route narrows which providers a call may use", () => {
     const loaded = loadRouter(TWO_PROVIDERS);
     chatMock.mockImplementation(async (_params, slot) => okResult(slot.provider));
 
-    // Env says anthropic first; the route says gemini first, and the route decides.
     expect((await loaded.chat(params, { providers: ["gemini", "anthropic"] })).model).toBe(
       "gemini"
     );
@@ -274,7 +270,6 @@ describe("the rate limit caps the whole process, not one caller", () => {
       statusCode: STATUS_CODE.TOO_MANY_REQUESTS,
     });
 
-    // The third call was refused here, not by a provider, so the vendor was never touched.
     expect(chatMock).toHaveBeenCalledTimes(2);
   });
 
@@ -285,7 +280,6 @@ describe("the rate limit caps the whole process, not one caller", () => {
       return okResult(slot.provider);
     });
 
-    // Each of these burns two provider attempts but only one slot of the window.
     await loaded.chat(params);
     await loaded.chat(params);
 
@@ -311,7 +305,6 @@ describe("the rate limit caps the whole process, not one caller", () => {
     const loaded = loadRouter({ ...LIMITED, AI_RATE_LIMIT_CALLS: "1" });
     chatMock.mockImplementation(async (_params, slot) => okResult(slot.provider));
 
-    // Different providers, different params, same single window.
     await loaded.chat(params, { providers: ["anthropic"] });
     await expect(loaded.chat(params, { providers: ["gemini"] })).rejects.toMatchObject({
       message: AI_MESSAGES.TOO_MANY_REQUESTS,
@@ -374,7 +367,6 @@ describe("key rotation inside a provider", () => {
       ANTHROPIC_API_KEYS: "sk-a,sk-b",
       GEMINI_API_KEYS: "gm-a,gm-b",
     });
-    // Anthropic always fails, so every call walks its keys and then falls into gemini.
     chatMock.mockImplementation(async (_params, slot) => {
       if (slot.provider === "anthropic") {
         throw new AppError({ message: `dead ${slot.apiKey}` });
@@ -385,7 +377,6 @@ describe("key rotation inside a provider", () => {
     expect((await loaded.chat(params)).model).toBe("gm-a");
     expect((await loaded.chat(params)).model).toBe("gm-b");
 
-    // Anthropic walked its own keys in order, one per call, untouched by gemini's cursor.
     const anthropicKeys = chatMock.mock.calls
       .map(([, slot]) => slot)
       .filter((slot) => slot.provider === "anthropic")
@@ -404,8 +395,53 @@ describe("key rotation inside a provider", () => {
     await loaded.chat(params);
     await loaded.chat(params);
 
-    // Only anthropic was ever called, so gemini still starts at its first key later.
     expect(chatMock.mock.calls.every(([, slot]) => slot.provider === "anthropic")).toBe(true);
+  });
+});
+
+describe("the attempt chain covers keys, not providers", () => {
+  const slotsTried = () =>
+    chatMock.mock.calls.map(([, slot]) => `${slot.provider}/${slot.apiKey}`);
+
+  it("reaches the second key of a provider even when an earlier one has only one", async () => {
+    const loaded = loadRouter({
+      AI_PROVIDERS: "gemini,anthropic",
+      GEMINI_API_KEYS: "gm-a",
+      ANTHROPIC_API_KEYS: "sk-a,sk-b",
+    });
+    chatMock.mockRejectedValue(new AppError({ message: AI_MESSAGES.PROVIDER_FAILED }));
+
+    await expect(loaded.chat(params)).rejects.toMatchObject({
+      message: AI_MESSAGES.PROVIDER_FAILED,
+    });
+
+    expect(slotsTried()).toEqual(["gemini/gm-a", "anthropic/sk-a", "anthropic/sk-b"]);
+  });
+
+  it("still offers every provider its first key before any provider gets a second", async () => {
+    const loaded = loadRouter({
+      AI_PROVIDERS: "anthropic,gemini",
+      ANTHROPIC_API_KEYS: "sk-a,sk-b",
+      GEMINI_API_KEYS: "gm-a,gm-b",
+    });
+    chatMock.mockRejectedValue(new AppError({ message: AI_MESSAGES.PROVIDER_FAILED }));
+
+    await expect(loaded.chat(params)).rejects.toMatchObject({
+      message: AI_MESSAGES.PROVIDER_FAILED,
+    });
+
+    expect(slotsTried()).toEqual(["anthropic/sk-a", "gemini/gm-a", "anthropic/sk-b"]);
+  });
+
+  it("stops once the keys really are exhausted, rather than counting more than it has", async () => {
+    const loaded = loadRouter(ONE_PROVIDER_TWO_KEYS);
+    chatMock.mockRejectedValue(new AppError({ message: AI_MESSAGES.PROVIDER_FAILED }));
+
+    await expect(loaded.chat(params)).rejects.toMatchObject({
+      message: AI_MESSAGES.PROVIDER_FAILED,
+    });
+
+    expect(slotsTried()).toEqual(["anthropic/sk-a", "anthropic/sk-b"]);
   });
 });
 
@@ -433,7 +469,6 @@ describe("failover", () => {
     const loaded = loadRouter({ AI_PROVIDERS: "anthropic", ANTHROPIC_API_KEYS: "sk-a" });
     chatMock.mockRejectedValue(new AppError({ message: AI_MESSAGES.PROVIDER_AUTH_FAILED }));
 
-    // A rejected key fails the same way every time, so a second attempt is pure latency.
     await expect(loaded.chat(params)).rejects.toMatchObject({
       message: AI_MESSAGES.PROVIDER_AUTH_FAILED,
     });
@@ -449,6 +484,40 @@ describe("failover", () => {
     });
     expect(chatMock).toHaveBeenCalledTimes(1);
   });
+
+  it("stops at the first slot when the vendor called the request malformed", async () => {
+    const loaded = loadRouter(TWO_PROVIDERS);
+    chatMock.mockRejectedValue(
+      new AppError({ message: AI_MESSAGES.PROVIDER_REJECTED_REQUEST })
+    );
+
+    await expect(loaded.chat(params)).rejects.toMatchObject({
+      message: AI_MESSAGES.PROVIDER_REJECTED_REQUEST,
+    });
+    expect(chatMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops at the first key too, not just the first provider", async () => {
+    const loaded = loadRouter(ONE_PROVIDER_TWO_KEYS);
+    chatMock.mockRejectedValue(
+      new AppError({ message: AI_MESSAGES.PROVIDER_REJECTED_REQUEST })
+    );
+
+    await expect(loaded.chat(params)).rejects.toMatchObject({
+      message: AI_MESSAGES.PROVIDER_REJECTED_REQUEST,
+    });
+    expect(chatMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("still fails over on a generic failure, which another provider may survive", async () => {
+    const loaded = loadRouter(TWO_PROVIDERS);
+    chatMock
+      .mockRejectedValueOnce(new AppError({ message: AI_MESSAGES.PROVIDER_FAILED }))
+      .mockImplementationOnce(async (_params, slot) => okResult(slot.provider));
+
+    expect((await loaded.chat(params)).model).toBe("gemini");
+    expect(chatMock).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("retrying a transient failure", () => {
@@ -458,7 +527,6 @@ describe("retrying a transient failure", () => {
       .mockRejectedValueOnce(new AppError({ message: AI_MESSAGES.PROVIDER_OVERLOADED }))
       .mockImplementationOnce(async (_params, slot) => okResult(slot.provider));
 
-    // The single-provider case that used to give up after one attempt.
     expect((await loaded.chat(params)).model).toBe("anthropic");
     expect(chatMock).toHaveBeenCalledTimes(2);
   });
@@ -482,7 +550,6 @@ describe("retrying a transient failure", () => {
       return okResult(slot.provider);
     });
 
-    // Falling over is driven by untried slots, not by the retryable set.
     expect((await loaded.chat(params)).model).toBe("gemini");
   });
 
@@ -527,6 +594,23 @@ describe("retrying a transient failure", () => {
       message: AI_MESSAGES.NOT_CONFIGURED,
     });
     expect(chatMock).not.toHaveBeenCalled();
+  });
+
+  it("does not spend the rate limit window on a call that is not configured", async () => {
+    const loaded = loadRouter({ AI_RATE_LIMIT_CALLS: "1", AI_RATE_LIMIT_WINDOW_SECONDS: "60" });
+
+    await expect(loaded.chat(params)).rejects.toMatchObject({
+      message: AI_MESSAGES.NOT_CONFIGURED,
+    });
+
+    const configured = loadRouter({
+      ...ONE_PROVIDER_TWO_KEYS,
+      AI_RATE_LIMIT_CALLS: "1",
+      AI_RATE_LIMIT_WINDOW_SECONDS: "60",
+    });
+    chatMock.mockImplementationOnce(async (_params, slot) => okResult(slot.provider));
+
+    await expect(configured.chat(params)).resolves.toMatchObject({ model: "anthropic" });
   });
 });
 
@@ -578,5 +662,73 @@ describe("chatStream", () => {
 
     expect(chunks).toEqual(["already sent"]);
     expect(chatStreamMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports a configuration problem at the call, not at the first iteration", () => {
+    const loaded = loadRouter({});
+
+    expect(() => loaded.chatStream(params)).toThrow(AI_MESSAGES.NOT_CONFIGURED);
+  });
+
+  it("consumes the rate limit window even if the caller never iterates", async () => {
+    const loaded = loadRouter({
+      ...TWO_PROVIDERS,
+      AI_RATE_LIMIT_CALLS: "1",
+      AI_RATE_LIMIT_WINDOW_SECONDS: "60",
+    });
+
+    loaded.chatStream(params);
+
+    await expect(loaded.chat(params)).rejects.toMatchObject({
+      message: AI_MESSAGES.TOO_MANY_REQUESTS,
+      statusCode: STATUS_CODE.TOO_MANY_REQUESTS,
+    });
+    expect(chatMock).not.toHaveBeenCalled();
+  });
+
+  describe("a provider that cannot stream", () => {
+    const textOnly: AiProvider = {
+      name: "anthropic",
+      defaultModel: "claude-opus-5",
+      chat: (params, slot) => chatMock(params, slot),
+    };
+
+    let restore: AiProvider | undefined;
+
+    beforeEach(() => {
+      restore = providers["anthropic"];
+      providers["anthropic"] = textOnly;
+    });
+
+    afterEach(() => {
+      if (restore) providers["anthropic"] = restore;
+    });
+
+    it("is dropped from the chain rather than spending an attempt", async () => {
+      const loaded = loadRouter(TWO_PROVIDERS);
+      chatStreamMock.mockImplementation(async function* () {
+        yield "from gemini";
+      });
+
+      const chunks: string[] = [];
+      for await (const chunk of loaded.chatStream(params)) chunks.push(chunk);
+
+      expect(chunks).toEqual(["from gemini"]);
+      expect(chatStreamMock).toHaveBeenCalledTimes(1);
+      expect(chatStreamMock.mock.calls[0]?.[1]).toMatchObject({ provider: "gemini" });
+    });
+
+    it("reports a server that cannot stream at all as a provider problem, not a vendor failure", () => {
+      const loaded = loadRouter({ AI_PROVIDERS: "anthropic", ANTHROPIC_API_KEYS: "a1" });
+
+      expect(() => loaded.chatStream(params)).toThrow(AI_MESSAGES.PROVIDER_NOT_AVAILABLE);
+      expect(chatStreamMock).not.toHaveBeenCalled();
+    });
+
+    it("still answers NOT_CONFIGURED when there is no AI at all", () => {
+      const loaded = loadRouter({});
+
+      expect(() => loaded.chatStream(params)).toThrow(AI_MESSAGES.NOT_CONFIGURED);
+    });
   });
 });

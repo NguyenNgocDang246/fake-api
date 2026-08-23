@@ -102,10 +102,7 @@ export const POST = createRouteHandler<EndpointCollectionRouteParams>(
 
         const endpointCreate = await endpointService.createEndpoint(endpointValidation.data);
 
-        // Fill the pool in the background: the endpoint appears at once, with no wait on a model.
-        if (endpointCreate.ai_enabled && endpointCreate.ai_fields.length > 0) {
-          after(() => endpointVariantService.refillIfNeeded(endpointCreate));
-        }
+        after(() => endpointVariantService.refillIfNeeded(endpointCreate));
 
         const endpointInfoValidation = validateData(
           toEndpointInfoInput(endpointCreate, ctx.endpointGroupId),

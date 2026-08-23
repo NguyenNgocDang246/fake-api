@@ -4,7 +4,11 @@ jest.mock("@/server/services/project.service", () => ({
 }));
 jest.mock("@/server/services/endpoint_group.service", () => ({
   __esModule: true,
-  default: { getAllEndpointGroups: jest.fn(), createEndpointGroup: jest.fn() },
+  default: {
+    getAllEndpointGroups: jest.fn(),
+    createEndpointGroup: jest.fn(),
+    canCreateEndpointGroup: jest.fn(),
+  },
 }));
 
 import ProjectService from "@/server/services/project.service";
@@ -19,6 +23,10 @@ const GROUP_PUBLIC_ID = "cccccccccccc";
 
 describe("src/app/api/project/[projectId]/endpoint-group/route.ts", () => {
   const props = (projectId: string) => ({ params: Promise.resolve({ projectId }) });
+
+  beforeEach(() => {
+    (EndpointGroupService.canCreateEndpointGroup as jest.Mock).mockResolvedValue(true);
+  });
 
   it("GET returns 403 when no permission", async () => {
     (ProjectService.checkPermission as jest.Mock).mockResolvedValue(false);

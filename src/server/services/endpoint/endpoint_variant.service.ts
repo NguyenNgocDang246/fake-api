@@ -9,37 +9,20 @@ import {
 import { ROLE_LIMITS } from "@/server/core/role_limits";
 import { GetUserByIdDTO, UserSchema } from "@/models/user.model";
 import userService from "@/server/services/user.service";
+import { isAiConfigured } from "@/server/services/ai/ai_router.service";
 import { generateVariants } from "@/server/services/endpoint/endpoint_variant_generator.service";
 
-/**
- * Lifecycle of one endpoint's AI variant pool.
- *
- * A request to the fake API only reads from the pool (a single SELECT); bumping the use
- * counter and refilling both run after the response has been sent. Turning AI on therefore
- * costs the endpoint no extra latency.
- */
-
-/** The minimum an endpoint has to expose for the pool. Not tied to Prisma's full row type. */
 export interface VariantEndpoint {
   id: bigint;
   method: string;
   path: string;
   response_body: string;
+  ai_enabled: boolean;
   ai_fields: string[];
   ai_prompt: string | null;
 }
 
 class EndpointVariantService {
-  /**
-   * Take the next variant from the pool. Returns `null` on an empty pool, and the caller
-   * falls back to the base body.
-   *
-   * Ordered rather than random: the order the model produced these variants in is already
-   * arbitrary, so walking from the least used one is enough variety. In exchange this is a
-   * single-row read instead of loading the whole pool to pick from it.
-   *
-   * The counter is not bumped here, so serving a request stays one single read.
-   */
   async pickVariant(endpoints_id: bigint) {
     try {
       return await prisma.endpoint_ai_variants.findFirst({
@@ -63,11 +46,6 @@ class EndpointVariantService {
     }
   }
 
-  /**
-   * Variants that still have uses left. This, not the raw row count, is what tells a refill how
-   * much to generate: a full pool of worn out rows is a pool that needs replacing, not one that
-   * is already stocked.
-   */
   async countUsableVariants(endpoints_id: bigint) {
     try {
       return await prisma.endpoint_ai_variants.count({
@@ -78,35 +56,32 @@ class EndpointVariantService {
     }
   }
 
-  async listVariants(endpoints_id: bigint) {
-    try {
-      return await prisma.endpoint_ai_variants.findMany({
-        where: { endpoints_id },
-        orderBy: { created_at: "desc" },
-      });
-    } catch (error) {
-      throw error instanceof AppError ? error : new AppError();
-    }
-  }
-
-  /** Call when the body, the field list or the hint changes: the old pool is stale. */
+  // Drops the refill lock too: it doubles as the retry cooldown, and an edit is exactly the
+  // signal that the inputs changed, so the cooldown must not survive one.
   async clearVariants(endpoints_id: bigint) {
     try {
-      return await prisma.endpoint_ai_variants.deleteMany({ where: { endpoints_id } });
+      const deleted = await prisma.endpoint_ai_variants.deleteMany({ where: { endpoints_id } });
+      await prisma.$executeRaw`
+        UPDATE "endpoints" SET "ai_refill_started_at" = NULL WHERE "id" = ${endpoints_id}
+      `;
+      return deleted;
     } catch (error) {
       throw error instanceof AppError ? error : new AppError();
     }
   }
 
-  /**
-   * A pool needs topping up when the rows that still have uses left run below the low water
-   * mark, however many rows it holds in total.
-   *
-   * Measured on usable rows rather than raw ones for the same reason the batch size is: a
-   * full pool of worn out variants is a pool that needs replacing. That one comparison also
-   * covers the empty pool and the fully worn one, both of which count zero usable rows, so
-   * serving a request asks the database a single question.
-   */
+  async holdsRefillLock(endpoints_id: bigint, startedAt: Date) {
+    try {
+      const row = await prisma.endpoints.findUnique({
+        where: { id: endpoints_id },
+        select: { ai_refill_started_at: true },
+      });
+      return row?.ai_refill_started_at?.getTime() === startedAt.getTime();
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
   async needsRefill(endpoints_id: bigint) {
     try {
       return (await this.countUsableVariants(endpoints_id)) < AI_POOL_LOW_WATER;
@@ -115,20 +90,8 @@ class EndpointVariantService {
     }
   }
 
-  /**
-   * Soft lock so two processes do not refill the same endpoint at once, which would mean
-   * paying for the same model call twice. Returns the timestamp it wrote, which is the token
-   * `releaseRefillLock` needs, or `null` when someone else holds the lock.
-   *
-   * The timestamp comes from the application rather than `NOW()` so both sides of the
-   * staleness comparison read the same clock: with `NOW()` the column carries database time
-   * while `staleBefore` carries app time, and any skew between the two moves the window.
-   *
-   * Raw SQL rather than `prisma.endpoints.update` because `updated_at` carries `@updatedAt`:
-   * writing through Prisma would push the endpoint to the front of the `updated_at desc`
-   * ordering that `getEndpointByDynamicPath` relies on, changing how ties between path
-   * templates are broken.
-   */
+  // Raw SQL, not `prisma.endpoints.update`: `updated_at` carries `@updatedAt`, so writing through
+  // Prisma would reorder the `updated_at desc` tie-break in `getEndpointByDynamicPath`.
   async acquireRefillLock(endpoints_id: bigint) {
     try {
       const startedAt = new Date();
@@ -145,11 +108,6 @@ class EndpointVariantService {
     }
   }
 
-  /**
-   * Release only our own lock. A refill that outran `AI_REFILL_LOCK_MS` has already had the
-   * lock taken from it, and without the timestamp in the `WHERE` it would clear the new
-   * holder's lock on its way out and let a third refill start.
-   */
   async releaseRefillLock(endpoints_id: bigint, startedAt: Date) {
     try {
       await prisma.$executeRaw`
@@ -161,14 +119,6 @@ class EndpointVariantService {
     }
   }
 
-  /**
-   * Keep the pool at `AI_POOL_SIZE` by dropping the most used variants.
-   *
-   * Ordered least used first, so `skip: AI_POOL_SIZE` leaves the freshest `AI_POOL_SIZE` rows
-   * alone and returns the worn tail. This is what retires a batch: `refillIfNeeded` generates
-   * the replacements first and prunes after, so the pool never dips while the model is running.
-   * Ties on `used_count` keep the newer row, since the older one has had its turn.
-   */
   async prunePool(endpoints_id: bigint) {
     try {
       const surplus = await prisma.endpoint_ai_variants.findMany({
@@ -188,19 +138,36 @@ class EndpointVariantService {
     }
   }
 
-  /** Generate new variants and store them. Returns how many rows were added. */
-  async generateAndStore({ endpoint, count }: { endpoint: VariantEndpoint; count: number }) {
-    const { bodies } = await generateVariants({
-      method: endpoint.method,
-      path: endpoint.path,
-      responseBody: endpoint.response_body,
-      aiFields: endpoint.ai_fields,
-      aiPrompt: endpoint.ai_prompt,
-      count,
-    });
-    if (bodies.length === 0) return 0;
-
+  // A model call takes seconds, so an edit can land mid-generation and drop the lock: re-checking
+  // ownership before the write stops variants built from a body that no longer exists.
+  async generateAndStore({
+    endpoint,
+    count,
+    startedAt,
+  }: {
+    endpoint: VariantEndpoint;
+    count: number;
+    startedAt?: Date;
+  }) {
     try {
+      const { bodies } = await generateVariants({
+        method: endpoint.method,
+        path: endpoint.path,
+        responseBody: endpoint.response_body,
+        aiFields: endpoint.ai_fields,
+        aiPrompt: endpoint.ai_prompt,
+        count,
+      });
+      if (bodies.length === 0) return 0;
+
+      if (startedAt && !(await this.holdsRefillLock(endpoint.id, startedAt))) {
+        console.warn("[ai] refill lost its lock mid-generation, discarding", {
+          endpoint_id: String(endpoint.id),
+          generated: bodies.length,
+        });
+        return 0;
+      }
+
       const { count: created } = await prisma.endpoint_ai_variants.createMany({
         data: bodies.map((response_body) => ({ endpoints_id: endpoint.id, response_body })),
       });
@@ -211,23 +178,11 @@ class EndpointVariantService {
     }
   }
 
-  /**
-   * Refill in the background. Never throws: this runs after the response has already been
-   * sent, and one failed refill just means the next request serves the base body.
-   *
-   * The lock doubles as the retry cooldown, which is why it is released deliberately instead
-   * of in a `finally`. A refill that produced nothing, because the provider is down, the
-   * quota is spent, or the model returned no usable body, leaves `ai_refill_started_at` set
-   * so the next attempt waits out `AI_REFILL_LOCK_MS` instead of firing on the very next
-   * request. Releasing unconditionally meant a dead provider cost one model call per request
-   * until the daily quota stopped it. Only a refill that stored rows, or one that found the
-   * pool already stocked, hands the lock back early.
-   *
-   * The manual regenerate route bypasses the lock entirely, so a cooldown never blocks the
-   * button a user can press.
-   */
+  // Never throws, and the lock is released deliberately rather than in a `finally`: a refill
+  // that produced nothing must leave it set, since it doubles as the retry cooldown.
   async refillIfNeeded(endpoint: VariantEndpoint) {
-    if (endpoint.ai_fields.length === 0) return 0;
+    if (!endpoint.ai_enabled || endpoint.ai_fields.length === 0) return 0;
+    if (!isAiConfigured()) return 0;
 
     let startedAt: Date | null = null;
 
@@ -240,31 +195,24 @@ class EndpointVariantService {
       const usable = await this.countUsableVariants(endpoint.id);
       const missing = Math.max(AI_POOL_SIZE - usable, 0);
       if (missing === 0) {
-        // Another process refilled while we were asking: nothing failed, so no cooldown.
         await this.releaseRefillLock(endpoint.id, startedAt);
         return 0;
       }
 
-      // Checked here rather than before the lock: this is the last step before spending
-      // tokens, and the quota only matters once a refill is actually going to happen.
       if (!(await this.canRefill(endpoint.id))) return 0;
 
-      const created = await this.generateAndStore({ endpoint, count: missing });
+      const created = await this.generateAndStore({ endpoint, count: missing, startedAt });
       if (created > 0) {
         await this.releaseRefillLock(endpoint.id, startedAt);
         return created;
       }
 
-      // The call succeeded and still stored nothing, which used to leave no trace at all:
-      // an endpoint whose body the model cannot vary would refill forever in silence.
       console.warn("[ai] refill produced no variant", {
         endpoint_id: String(endpoint.id),
         requested: missing,
       });
       return 0;
     } catch (error) {
-      // `error` carries the user-facing message; `cause` is where the provider's own
-      // explanation lives, so log both or the log says nothing useful.
       console.error("[ai] refill failed", {
         endpoint_id: String(endpoint.id),
         reason: error instanceof Error ? error.message : String(error),
@@ -274,7 +222,6 @@ class EndpointVariantService {
     }
   }
 
-  /** Variants this user generated since midnight, compared against the per-role quota. */
   async countVariantsCreatedToday({ public_id }: GetUserByIdDTO) {
     try {
       const startOfDay = new Date();
@@ -294,21 +241,20 @@ class EndpointVariantService {
   }
 
   async canGenerate({ public_id }: GetUserByIdDTO) {
-    const user = await userService.getUserById({ public_id });
-    if (!user) return false;
+    try {
+      const user = await userService.getUserById({ public_id });
+      if (!user) return false;
 
-    const role = UserSchema.shape.role.parse(user.role);
-    const limit = ROLE_LIMITS[role].maxAiVariantsPerDay;
-    if (limit === 0) return false;
+      const role = UserSchema.shape.role.parse(user.role);
+      const limit = ROLE_LIMITS[role].maxAiVariantsPerDay;
+      if (limit === 0) return false;
 
-    return (await this.countVariantsCreatedToday({ public_id })) < limit;
+      return (await this.countVariantsCreatedToday({ public_id })) < limit;
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
   }
 
-  /**
-   * The same daily quota as `canGenerate`, for the background refill, which has an endpoint id
-   * rather than a signed-in user. Without it a hammered endpoint would refill forever: the two
-   * routes a user clicks are quota checked, but nothing was guarding the automatic path.
-   */
   async canRefill(endpoints_id: bigint) {
     try {
       const owner = await prisma.endpoints.findUnique({

@@ -42,11 +42,24 @@ async function handle(req: NextRequest, method: EndpointMethod["method"]) {
       ...pathValidation.data,
     });
   }
-  if (!endpoint)
+  if (!endpoint) {
+    const allow = await EndpointService.findMethodsForPath({
+      project_public_id: publicId,
+      path: pathname,
+    });
+    if (allow.length > 0) {
+      return ApiResponse.error({
+        message: ERROR_MESSAGES.METHOD_NOT_ALLOWED,
+        statusCode: STATUS_CODE.METHOD_NOT_ALLOWED,
+        errors: { allow },
+      });
+    }
+
     return ApiResponse.error({
       message: ERROR_MESSAGES.NOT_FOUND,
       statusCode: STATUS_CODE.NOT_FOUND,
     });
+  }
 
   const endpointValidation = validateData(
     {
@@ -62,12 +75,6 @@ async function handle(req: NextRequest, method: EndpointMethod["method"]) {
   const validEndpoint = endpointValidation.data;
   await sleep(validEndpoint.delay_ms || 0);
 
-  if (validEndpoint.method !== method)
-    return ApiResponse.error({
-      message: ERROR_MESSAGES.METHOD_NOT_ALLOWED,
-      statusCode: STATUS_CODE.METHOD_NOT_ALLOWED,
-    });
-
   if (validEndpoint.status_code == STATUS_CODE.NO_CONTENT)
     return new NextResponse(null, { status: STATUS_CODE.NO_CONTENT });
 
@@ -78,13 +85,6 @@ async function handle(req: NextRequest, method: EndpointMethod["method"]) {
   });
 }
 
-/**
- * Decide which body to return. An AI-enabled endpoint takes the next variant from its pool,
- * while bumping the use counter and refilling move to `after()` so the request is no slower.
- *
- * Every failure path falls back to the base body: an empty pool, a corrupt variant, or a
- * dead provider must never make the fake API return an error.
- */
 async function resolveBody(
   endpoint: {
     id: bigint;
@@ -101,16 +101,39 @@ async function resolveBody(
 
   try {
     const variant = await EndpointVariantService.pickVariant(endpoint.id);
+    // Parsed before the callback is scheduled, so a corrupt row is not counted as used for a
+    // response nobody received.
+    const body = variant ? readVariantBody(variant.response_body, endpoint.path) : null;
 
     after(async () => {
-      if (variant) await EndpointVariantService.markVariantUsed(variant.id);
-      await EndpointVariantService.refillIfNeeded(endpoint);
+      try {
+        if (variant && body !== null) await EndpointVariantService.markVariantUsed(variant.id);
+        await EndpointVariantService.refillIfNeeded(endpoint);
+      } catch (error) {
+        console.error("[ai] post-response variant work failed", {
+          endpoint_id: String(endpoint.id),
+          reason: error instanceof Error ? error.message : String(error),
+        });
+      }
     });
 
-    return variant ? JSON.parse(variant.response_body) : baseBody;
+    return body === null ? baseBody : body.value;
   } catch (error) {
     console.error("[ai] falling back to base body", { path: endpoint.path, error });
     return baseBody;
+  }
+}
+
+// Wrapped in an object so a variant that legitimately parses to `null` stays distinguishable
+function readVariantBody(responseBody: string, path: string): { value: unknown } | null {
+  try {
+    return { value: JSON.parse(responseBody) };
+  } catch (error) {
+    console.error("[ai] stored variant is not valid JSON, serving the base body", {
+      path,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    return null;
   }
 }
 

@@ -1,10 +1,5 @@
 import { isArrayPath } from "@/app/libs/helpers/json_path";
 
-/**
- * The prompt used to generate response variants. Kept apart from the logic so the wording
- * can be tuned without touching path extraction or patch validation.
- */
-
 export const VARIANT_SYSTEM_PROMPT = `You generate realistic variants of a mock HTTP API response body.
 
 You will receive:
@@ -58,12 +53,9 @@ nested objects may show as "{...}". Treat those as elisions, not as real data.`;
 
 export interface EditableField {
   path: string;
-  /** JSON type of the original value, or of the element type for an array path. */
   type: string;
   currentValue: unknown;
-  /** How many elements the model must return; array paths only, already capped. */
   arrayLength?: number;
-  /** The array's real length, so the prompt can say the rest keeps its values. */
   totalArrayLength?: number;
 }
 
@@ -79,10 +71,6 @@ function describeField(field: EditableField): string {
   return `- ${field.path} (${shape})\n  current: ${JSON.stringify(field.currentValue)}`;
 }
 
-/**
- * An endpoint's stable context block. It is byte-identical across refills of the same
- * endpoint, which makes it the right place for the prompt caching breakpoint.
- */
 export function buildVariantContextBlock({
   method,
   path,
@@ -99,10 +87,6 @@ export function buildVariantContextBlock({
   }:\n${contextBody}`;
 }
 
-/**
- * The varying part of a call. The body is deliberately not repeated here: it already sits
- * in the context block above, and restating it pays for the same tokens twice.
- */
 export function buildVariantUserMessage({
   fields,
   variantCount,
@@ -118,8 +102,6 @@ export function buildVariantUserMessage({
   ];
 
   if (authorInstructions?.trim()) {
-    // The API author's hint is user input, not a system instruction: label it clearly so
-    // it cannot override the rules in the system prompt.
     sections.unshift(
       `Additional instructions from the API author:\n${authorInstructions.trim()}`
     );
@@ -135,10 +117,6 @@ const JSON_TYPE_SCHEMA: Record<string, Record<string, unknown>> = {
   null: { type: "null" },
 };
 
-/**
- * Structured output schema, tightening things model-side for providers that support it.
- * Not the real gate: that is `validateVariantPatch`.
- */
 export function buildVariantJsonSchema(fields: EditableField[]): Record<string, unknown> {
   const properties = Object.fromEntries(
     fields.map((field) => {

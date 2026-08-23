@@ -1,5 +1,12 @@
-import { AI_CONTEXT_MAX_CHARS, AI_MESSAGES } from "@/server/core/constants";
-import { MAX_AI_ARRAY_ITEMS } from "@/models/endpoint.model";
+import {
+  AI_CONTEXT_MAX_CHARS,
+  AI_MAX_OUTPUT_TOKENS,
+  AI_MESSAGES,
+  AI_MIN_OUTPUT_TOKENS,
+  AI_THINKING_RESERVE,
+  AI_TOKENS_PER_VALUE,
+} from "@/server/core/constants";
+import { MAX_AI_ARRAY_ITEMS, MAX_AI_VALUES } from "@/models/endpoint.model";
 import type { AiChatParams, AiChatResult } from "@/server/services/ai/ai.types";
 
 const chatMock = jest.fn<Promise<AiChatResult>, [AiChatParams]>();
@@ -109,6 +116,24 @@ describe("buildEditableFields", () => {
     expect(field?.totalArrayLength).toBe(200);
     expect((field?.currentValue as number[]).length).toBe(MAX_AI_ARRAY_ITEMS);
   });
+
+  it("drops a path pointing at an object rather than a leaf", () => {
+    expect(buildEditableFields(BASE, ["user"])).toEqual([]);
+  });
+
+  it("drops a path pointing at an array of objects", () => {
+    expect(buildEditableFields({ items: [{ price: 1 }] }, ["items"])).toEqual([]);
+  });
+
+  it("drops an array path whose elements are not leaves", () => {
+    expect(buildEditableFields({ items: [{ price: 1 }, { price: 2 }] }, ["items[]"])).toEqual([]);
+  });
+
+  it("keeps the usable fields when an unusable one sits beside them", () => {
+    expect(buildEditableFields(BASE, ["user", "user.name"])).toEqual([
+      { path: "user.name", type: "string", currentValue: "Nguyen Van An" },
+    ]);
+  });
 });
 
 describe("planBatch", () => {
@@ -125,6 +150,44 @@ describe("planBatch", () => {
     expect(plan.variantCount).toBeLessThan(10);
     expect(plan.variantCount).toBeGreaterThanOrEqual(1);
     expect(plan.maxTokens).toBeLessThanOrEqual(8_000);
+  });
+
+  it("refuses a selection too wide for even one variant to fit", () => {
+    const wide: Record<string, string> = {};
+    for (let index = 0; index < 400; index += 1) wide[`f${index}`] = "x";
+    const fields = buildEditableFields(wide, Object.keys(wide));
+
+    expect(() => planBatch(fields, 1)).toThrow(AI_MESSAGES.FIELDS_TOO_LARGE);
+  });
+
+  it("floors the budget so a small selection still has room to think", () => {
+    const fields = buildEditableFields({ name: "An" }, ["name"]);
+
+    expect(planBatch(fields, 1).maxTokens).toBe(AI_MIN_OUTPUT_TOKENS);
+  });
+
+  it("keeps room for thinking at the wide end, where the floor never applies", () => {
+    const items = Array.from({ length: 200 }, (_, index) => ({ price: index }));
+    const fields = buildEditableFields({ items }, ["items[].price"]);
+    const plan = planBatch(fields, 10);
+
+    const jsonTokens = plan.variantCount * MAX_AI_ARRAY_ITEMS * AI_TOKENS_PER_VALUE + 512;
+    expect(plan.maxTokens).toBeGreaterThan(jsonTokens);
+    expect(plan.maxTokens - jsonTokens).toBeGreaterThanOrEqual(
+      Math.floor(jsonTokens * AI_THINKING_RESERVE)
+    );
+    expect(plan.maxTokens).toBeLessThanOrEqual(AI_MAX_OUTPUT_TOKENS);
+  });
+
+  it("accepts a selection at the MAX_AI_VALUES ceiling", () => {
+    const body = Object.fromEntries(
+      Array.from({ length: MAX_AI_VALUES }, (_, index) => [`f${index}`, "x"])
+    );
+    const fields = buildEditableFields(body, Object.keys(body));
+
+    expect(fields).toHaveLength(MAX_AI_VALUES);
+    expect(() => planBatch(fields, 1)).not.toThrow();
+    expect(planBatch(fields, 1).maxTokens).toBeLessThanOrEqual(AI_MAX_OUTPUT_TOKENS);
   });
 });
 
@@ -334,8 +397,64 @@ describe("generateVariants", () => {
 
   it("errors instead of calling the model when no valid field is left", async () => {
     await expect(generateVariants(input({ aiFields: ["does.not.exist"] }))).rejects.toMatchObject({
+      message: AI_MESSAGES.FIELDS_NOT_PATCHABLE,
+    });
+    expect(chatMock).not.toHaveBeenCalled();
+  });
+
+  it("says nothing was selected only when the field list really is empty", async () => {
+    await expect(generateVariants(input({ aiFields: [] }))).rejects.toMatchObject({
       message: AI_MESSAGES.NO_FIELDS_SELECTED,
     });
     expect(chatMock).not.toHaveBeenCalled();
+  });
+
+  it("reports a ragged array path as unpatchable rather than as an empty selection", async () => {
+    await expect(
+      generateVariants(
+        input({
+          responseBody: JSON.stringify({ items: [{ price: 1 }, { price: "2" }] }),
+          aiFields: ["items[].price"],
+        })
+      )
+    ).rejects.toMatchObject({ message: AI_MESSAGES.FIELDS_NOT_PATCHABLE });
+    expect(chatMock).not.toHaveBeenCalled();
+  });
+
+  it("says the selection is too large when the answer was cut off at the budget", async () => {
+    chatMock.mockResolvedValue({
+      text: '{"variants":[{"user.name":"Tran',
+      provider: "anthropic",
+      model: "claude-opus-5",
+      stopReason: "max_tokens",
+    });
+
+    await expect(generateVariants(input())).rejects.toMatchObject({
+      message: AI_MESSAGES.FIELDS_TOO_LARGE,
+    });
+  });
+
+  it("still returns nothing, without erroring, when a complete answer is unusable", async () => {
+    chatMock.mockResolvedValue({
+      text: "the model apologises and explains itself in prose",
+      provider: "anthropic",
+      model: "claude-opus-5",
+      stopReason: "stop",
+    });
+
+    await expect(generateVariants(input())).resolves.toMatchObject({ bodies: [] });
+  });
+
+  it("does not error on a truncated answer that still yielded a usable variant", async () => {
+    chatMock.mockResolvedValue({
+      text: '{"variants":[{"user.name":"Tran Binh","user.email":"binh@example.com"}]}',
+      provider: "anthropic",
+      model: "claude-opus-5",
+      stopReason: "max_tokens",
+    });
+
+    const { bodies } = await generateVariants(input());
+
+    expect(bodies).toHaveLength(1);
   });
 });

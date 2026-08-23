@@ -5,7 +5,13 @@ jest.mock("@/server/services/endpoint/endpoint.service", () => ({
     getEndpointByPath: jest.fn(),
     createEndpoint: jest.fn(),
     deleteAllEndpoints: jest.fn(),
+    canCreateEndpoint: jest.fn(),
   },
+}));
+
+jest.mock("@/server/services/endpoint/endpoint_variant.service", () => ({
+  __esModule: true,
+  default: { refillIfNeeded: jest.fn() },
 }));
 jest.mock("@/server/services/endpoint_group.service", () => ({
   __esModule: true,
@@ -26,6 +32,10 @@ const ENDPOINT_PUBLIC_ID = "dddddddddddd";
 describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpoint/route.ts", () => {
   const props = (projectId: string, endpointGroupId: string) => ({
     params: Promise.resolve({ projectId, endpointGroupId }),
+  });
+
+  beforeEach(() => {
+    (EndpointService.canCreateEndpoint as jest.Mock).mockResolvedValue(true);
   });
 
   it("GET returns 204 when list empty", async () => {

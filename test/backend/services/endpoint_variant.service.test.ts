@@ -26,9 +26,15 @@ jest.mock("@/server/services/user.service", () => ({
   default: { getUserById: jest.fn() },
 }));
 
+jest.mock("@/server/services/ai/ai_router.service", () => ({
+  __esModule: true,
+  isAiConfigured: jest.fn(() => true),
+}));
+
 import { prisma } from "@/server/prisma/prisma_provider";
 import { generateVariants } from "@/server/services/endpoint/endpoint_variant_generator.service";
 import userService from "@/server/services/user.service";
+import { isAiConfigured } from "@/server/services/ai/ai_router.service";
 import endpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
 import { AI_POOL_LOW_WATER, AI_POOL_SIZE } from "@/server/core/constants";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
@@ -40,14 +46,11 @@ const endpoint = {
   method: "GET",
   path: "/user/:id",
   response_body: '{"name":"An"}',
+  ai_enabled: true,
   ai_fields: ["name"],
   ai_prompt: null,
 };
 
-/**
- * `count` answers two different questions (how many variants are still usable, how many this
- * user generated today), so a flat `mockResolvedValue` cannot serve them. Route by `where`.
- */
 function mockCounts({ usable, today = 0 }: { usable: number; today?: number }) {
   (prisma.endpoint_ai_variants.count as jest.Mock).mockImplementation(async (args) => {
     const where = args?.where ?? {};
@@ -55,10 +58,17 @@ function mockCounts({ usable, today = 0 }: { usable: number; today?: number }) {
   });
 }
 
-/** The owner lookup `canRefill` runs, plus the role it resolves to. */
-function mockOwner(role = "USER") {
-  (prisma.endpoints.findUnique as jest.Mock).mockResolvedValue({
-    endpoint_groups: { projects: { users: { public_id: "u1" } } },
+function takenLockTimestamp(): Date | null {
+  const calls = (prisma.$executeRaw as unknown as jest.Mock).mock.calls;
+  return calls[0]?.find((value: unknown) => value instanceof Date) ?? null;
+}
+
+function mockOwner(role = "USER", { lockHeld = true } = {}) {
+  (prisma.endpoints.findUnique as jest.Mock).mockImplementation(async (args) => {
+    if (args?.select?.ai_refill_started_at) {
+      return { ai_refill_started_at: lockHeld ? takenLockTimestamp() : null };
+    }
+    return { endpoint_groups: { projects: { users: { public_id: "u1" } } } };
   });
   (userService.getUserById as jest.Mock).mockResolvedValue({ role });
 }
@@ -96,9 +106,6 @@ describe("pickVariant", () => {
 });
 
 describe("needsRefill", () => {
-  // Counted on usable rows, not raw ones: a pool of `AI_POOL_SIZE` rows with this many uses
-  // left used to look stocked, so the refill only fired once the last one had worn out too,
-  // never ahead of running dry.
   it("is true when too few variants still have uses left", async () => {
     mockCounts({ usable: AI_POOL_LOW_WATER - 1 });
 
@@ -133,13 +140,11 @@ describe("refillIfNeeded", () => {
 
     await expect(endpointVariantService.refillIfNeeded(endpoint)).resolves.toBe(0);
     expect(generateVariants).not.toHaveBeenCalled();
-    // Not even the lock is touched, so a healthy pool costs one read and no write.
     expect(prisma.$executeRaw).not.toHaveBeenCalled();
   });
 
   it("gives up when another process already holds the lock", async () => {
     mockCounts({ usable: 0 });
-    // The conditional UPDATE matched no row, so the lock is held elsewhere.
     (prisma.$executeRaw as unknown as jest.Mock).mockResolvedValue(0);
 
     await expect(endpointVariantService.refillIfNeeded(endpoint)).resolves.toBe(0);
@@ -159,12 +164,9 @@ describe("refillIfNeeded", () => {
     expect(generateVariants).toHaveBeenCalledWith(
       expect.objectContaining({ count: AI_POOL_SIZE - 2 })
     );
-    // Once to take the lock, once to release it.
     expect(prisma.$executeRaw).toHaveBeenCalledTimes(2);
   });
 
-  // The pool used to freeze here: it was full, so the old `AI_POOL_SIZE - existing` said nothing
-  // was missing and no variant was ever replaced, however worn out it got.
   it("replaces a full pool whose variants are all worn out", async () => {
     mockCounts({ usable: 0 });
     mockOwner();
@@ -180,7 +182,6 @@ describe("refillIfNeeded", () => {
   });
 
   it("releases the lock when another process filled the pool first", async () => {
-    // Below the low water mark when asked, already full by the time the lock is taken.
     let usable = 0;
     (prisma.endpoint_ai_variants.count as jest.Mock).mockImplementation(async () => {
       const answer = usable;
@@ -191,7 +192,6 @@ describe("refillIfNeeded", () => {
 
     await expect(endpointVariantService.refillIfNeeded(endpoint)).resolves.toBe(0);
     expect(generateVariants).not.toHaveBeenCalled();
-    // Nothing failed, so the lock goes back rather than becoming a cooldown.
     expect(prisma.$executeRaw).toHaveBeenCalledTimes(2);
   });
 
@@ -205,16 +205,40 @@ describe("refillIfNeeded", () => {
 
     await endpointVariantService.refillIfNeeded(endpoint);
 
-    // Both statements are tagged templates, so the values arrive as the second argument.
     const calls = (prisma.$executeRaw as unknown as jest.Mock).mock.calls;
     const written = calls[0].find((value: unknown) => value instanceof Date) as Date;
     const cleared = calls[1].find((value: unknown) => value instanceof Date) as Date;
-    // Without this the release clears whichever lock is current, including a later holder's.
     expect(cleared.getTime()).toBe(written.getTime());
   });
 
-  // Each of the next three used to release the lock, so the very next request tried again and
-  // a dead provider cost one model call per request. The lock now doubles as the cooldown.
+  it("discards its work when the lock was taken away mid-generation", async () => {
+    const consoleWarn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    mockCounts({ usable: 0 });
+    mockOwner("USER", { lockHeld: false });
+    (prisma.$executeRaw as unknown as jest.Mock).mockResolvedValue(1);
+    (generateVariants as jest.Mock).mockResolvedValue({ bodies: ['{"name":"Binh"}'] });
+
+    await expect(endpointVariantService.refillIfNeeded(endpoint)).resolves.toBe(0);
+
+    expect(generateVariants).toHaveBeenCalled();
+    expect(prisma.endpoint_ai_variants.createMany).not.toHaveBeenCalled();
+    expect(consoleWarn).toHaveBeenCalled();
+
+    consoleWarn.mockRestore();
+  });
+
+  it("still stores when it holds the same lock it took", async () => {
+    mockCounts({ usable: 0 });
+    mockOwner("USER", { lockHeld: true });
+    (prisma.$executeRaw as unknown as jest.Mock).mockResolvedValue(1);
+    (generateVariants as jest.Mock).mockResolvedValue({ bodies: ['{"name":"Binh"}'] });
+    (prisma.endpoint_ai_variants.createMany as jest.Mock).mockResolvedValue({ count: 1 });
+    (prisma.endpoint_ai_variants.findMany as jest.Mock).mockResolvedValue([]);
+
+    await expect(endpointVariantService.refillIfNeeded(endpoint)).resolves.toBe(1);
+    expect(prisma.endpoint_ai_variants.createMany).toHaveBeenCalled();
+  });
+
   it("keeps the lock as a cooldown when the owner's daily quota is spent", async () => {
     mockCounts({ usable: 0, today: ROLE_LIMITS.USER.maxAiVariantsPerDay });
     mockOwner();
@@ -222,7 +246,6 @@ describe("refillIfNeeded", () => {
 
     await expect(endpointVariantService.refillIfNeeded(endpoint)).resolves.toBe(0);
     expect(generateVariants).not.toHaveBeenCalled();
-    // Taken, never given back: the quota only resets at midnight.
     expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
   });
 
@@ -233,7 +256,6 @@ describe("refillIfNeeded", () => {
     (prisma.$executeRaw as unknown as jest.Mock).mockResolvedValue(1);
     (generateVariants as jest.Mock).mockRejectedValue(new Error("provider down"));
 
-    // Never throws: this runs after the response was sent, so a failure is only a log.
     await expect(endpointVariantService.refillIfNeeded(endpoint)).resolves.toBe(0);
     expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
     expect(consoleError).toHaveBeenCalled();
@@ -251,7 +273,6 @@ describe("refillIfNeeded", () => {
     await expect(endpointVariantService.refillIfNeeded(endpoint)).resolves.toBe(0);
     expect(prisma.endpoint_ai_variants.createMany).not.toHaveBeenCalled();
     expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
-    // This path used to be completely silent, so an endpoint that never refilled left no trace.
     expect(consoleWarn).toHaveBeenCalled();
 
     consoleWarn.mockRestore();
@@ -263,6 +284,36 @@ describe("refillIfNeeded", () => {
     ).resolves.toBe(0);
     expect(prisma.endpoint_ai_variants.count).not.toHaveBeenCalled();
   });
+
+  it("does not take the lock when this server has no AI configured", async () => {
+    (isAiConfigured as jest.Mock).mockReturnValueOnce(false);
+    mockCounts({ usable: 0 });
+
+    await expect(endpointVariantService.refillIfNeeded(endpoint)).resolves.toBe(0);
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
+    expect(prisma.endpoint_ai_variants.count).not.toHaveBeenCalled();
+    expect(generateVariants).not.toHaveBeenCalled();
+  });
+});
+
+describe("clearVariants", () => {
+  it("deletes every variant of the endpoint", async () => {
+    (prisma.endpoint_ai_variants.deleteMany as jest.Mock).mockResolvedValue({ count: 4 });
+
+    await expect(endpointVariantService.clearVariants(ENDPOINT_ID)).resolves.toEqual({ count: 4 });
+    expect(prisma.endpoint_ai_variants.deleteMany).toHaveBeenCalledWith({
+      where: { endpoints_id: ENDPOINT_ID },
+    });
+  });
+
+  it("drops the refill cooldown so a corrective edit is not made to wait it out", async () => {
+    (prisma.endpoint_ai_variants.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+    await endpointVariantService.clearVariants(ENDPOINT_ID);
+
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.endpoints.update).toBeUndefined();
+  });
 });
 
 describe("prunePool", () => {
@@ -272,7 +323,6 @@ describe("prunePool", () => {
 
     await expect(endpointVariantService.prunePool(ENDPOINT_ID)).resolves.toBe(1);
 
-    // Least used first, so skipping the first `AI_POOL_SIZE` leaves the worn rows to delete.
     expect(prisma.endpoint_ai_variants.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         orderBy: [{ used_count: "asc" }, { created_at: "desc" }],

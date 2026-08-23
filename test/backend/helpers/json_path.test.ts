@@ -185,3 +185,76 @@ describe("buildFieldTree", () => {
     }
   });
 });
+
+describe("buildFieldTree array element types", () => {
+  const leafFor = (value: unknown, label: string) => {
+    const arrayNode = buildFieldTree(value).find((node) => node.label === "items");
+    return arrayNode?.children?.find((child) => child.label === label);
+  };
+
+  it("offers a field the whole array carries with one type", () => {
+    const leaf = leafFor({ items: [{ price: 1 }, { price: 2 }] }, "price");
+
+    expect(leaf?.selectable).toBe(true);
+    expect(leaf?.type).toBe("number");
+  });
+
+  it("refuses a field whose type changes between elements", () => {
+    const leaf = leafFor({ items: [{ price: 1 }, { price: "2" }] }, "price");
+
+    expect(leaf?.selectable).toBe(false);
+    expect(leaf?.disabledReason).toBeDefined();
+  });
+
+  it("refuses a field a later element does not carry at all", () => {
+    const leaf = leafFor({ items: [{ price: 1 }, { sku: "B2" }] }, "price");
+
+    expect(leaf?.selectable).toBe(false);
+  });
+
+  it("refuses a field under an element that is not an object at all", () => {
+    const leaf = leafFor({ items: [{ price: 1 }, "surprise"] }, "price");
+
+    expect(leaf?.selectable).toBe(false);
+  });
+
+  it("treats null as its own element type", () => {
+    expect(leafFor({ items: [{ price: null }, { price: 2 }] }, "price")?.selectable).toBe(false);
+    expect(leafFor({ items: [{ price: null }, { price: null }] }, "price")?.selectable).toBe(true);
+  });
+
+  it("refuses a scalar array whose elements disagree on type", () => {
+    const tree = buildFieldTree({ tags: ["hot", 2] });
+    const node = tree.find((child) => child.label === "tags");
+
+    expect(node?.selectable).toBe(false);
+    expect(node?.disabledReason).toBeDefined();
+    expect(collectSelectablePaths(tree)).toEqual([]);
+  });
+
+  it("explains an empty array rather than leaving it blank", () => {
+    const node = buildFieldTree({ items: [] }).find((child) => child.label === "items");
+
+    expect(node?.selectable).toBe(false);
+    expect(node?.disabledReason).toBeDefined();
+  });
+
+  it("checks a field nested under an array element against every element", () => {
+    const uniform = buildFieldTree({ items: [{ meta: { color: "red" } }, { meta: { color: "b" } }] });
+    expect(collectSelectablePaths(uniform)).toEqual(["items[].meta.color"]);
+
+    const ragged = buildFieldTree({ items: [{ meta: { color: "red" } }, { meta: { color: 2 } }] });
+    expect(collectSelectablePaths(ragged)).toEqual([]);
+  });
+
+  it("ignores elements past the cap the generator applies", () => {
+    const items = [
+      ...Array.from({ length: 3 }, () => ({ price: 1 })),
+      { price: "not a number" },
+    ];
+
+    expect(collectSelectablePaths(buildFieldTree({ items }, 3))).toEqual(["items[].price"]);
+    expect(collectSelectablePaths(buildFieldTree({ items }, 4))).toEqual([]);
+    expect(collectSelectablePaths(buildFieldTree({ items }))).toEqual([]);
+  });
+});

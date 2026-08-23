@@ -16,11 +16,12 @@ jest.mock("@google/genai", () => ({
   })),
   ApiError: FakeApiError,
   ThinkingLevel: { LOW: "LOW", MEDIUM: "MEDIUM", HIGH: "HIGH" },
+  FinishReason: { STOP: "STOP", MAX_TOKENS: "MAX_TOKENS", SAFETY: "SAFETY" },
 }));
 
 import { GoogleGenAI } from "@google/genai";
 import geminiProvider, { GEMINI_DEFAULT_MODEL } from "@/server/services/ai/providers/gemini.provider";
-import { AI_MESSAGES } from "@/server/core/constants";
+import { AI_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import type { AiChatParams, AiSlot } from "@/server/services/ai/ai.types";
 
 const slot: AiSlot = { provider: "gemini", model: "gemini-test", apiKey: "gm-key" };
@@ -139,11 +140,50 @@ describe("response mapping", () => {
     expect(result.text).toBe("");
     expect(result).not.toHaveProperty("usage");
   });
+
+  it("reports a truncated answer as max_tokens", async () => {
+    generateContentMock.mockResolvedValue({
+      text: '{"variants":[{"a"',
+      candidates: [{ finishReason: "MAX_TOKENS" }],
+    });
+
+    await expect(geminiProvider.chat(params, slot)).resolves.toMatchObject({
+      stopReason: "max_tokens",
+    });
+  });
+
+  it("reports a complete answer as stop", async () => {
+    generateContentMock.mockResolvedValue({
+      text: "{}",
+      candidates: [{ finishReason: "STOP" }],
+    });
+
+    await expect(geminiProvider.chat(params, slot)).resolves.toMatchObject({
+      stopReason: "stop",
+    });
+  });
+
+  it("collapses any other finish reason to other rather than guessing", async () => {
+    generateContentMock.mockResolvedValue({
+      text: "",
+      candidates: [{ finishReason: "SAFETY" }],
+    });
+
+    await expect(geminiProvider.chat(params, slot)).resolves.toMatchObject({
+      stopReason: "other",
+    });
+  });
+
+  it("omits stopReason when the provider did not report one", async () => {
+    generateContentMock.mockResolvedValue({ text: "{}" });
+
+    const result = await geminiProvider.chat(params, slot);
+
+    expect(result).not.toHaveProperty("stopReason");
+  });
 });
 
 describe("error mapping", () => {
-  // The adapter logs the real cause on every failure, which is the point of these cases.
-  // Silence it so a passing run stays readable.
   let consoleError: jest.SpyInstance;
   beforeEach(() => {
     consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
@@ -166,17 +206,15 @@ describe("error mapping", () => {
   });
 
   it("attaches the original error as cause so the caller can log it", async () => {
-    const original = new FakeApiError(500);
+    const original = new FakeApiError(404);
     generateContentMock.mockRejectedValue(original);
 
     await expect(geminiProvider.chat(params, slot)).rejects.toMatchObject({
-      message: AI_MESSAGES.PROVIDER_FAILED,
+      message: AI_MESSAGES.MODEL_NOT_AVAILABLE,
       cause: original,
     });
   });
 
-  // A busy Gemini model answers 503 UNAVAILABLE. That has to stay distinguishable from a
-  // dead key, because the router retries one and gives up on the other.
   it.each([502, 503, 504])("reports a %s as a transient overload", async (status) => {
     generateContentMock.mockRejectedValue(new FakeApiError(status));
 
@@ -193,7 +231,7 @@ describe("error mapping", () => {
     });
   });
 
-  it.each([400, 401, 403])("reports a %s as a credential problem", async (status) => {
+  it.each([401, 403])("reports a %s as a credential problem", async (status) => {
     generateContentMock.mockRejectedValue(new FakeApiError(status));
 
     await expect(geminiProvider.chat(params, slot)).rejects.toMatchObject({
@@ -201,8 +239,41 @@ describe("error mapping", () => {
     });
   });
 
-  it("reports anything else as a generic provider failure", async () => {
+  it.each([
+    "API key not valid. Please pass a valid API key.",
+    "Request had invalid authentication credentials.",
+  ])("reads a 400 saying %j as a credential problem", async (detail) => {
+    const error = new FakeApiError(400);
+    error.message = detail;
+    generateContentMock.mockRejectedValue(error);
+
+    await expect(geminiProvider.chat(params, slot)).rejects.toMatchObject({
+      message: AI_MESSAGES.PROVIDER_AUTH_FAILED,
+    });
+  });
+
+  it("reads any other 400 as a request the vendor will refuse on every key", async () => {
+    const error = new FakeApiError(400);
+    error.message = "Invalid JSON payload received. Unknown name 'responseJsonSchema'.";
+    generateContentMock.mockRejectedValue(error);
+
+    await expect(geminiProvider.chat(params, slot)).rejects.toMatchObject({
+      message: AI_MESSAGES.PROVIDER_REJECTED_REQUEST,
+      statusCode: STATUS_CODE.SERVER_ERROR,
+    });
+  });
+
+  it("reports a 500 as a transient overload, not a generic failure", async () => {
     generateContentMock.mockRejectedValue(new FakeApiError(500));
+
+    await expect(geminiProvider.chat(params, slot)).rejects.toMatchObject({
+      message: AI_MESSAGES.PROVIDER_OVERLOADED,
+      statusCode: STATUS_CODE.SERVICE_UNAVAILABLE,
+    });
+  });
+
+  it("reports a status outside the mapped ranges as a generic provider failure", async () => {
+    generateContentMock.mockRejectedValue(new FakeApiError(418));
 
     await expect(geminiProvider.chat(params, slot)).rejects.toMatchObject({
       message: AI_MESSAGES.PROVIDER_FAILED,
@@ -214,6 +285,29 @@ describe("error mapping", () => {
 
     await expect(geminiProvider.chat(params, slot)).rejects.toMatchObject({
       message: AI_MESSAGES.PROVIDER_FAILED,
+    });
+  });
+
+  it.each(["AbortError", "TimeoutError"])(
+    "reports a %s from the request deadline as a timeout",
+    async (name) => {
+      const aborted = new Error("The operation was aborted.");
+      aborted.name = name;
+      generateContentMock.mockRejectedValue(aborted);
+
+      await expect(geminiProvider.chat(params, slot)).rejects.toMatchObject({
+        message: AI_MESSAGES.PROVIDER_TIMEOUT,
+        statusCode: STATUS_CODE.GATEWAY_TIMEOUT,
+      });
+    }
+  );
+
+  it("reports a 429 with the status our own limiter uses, so they read alike", async () => {
+    generateContentMock.mockRejectedValue(new FakeApiError(429));
+
+    await expect(geminiProvider.chat(params, slot)).rejects.toMatchObject({
+      message: AI_MESSAGES.RATE_LIMITED,
+      statusCode: STATUS_CODE.TOO_MANY_REQUESTS,
     });
   });
 });

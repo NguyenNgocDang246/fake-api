@@ -1,11 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { AppError } from "@/server/core/errors";
-import { AI_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES, AI_REQUEST_TIMEOUT_MS, STATUS_CODE } from "@/server/core/constants";
+import { toAiError } from "@/server/services/ai/ai_errors";
 import {
   AiChatParams,
   AiChatResult,
   AiProvider,
   AiSlot,
+  AiStopReason,
   AiUsage,
   toSystemBlocks,
 } from "@/server/services/ai/ai.types";
@@ -13,13 +15,18 @@ import {
 export const ANTHROPIC_PROVIDER_NAME = "anthropic";
 export const ANTHROPIC_DEFAULT_MODEL = "claude-opus-5";
 
+// `maxRetries: 0` because retrying is the router's job, and the SDK would otherwise make one
+// call worth up to three timeouts, which the router then multiplies by `MAX_ATTEMPTS` again.
+function createClient(apiKey: string): Anthropic {
+  return new Anthropic({ apiKey, maxRetries: 0, timeout: AI_REQUEST_TIMEOUT_MS });
+}
+
 function buildRequest(params: AiChatParams, slot: AiSlot) {
   const blocks = toSystemBlocks(params.system);
 
   return {
     model: slot.model,
     max_tokens: params.maxTokens,
-    // Adaptive thinking is the only mode on current models; budget_tokens was removed.
     thinking: { type: "adaptive" as const },
     output_config: {
       effort: params.effort ?? ("low" as const),
@@ -32,7 +39,6 @@ function buildRequest(params: AiChatParams, slot: AiSlot) {
           system: blocks.map((block) => ({
             type: "text" as const,
             text: block.text,
-            // The cache breakpoint sits on the marked block; varying content comes after.
             ...(block.cacheable ? { cache_control: { type: "ephemeral" as const } } : {}),
           })),
         }
@@ -55,7 +61,12 @@ function readUsage(usage: Anthropic.Usage | undefined): AiUsage | undefined {
   };
 }
 
-/** Join every text block into one string, ignoring thinking blocks. */
+function readStopReason(stopReason: Anthropic.Message["stop_reason"]): AiStopReason | undefined {
+  if (!stopReason) return undefined;
+  if (stopReason === "max_tokens") return "max_tokens";
+  return stopReason === "end_turn" || stopReason === "stop_sequence" ? "stop" : "other";
+}
+
 function readText(content: Anthropic.ContentBlock[]): string {
   return content
     .filter((block): block is Anthropic.TextBlock => block.type === "text")
@@ -63,13 +74,6 @@ function readText(content: Anthropic.ContentBlock[]): string {
     .join("");
 }
 
-/**
- * Normalize an SDK failure into an `AppError`.
- *
- * The message on the returned error is user-facing and therefore vague, so the real cause
- * is logged here and attached as `cause`. Without that, a wrong model name and a revoked
- * key look identical in the logs. The API key is never logged.
- */
 function toAppError(error: unknown, slot: AiSlot): AppError {
   if (error instanceof AppError) return error;
 
@@ -80,17 +84,18 @@ function toAppError(error: unknown, slot: AiSlot): AppError {
   });
 
   const message = (() => {
+    if (error instanceof Anthropic.APIConnectionTimeoutError) return AI_MESSAGES.PROVIDER_TIMEOUT;
     if (error instanceof Anthropic.RateLimitError) return AI_MESSAGES.RATE_LIMITED;
     if (error instanceof Anthropic.AuthenticationError) return AI_MESSAGES.PROVIDER_AUTH_FAILED;
     if (error instanceof Anthropic.NotFoundError) return AI_MESSAGES.MODEL_NOT_AVAILABLE;
-    // 529 overloaded, plus the 5xx range: transient, so the router is allowed to retry.
+    if (error instanceof Anthropic.BadRequestError) return AI_MESSAGES.PROVIDER_REJECTED_REQUEST;
     if (error instanceof Anthropic.APIError && typeof error.status === "number") {
       if (error.status >= STATUS_CODE.SERVER_ERROR) return AI_MESSAGES.PROVIDER_OVERLOADED;
     }
     return AI_MESSAGES.PROVIDER_FAILED;
   })();
 
-  return new AppError({ message, cause: error });
+  return toAiError(message, error);
 }
 
 const anthropicProvider: AiProvider = {
@@ -99,15 +104,17 @@ const anthropicProvider: AiProvider = {
 
   async chat(params, slot): Promise<AiChatResult> {
     try {
-      const client = new Anthropic({ apiKey: slot.apiKey });
+      const client = createClient(slot.apiKey);
       const response = await client.messages.create(buildRequest(params, slot));
 
       const usage = readUsage(response.usage);
+      const stopReason = readStopReason(response.stop_reason);
 
       return {
         text: readText(response.content),
         provider: slot.provider,
         model: response.model,
+        ...(stopReason ? { stopReason } : {}),
         ...(usage ? { usage } : {}),
       };
     } catch (error) {
@@ -116,11 +123,8 @@ const anthropicProvider: AiProvider = {
   },
 
   async *chatStream(params, slot): AsyncIterable<string> {
-    // Unused by the variant feature (the pool is built in the background, so nothing to
-    // stream). It exists so a chatbox can use it later without reshaping the interface and
-    // forcing every provider to be rewritten.
     try {
-      const client = new Anthropic({ apiKey: slot.apiKey });
+      const client = createClient(slot.apiKey);
       const stream = client.messages.stream(buildRequest(params, slot));
 
       for await (const event of stream) {

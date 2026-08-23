@@ -1,6 +1,10 @@
 jest.mock("@/server/services/endpoint/endpoint.service", () => ({
   __esModule: true,
-  default: { getEndpointByPath: jest.fn(), getEndpointByDynamicPath: jest.fn() },
+  default: {
+    getEndpointByPath: jest.fn(),
+    getEndpointByDynamicPath: jest.fn(),
+    findMethodsForPath: jest.fn(),
+  },
 }));
 
 jest.mock("@/server/services/endpoint/endpoint_variant.service", () => ({
@@ -27,6 +31,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
   it("returns 404 when endpoint not found", async () => {
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
     (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue([]);
     const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
     await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
   });
@@ -60,16 +65,34 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
     );
   });
 
-  it("returns 405 when method mismatches", async () => {
+  it("returns 405 when the path exists under another method", async () => {
+    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue(["POST", "PUT"]);
+
+    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+
+    await expectError(res, STATUS_CODE.METHOD_NOT_ALLOWED, ERROR_MESSAGES.METHOD_NOT_ALLOWED);
+    expect(await readJson(res)).toMatchObject({ errors: { allow: ["POST", "PUT"] } });
+    expect(EndpointService.findMethodsForPath).toHaveBeenCalledWith({
+      project_public_id: "PUBLIC",
+      path: "/users",
+    });
+  });
+
+  it("does not ask which methods exist when the endpoint was found", async () => {
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-      method: "POST",
+      method: "GET",
       path: "/users",
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
     });
+
     const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
-    await expectError(res, STATUS_CODE.METHOD_NOT_ALLOWED, ERROR_MESSAGES.METHOD_NOT_ALLOWED);
+
+    expect(res.status).toBe(200);
+    expect(EndpointService.findMethodsForPath).not.toHaveBeenCalled();
   });
 
   it("returns 204 when endpoint status_code is NO_CONTENT", async () => {
@@ -174,7 +197,6 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
 
       const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
 
-      // A broken AI path must never turn a working fake endpoint into a 500.
       expect(res.status).toBe(200);
       expect(await readJson(res)).toEqual({ name: "An", id: 1 });
 
@@ -217,7 +239,6 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
 
       await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
 
-      // Nothing ran while the request was being served.
       expect(EndpointVariantService.markVariantUsed).not.toHaveBeenCalled();
       expect(EndpointVariantService.refillIfNeeded).not.toHaveBeenCalled();
       expect(server.__afterCount()).toBe(1);
@@ -226,6 +247,28 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
 
       expect(EndpointVariantService.markVariantUsed).toHaveBeenCalledWith(3n);
       expect(EndpointVariantService.refillIfNeeded).toHaveBeenCalledWith(aiEndpoint);
+    });
+
+    it("serves the base body and does not count a use when a stored variant is corrupt", async () => {
+      const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+      const server = jest.requireMock("next/server") as { __flushAfter: () => Promise<void> };
+      (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
+      (EndpointVariantService.pickVariant as jest.Mock).mockResolvedValue({
+        id: 3n,
+        response_body: "{not json",
+      });
+
+      const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+
+      expect(res.status).toBe(200);
+      expect(await readJson(res)).toEqual({ name: "An", id: 1 });
+
+      await server.__flushAfter();
+
+      expect(EndpointVariantService.markVariantUsed).not.toHaveBeenCalled();
+      expect(EndpointVariantService.refillIfNeeded).toHaveBeenCalledWith(aiEndpoint);
+
+      consoleError.mockRestore();
     });
   });
 });

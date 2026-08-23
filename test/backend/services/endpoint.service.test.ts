@@ -124,4 +124,59 @@ describe("src/server/services/endpoint/endpoint.service.ts", () => {
       ).rejects.toBeInstanceOf(AppError);
     });
   });
+
+  describe("findMethodsForPath", () => {
+    const find = () =>
+      endpointService.findMethodsForPath({ project_public_id: "proj1", path: "/users" });
+
+    it("reports every method serving a literal path", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([
+        { path: "/users", method: "POST" },
+        { path: "/users", method: "PUT" },
+      ]);
+
+      await expect(find()).resolves.toEqual(["POST", "PUT"]);
+    });
+
+    it("matches through a :param template, not just a literal path", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([
+        { path: "/user/:id", method: "DELETE" },
+      ]);
+
+      await expect(
+        endpointService.findMethodsForPath({ project_public_id: "proj1", path: "/user/abc123" })
+      ).resolves.toEqual(["DELETE"]);
+    });
+
+    it("drops a template that does not actually match the path", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([
+        { path: "/order/:id/items", method: "GET" },
+      ]);
+
+      await expect(
+        endpointService.findMethodsForPath({ project_public_id: "proj1", path: "/user/abc123" })
+      ).resolves.toEqual([]);
+    });
+
+    it("reports a method once however many rows serve it", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([
+        { path: "/users", method: "POST" },
+        { path: "/users", method: "POST" },
+      ]);
+
+      await expect(find()).resolves.toEqual(["POST"]);
+    });
+
+    it("returns nothing when the project does not serve that path at all", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([]);
+
+      await expect(find()).resolves.toEqual([]);
+    });
+
+    it("wraps error into AppError", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockRejectedValue(new Error("db down"));
+
+      await expect(find()).rejects.toBeInstanceOf(AppError);
+    });
+  });
 });

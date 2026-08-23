@@ -8,7 +8,6 @@ import { useAiFieldTree } from "@/app/(pages)/project/[id]/components/AiFieldSel
 import { MAX_AI_ARRAY_ITEMS } from "@/models/endpoint.model";
 
 interface AiFieldSelectorProps {
-  /** The Response body input, read straight from the form so it tracks every keystroke. */
   bodyJson: string;
   value: string[];
   onChange: (paths: string[]) => void;
@@ -32,10 +31,6 @@ interface EmptyStateProps {
   hint: string;
 }
 
-/**
- * Shown instead of the tree when the body offers nothing to tick. Dashed rather than solid, so it
- * reads as a placeholder waiting on the Response body above and not as a box that failed to load.
- */
 const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, hint }) => (
   <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center">
     <span className="text-gray-400">{icon}</span>
@@ -71,7 +66,6 @@ const FieldRows: React.FC<FieldRowsProps> = ({ nodes, depth, selected, disabled,
               id={`ai-field-${node.path}`}
               checked={allChecked}
               ref={(input) => {
-                // A partially ticked parent shows a dash rather than a check.
                 if (input) input.indeterminate = someChecked && !allChecked;
               }}
               disabled={disabled || descendants.length === 0}
@@ -111,10 +105,6 @@ const FieldRows: React.FC<FieldRowsProps> = ({ nodes, depth, selected, disabled,
   </>
 );
 
-/**
- * A checkbox tree built from the Response body itself. Only ticked fields may be changed by
- * the AI; every other field stays exactly as written.
- */
 export const AiFieldSelector: React.FC<AiFieldSelectorProps> = ({
   bodyJson,
   value,
@@ -125,8 +115,6 @@ export const AiFieldSelector: React.FC<AiFieldSelectorProps> = ({
   const { state, tree, availablePaths } = useAiFieldTree(bodyJson);
   const selected = useMemo(() => new Set(value), [value]);
 
-  // A ticked path whose field is gone from the body: keep it visible so it can be removed
-  // deliberately, rather than dropping it silently while the JSON is half typed.
   const stalePaths = value.filter((path) => !availablePaths.has(path));
 
   const toggle = (paths: string[], checked: boolean) => {
@@ -162,8 +150,6 @@ export const AiFieldSelector: React.FC<AiFieldSelectorProps> = ({
     </div>
   );
 
-  // Nothing to draw: say which of the two reasons it is, rather than an empty box with a
-  // "0 of 0 fields selected" line and a Select all button that cannot do anything.
   if (state === "invalid" || state === "empty") {
     return (
       <div className={twMerge("flex flex-col gap-2", className)}>
@@ -189,8 +175,6 @@ export const AiFieldSelector: React.FC<AiFieldSelectorProps> = ({
     <div className={twMerge("flex flex-col gap-2", className)}>
       <div className="flex items-center justify-between gap-2 text-sm">
         {state === "unselectable" ? (
-          // The rows below still carry their own reason, so this line only has to say that the
-          // whole body is unusable and not repeat every reason.
           <span className="text-xs text-amber-600">None of these fields can be varied yet</span>
         ) : (
           <>
