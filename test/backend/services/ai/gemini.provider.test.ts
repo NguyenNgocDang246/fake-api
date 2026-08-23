@@ -21,7 +21,8 @@ jest.mock("@google/genai", () => ({
 
 import { GoogleGenAI } from "@google/genai";
 import geminiProvider, { GEMINI_DEFAULT_MODEL } from "@/server/services/ai/providers/gemini.provider";
-import { AI_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES } from "@/server/services/ai/ai.constants";
 import type { AiChatParams, AiSlot } from "@/server/services/ai/ai.types";
 
 const slot: AiSlot = { provider: "gemini", model: "gemini-test", apiKey: "gm-key" };

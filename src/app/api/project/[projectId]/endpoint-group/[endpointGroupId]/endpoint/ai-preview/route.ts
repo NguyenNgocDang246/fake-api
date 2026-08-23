@@ -1,5 +1,6 @@
 import ApiResponse from "@/server/core/api_response";
-import { AI_MESSAGES, ERROR_MESSAGES, LIMIT_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { ERROR_MESSAGES, LIMIT_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES } from "@/server/services/ai/ai.constants";
 import { validateData } from "@/server/core/validation";
 import { AiPreviewSchema } from "@/models/endpoint.model";
 import endpointGroupService from "@/server/services/endpoint_group.service";

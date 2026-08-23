@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import tokenService from "@/server/services/auth/token.service";
 import userService from "@/server/services/user.service";
 import ApiResponse from "@/server/core/api_response";
-import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { TOKEN_MESSAGE } from "@/server/services/auth/auth.constants";
 import { AppError } from "@/server/core/errors";
 import { MiddlewareContext } from "@/middleware";
 

@@ -33,7 +33,8 @@ jest.mock("@anthropic-ai/sdk", () => ({ __esModule: true, default: AnthropicMock
 import anthropicProvider, {
   ANTHROPIC_DEFAULT_MODEL,
 } from "@/server/services/ai/providers/anthropic.provider";
-import { AI_MESSAGES, AI_REQUEST_TIMEOUT_MS, STATUS_CODE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES, AI_REQUEST_TIMEOUT_MS } from "@/server/services/ai/ai.constants";
 import type { AiChatParams, AiSlot } from "@/server/services/ai/ai.types";
 
 const slot: AiSlot = { provider: "anthropic", model: "claude-test", apiKey: "sk-key" };

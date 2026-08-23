@@ -1,5 +1,6 @@
 import { AppError } from "@/server/core/errors";
-import { AI_MESSAGES, AI_RATE_LIMIT_CALLS, STATUS_CODE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES, AI_RATE_LIMIT_CALLS } from "@/server/services/ai/ai.constants";
 import type { AiChatParams, AiChatResult, AiProvider, AiSlot } from "@/server/services/ai/ai.types";
 
 const chatMock = jest.fn<Promise<AiChatResult>, [AiChatParams, AiSlot]>();

@@ -15,7 +15,8 @@ import TokenService from "@/server/services/auth/token.service";
 import UserService from "@/server/services/user.service";
 import AuthService from "@/server/services/auth/auth.service";
 import { POST } from "@/app/api/auth/password/reset/route";
-import { ERROR_MESSAGES, STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
+import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { TOKEN_MESSAGE } from "@/server/services/auth/auth.constants";
 import { createJsonRequest, expectError, expectSuccess } from "../../helpers/http";
 
 describe("POST src/app/api/auth/password/reset/route.ts", () => {

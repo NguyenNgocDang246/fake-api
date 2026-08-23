@@ -5,7 +5,7 @@ import {
   AI_POOL_SIZE,
   AI_REFILL_LOCK_MS,
   AI_VARIANT_MAX_USES,
-} from "@/server/core/constants";
+} from "@/server/services/endpoint/endpoint.constants";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
 import { GetUserByIdDTO, UserSchema } from "@/models/user.model";
 import userService from "@/server/services/user.service";

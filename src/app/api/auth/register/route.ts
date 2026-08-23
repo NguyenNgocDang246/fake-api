@@ -8,7 +8,8 @@ import UserService from "@/server/services/user.service";
 import MailService from "@/server/services/mail/mail.service";
 import TokenService from "@/server/services/auth/token.service";
 import { UserInfoSchema } from "@/models/user.model";
-import { STATUS_CODE, AUTH_MESSAGES } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { AUTH_MESSAGES } from "@/server/services/auth/auth.constants";
 
 export async function POST(req: NextRequest) {
   try {

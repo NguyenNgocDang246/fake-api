@@ -13,13 +13,14 @@ import {
 } from "@/models/auth.model";
 import { AppError } from "@/server/core/errors";
 import { requireEnv } from "@/server/core/env";
-import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
 import {
+  TOKEN_MESSAGE,
   ACCESS_TOKEN_EXPIRATION_TIME_IN_STRING,
   REFRESH_TOKEN_EXPIRATION_TIME_IN_STRING,
   RESET_PASSWORD_TOKEN_EXPIRATION_TIME_IN_STRING,
   VERIFY_EMAIL_TOKEN_EXPIRATION_TIME_IN_STRING,
-} from "@/server/core/constants";
+} from "@/server/services/auth/auth.constants";
 const ACCESS_SECRET = new TextEncoder().encode(requireEnv("ACCESS_SECRET"));
 const REFRESH_SECRET = new TextEncoder().encode(requireEnv("REFRESH_SECRET"));
 const RESET_PASSWORD_SECRET = new TextEncoder().encode(requireEnv("RESET_PASSWORD_SECRET"));

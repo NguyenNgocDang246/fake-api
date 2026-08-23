@@ -1,5 +1,6 @@
 import { AppError } from "@/server/core/errors";
-import { AI_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES } from "@/server/services/ai/ai.constants";
 
 const AI_ERROR_STATUS: Partial<Record<AI_MESSAGES, STATUS_CODE>> = {
   [AI_MESSAGES.RATE_LIMITED]: STATUS_CODE.TOO_MANY_REQUESTS,

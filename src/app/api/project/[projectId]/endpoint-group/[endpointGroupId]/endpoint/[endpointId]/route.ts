@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import ApiResponse from "@/server/core/api_response";
-import { ENDPOINT_MESSAGES, ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { ENDPOINT_MESSAGES } from "@/server/services/endpoint/endpoint.constants";
 import { AppError } from "@/server/core/errors";
 import { validateData } from "@/server/core/validation";
 import {

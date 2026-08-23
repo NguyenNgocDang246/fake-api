@@ -23,6 +23,7 @@ See [ai/AGENTS.md](ai/AGENTS.md). It deliberately knows nothing about endpoints,
 
 - `auth.service.ts` — orchestration only (`register`, `registerWithGoogle`, `login`, `loginWithGoogle`, `updatePassword`). Delegates persistence to `user.service.ts`, hashing to `hash.service.ts`, token minting to `token.service.ts`, verification email to `mail/mail.service.ts`.
 - `hash.service.ts` — thin `argon2` wrapper (`hashPassword`, `verifyPassword`). No error handling of its own.
+- `auth.constants.ts` — the expiration constant of each of the four token types (both as seconds for cookie `maxAge` and as a string duration for `jose`), plus `AUTH_MESSAGES`, `GOOGLE_AUTH_MESSAGES` and `TOKEN_MESSAGE`. Literals and enums only: `src/middleware.ts` imports from it on the Edge runtime, so it must never pull in Prisma, `jose` or a service.
 - `token.service.ts` — all JWT lifecycle logic (`jose`). Four independent token types, each with its own secret and expiration constant: access/refresh (session), reset-password (forgot-password flow), verify-email (registration/resend). Every `verify*` method throws `AppError` with a `TOKEN_MESSAGE.INVALID_EXPIRED_*` message, never the raw `jose` error.
 
 `token_version` on the `users` row is the revocation mechanism: refresh/reset/verify tokens embed it, and `increaseTokenVersion` invalidates every outstanding token of that type in one write. A token is only "valid" if both its own expiration *and* the `token_version` check pass.

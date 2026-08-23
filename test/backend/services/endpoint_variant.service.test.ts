@@ -36,7 +36,7 @@ import { generateVariants } from "@/server/services/endpoint/endpoint_variant_ge
 import userService from "@/server/services/user.service";
 import { isAiConfigured } from "@/server/services/ai/ai_router.service";
 import endpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
-import { AI_POOL_LOW_WATER, AI_POOL_SIZE } from "@/server/core/constants";
+import { AI_POOL_LOW_WATER, AI_POOL_SIZE } from "@/server/services/endpoint/endpoint.constants";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
 
 const ENDPOINT_ID = 7n;

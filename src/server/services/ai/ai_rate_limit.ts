@@ -1,10 +1,10 @@
 import { AppError } from "@/server/core/errors";
+import { STATUS_CODE } from "@/server/core/constants";
 import {
   AI_MESSAGES,
   AI_RATE_LIMIT_CALLS,
   AI_RATE_LIMIT_WINDOW_SECONDS,
-  STATUS_CODE,
-} from "@/server/core/constants";
+} from "@/server/services/ai/ai.constants";
 
 interface RateLimitConfig {
   calls: number;

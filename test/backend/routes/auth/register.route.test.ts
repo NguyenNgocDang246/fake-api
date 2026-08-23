@@ -20,7 +20,8 @@ import UserService from "@/server/services/user.service";
 import MailService from "@/server/services/mail/mail.service";
 import TokenService from "@/server/services/auth/token.service";
 import { POST } from "@/app/api/auth/register/route";
-import { AUTH_MESSAGES, ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { AUTH_MESSAGES } from "@/server/services/auth/auth.constants";
 import { createJsonRequest, expectError, expectSuccess, readJson } from "../../helpers/http";
 
 describe("POST src/app/api/auth/register/route.ts", () => {

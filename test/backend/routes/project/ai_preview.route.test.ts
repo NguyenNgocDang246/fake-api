@@ -23,12 +23,8 @@ import endpointVariantService from "@/server/services/endpoint/endpoint_variant.
 import { generateVariants } from "@/server/services/endpoint/endpoint_variant_generator.service";
 import { isAiConfigured } from "@/server/services/ai/ai_router.service";
 import { POST } from "@/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpoint/ai-preview/route";
-import {
-  AI_MESSAGES,
-  ERROR_MESSAGES,
-  LIMIT_MESSAGES,
-  STATUS_CODE,
-} from "@/server/core/constants";
+import { ERROR_MESSAGES, LIMIT_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES } from "@/server/services/ai/ai.constants";
 import { AppError } from "@/server/core/errors";
 import { createJsonRequest, expectError, expectSuccess, readJson } from "../../helpers/http";
 

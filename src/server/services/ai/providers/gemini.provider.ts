@@ -1,7 +1,8 @@
 import { ApiError, FinishReason, GoogleGenAI, ThinkingLevel } from "@google/genai";
 import type { GenerateContentParameters, GenerateContentResponse } from "@google/genai";
 import { AppError } from "@/server/core/errors";
-import { AI_MESSAGES, AI_REQUEST_TIMEOUT_MS, STATUS_CODE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES, AI_REQUEST_TIMEOUT_MS } from "@/server/services/ai/ai.constants";
 import { toAiError } from "@/server/services/ai/ai_errors";
 import {
   AiChatParams,

@@ -1,3 +1,5 @@
+import { STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES } from "@/server/services/ai/ai.constants";
 import {
   AI_CONTEXT_ARRAY_SAMPLE,
   AI_CONTEXT_FULL_CHARS,
@@ -5,12 +7,10 @@ import {
   AI_CONTEXT_MAX_DEPTH,
   AI_CONTEXT_STRING_CHARS,
   AI_MAX_OUTPUT_TOKENS,
-  AI_MESSAGES,
   AI_MIN_OUTPUT_TOKENS,
   AI_THINKING_RESERVE,
   AI_TOKENS_PER_VALUE,
-  STATUS_CODE,
-} from "@/server/core/constants";
+} from "@/server/services/endpoint/endpoint.constants";
 import { AppError } from "@/server/core/errors";
 import { MAX_AI_ARRAY_ITEMS } from "@/models/endpoint.model";
 import { getAtPath, isArrayPath, setAtPath } from "@/app/libs/helpers/json_path";

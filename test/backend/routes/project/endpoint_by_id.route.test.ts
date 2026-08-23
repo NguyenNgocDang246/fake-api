@@ -20,7 +20,8 @@ jest.mock("@/server/services/endpoint/endpoint_variant.service", () => ({
 import EndpointService from "@/server/services/endpoint/endpoint.service";
 import endpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
 import { GET, PUT, DELETE } from "@/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpoint/[endpointId]/route";
-import { ENDPOINT_MESSAGES, ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { ENDPOINT_MESSAGES } from "@/server/services/endpoint/endpoint.constants";
 import { createJsonRequest, expectError, expectSuccess } from "../../helpers/http";
 
 const afterQueue = jest.requireMock("next/server") as {

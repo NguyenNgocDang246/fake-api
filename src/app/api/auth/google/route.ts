@@ -5,7 +5,7 @@ import { LoginWithGoogleResponseDTO } from "@/models/auth.model";
 import {
   OAUTH_STATE_COOKIE,
   OAUTH_STATE_EXPIRATION_TIME_IN_SECONDS,
-} from "@/server/core/constants";
+} from "@/server/services/auth/auth.constants";
 
 export async function GET() {
   try {

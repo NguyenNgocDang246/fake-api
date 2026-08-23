@@ -1,5 +1,6 @@
 import { AppError } from "@/server/core/errors";
-import { AI_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES } from "@/server/services/ai/ai.constants";
 import { toAiError } from "@/server/services/ai/ai_errors";
 
 describe("toAiError", () => {

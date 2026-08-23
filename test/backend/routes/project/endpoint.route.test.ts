@@ -21,7 +21,8 @@ jest.mock("@/server/services/endpoint_group.service", () => ({
 import EndpointService from "@/server/services/endpoint/endpoint.service";
 import endpointGroupService from "@/server/services/endpoint_group.service";
 import { GET, POST, DELETE } from "@/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpoint/route";
-import { ENDPOINT_MESSAGES, ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { ENDPOINT_MESSAGES } from "@/server/services/endpoint/endpoint.constants";
 import { createJsonRequest, expectError, expectSuccess } from "../../helpers/http";
 
 const USER_PUBLIC_ID = "aaaaaaaaaaaa";

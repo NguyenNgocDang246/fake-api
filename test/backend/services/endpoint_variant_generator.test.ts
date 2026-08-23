@@ -1,11 +1,11 @@
+import { AI_MESSAGES } from "@/server/services/ai/ai.constants";
 import {
   AI_CONTEXT_MAX_CHARS,
   AI_MAX_OUTPUT_TOKENS,
-  AI_MESSAGES,
   AI_MIN_OUTPUT_TOKENS,
   AI_THINKING_RESERVE,
   AI_TOKENS_PER_VALUE,
-} from "@/server/core/constants";
+} from "@/server/services/endpoint/endpoint.constants";
 import { MAX_AI_ARRAY_ITEMS, MAX_AI_VALUES } from "@/models/endpoint.model";
 import type { AiChatParams, AiChatResult } from "@/server/services/ai/ai.types";
 

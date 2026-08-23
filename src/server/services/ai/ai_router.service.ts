@@ -1,5 +1,6 @@
 import { AppError } from "@/server/core/errors";
-import { AI_MESSAGES, AI_TOTAL_BUDGET_MS, STATUS_CODE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { AI_MESSAGES, AI_TOTAL_BUDGET_MS } from "@/server/services/ai/ai.constants";
 import {
   AiChatParams,
   AiChatResult,
