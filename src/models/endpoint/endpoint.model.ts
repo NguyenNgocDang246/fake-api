@@ -3,8 +3,8 @@ import { PublicIdSchema } from "@/app/libs/helpers/publicId";
 import { VariantPlanSchema } from "@/models/endpoint_plan/endpoint_plan.model";
 import { EndpointInfoSchema, EndpointSchema } from "@/models/endpoint/base.model";
 import {
+  AiPromptSchema,
   MAX_AI_FIELDS,
-  MAX_AI_PROMPT_LENGTH,
   checkAiFieldList,
   checkAiFields,
 } from "@/models/endpoint/ai_fields.model";
@@ -67,10 +67,7 @@ export const ClientCreateEndpointSchema = EndpointInfoSchema.pick({
     ai_fields: z
       .array(z.string())
       .max(MAX_AI_FIELDS, `You can select at most ${MAX_AI_FIELDS} fields`),
-    ai_prompt: z
-      .string()
-      .max(MAX_AI_PROMPT_LENGTH, `The hint cannot be longer than ${MAX_AI_PROMPT_LENGTH} characters`)
-      .nullable(),
+    ai_prompt: AiPromptSchema.nullable(),
   })
   .strict();
 export type ClientCreateEndpointDTO = z.infer<typeof ClientCreateEndpointSchema>;

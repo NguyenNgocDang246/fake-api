@@ -6,8 +6,11 @@ export const MIN_STATUS_CODE = 100;
 export const MAX_STATUS_CODE = 599;
 export const MAX_DELAY_MS = 60_000;
 
-export const MAX_RESPONSE_BODY_CHARS = 100_000;
-export const MAX_RESPONSE_BODY_DEPTH = 32;
+// Sized for a mock: `MAX_ARRAY_ITEMS` elements of a dozen fields is around 24k characters, and
+// nothing an endpoint answers with is bigger than its longest list. The body is also the largest
+// piece of author-written text a blueprint design puts in front of the model.
+export const MAX_RESPONSE_BODY_CHARS = 30_000;
+export const MAX_RESPONSE_BODY_DEPTH = 12;
 
 // An invariant of every stored body, not a truncation point: no field can be half varied and no
 // length recipe can silently shorten a list. Rows saved before this rule can still exceed it.

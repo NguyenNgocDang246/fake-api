@@ -7,13 +7,14 @@ import {
 } from "@/server/services/endpoint/endpoint.constants";
 import { VariantPlanDTO, VariantPlanSchema } from "@/models/endpoint_plan/endpoint_plan.model";
 import { flattenPathValues } from "@/app/libs/helpers/json_path";
-import { MAX_ARRAY_ITEMS } from "@/models/endpoint_plan/limits.model";
+import { MAX_ARRAY_ITEMS, MAX_PLAN_BYTES } from "@/models/endpoint_plan/limits.model";
 import aiRouter from "@/server/services/ai/ai_router.service";
 import { buildContextBody, buildEditableFields } from "@/server/services/endpoint/variant/fields";
 import {
   PLAN_SYSTEM_PROMPT,
   buildPlanContextBlock,
   buildPlanUserMessage,
+  planFenceNonce,
 } from "@/server/services/endpoint/variant/plan_prompt";
 import { validatePlan } from "@/server/services/endpoint/variant/validate";
 
@@ -95,6 +96,16 @@ function readPlan(raw: unknown, base: Record<string, unknown>, allowedPaths: str
     };
   }
 
+  // `storePlan` holds a blueprint to this too, so checking it here is what stops a preview from
+  // showing one that can only fail when the user saves it.
+  const size = JSON.stringify(parsed.data).length;
+  if (size > MAX_PLAN_BYTES) {
+    return {
+      plan: null,
+      errors: [`(root): the blueprint is ${size} bytes, over the ${MAX_PLAN_BYTES} byte limit`],
+    };
+  }
+
   const check = validatePlan(parsed.data, base, allowedPaths);
   return check.ok ? { plan: parsed.data, errors: [] } : { plan: null, errors: check.errors };
 }
@@ -125,23 +136,24 @@ export async function buildPlan({
   const context = buildContextBody(base, aiFields);
   const covered = [...valueFields.map((field) => field.path), ...arrayPaths];
 
-  const system = [
-    { text: PLAN_SYSTEM_PROMPT },
-    {
-      text: buildPlanContextBlock({
-        method,
-        path,
-        contextBody: context.text,
-        contextTruncated: context.truncated,
-      }),
-      cacheable: true,
-    },
-  ];
+  // The system turn holds only text this repo wrote. That is what makes the boundary real, and
+  // it is also what makes the turn worth caching: identical for every endpoint and every user,
+  // where a turn carrying the body would differ on every request.
+  const system = [{ text: PLAN_SYSTEM_PROMPT, cacheable: true }];
 
+  const nonce = planFenceNonce();
   const userMessage = buildPlanUserMessage({
     fields: valueFields,
     arrayPaths,
     authorInstructions: aiPrompt,
+    contextBlock: buildPlanContextBlock({
+      method,
+      path,
+      contextBody: context.text,
+      contextTruncated: context.truncated,
+      nonce,
+    }),
+    nonce,
   });
 
   const first = await aiRouter.chat({
@@ -153,6 +165,17 @@ export async function buildPlan({
 
   const firstAttempt = readPlan(extractJson(first.text), base, covered);
   if (firstAttempt.plan) return firstAttempt.plan;
+
+  // Running out of tokens is not a bad answer, it is an answer that did not fit, and the repair
+  // call carries the whole first exchange under the same ceiling so it fits even less. Retrying
+  // only spends a second call on a failure already known, and the fix belongs to the caller.
+  if (first.stopReason === "max_tokens") {
+    console.error("[ai] blueprint truncated", { path, maxTokens: AI_PLAN_MAX_OUTPUT_TOKENS });
+    throw new AppError({
+      message: ENDPOINT_AI_MESSAGES.PLAN_TOO_LARGE,
+      statusCode: STATUS_CODE.BAD_REQUEST,
+    });
+  }
 
   const repair = await aiRouter.chat({
     system,
@@ -172,6 +195,17 @@ export async function buildPlan({
 
   const second = readPlan(extractJson(repair.text), base, covered);
   if (second.plan) return second.plan;
+
+  if (repair.stopReason === "max_tokens") {
+    console.error("[ai] blueprint truncated on repair", {
+      path,
+      maxTokens: AI_PLAN_MAX_OUTPUT_TOKENS,
+    });
+    throw new AppError({
+      message: ENDPOINT_AI_MESSAGES.PLAN_TOO_LARGE,
+      statusCode: STATUS_CODE.BAD_REQUEST,
+    });
+  }
 
   console.error("[ai] blueprint rejected twice", { path, errors: second.errors.slice(0, 12) });
   throw new AppError({

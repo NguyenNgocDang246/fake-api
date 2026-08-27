@@ -1,6 +1,7 @@
 import type { AiChatResult } from "@/server/services/ai/ai.types";
 import { AI_MESSAGES } from "@/server/services/ai/ai.constants";
 import { ENDPOINT_AI_MESSAGES } from "@/server/services/endpoint/endpoint.constants";
+import { MAX_CATALOG_ROWS } from "@/models/endpoint_plan/limits.model";
 import {
   chatMock,
   isAiConfiguredMock,
@@ -66,6 +67,89 @@ describe("buildPlan", () => {
 
     await expect(buildPlan(input)).rejects.toBeDefined();
     consoleError.mockRestore();
+  });
+
+  it("stops at a truncated answer instead of paying for a repair that cannot fit either", async () => {
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+    chatMock.mockResolvedValue({
+      text: JSON.stringify(PLAN).slice(0, 40),
+      stopReason: "max_tokens",
+    } as AiChatResult);
+
+    await expect(buildPlan(input)).rejects.toMatchObject({
+      message: ENDPOINT_AI_MESSAGES.PLAN_TOO_LARGE,
+      statusCode: 400,
+    });
+    expect(chatMock).toHaveBeenCalledTimes(1);
+    consoleError.mockRestore();
+  });
+
+  it("still repairs a broken answer that was not truncated", async () => {
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+    respond("not json at all");
+
+    await expect(buildPlan(input)).rejects.toMatchObject({
+      message: AI_MESSAGES.PROVIDER_FAILED,
+    });
+    expect(chatMock).toHaveBeenCalledTimes(2);
+    consoleError.mockRestore();
+  });
+
+  it("treats a blueprint over the byte limit as one to repair, not one to hand back", async () => {
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+    const bloated = {
+      ...PLAN,
+      catalogs: [
+        {
+          id: "c",
+          columns: ["a"],
+          rows: Array.from({ length: MAX_CATALOG_ROWS }, () => ["x".repeat(160)]),
+        },
+      ],
+      fields: Array.from({ length: 40 }, () => ({
+        path: "name",
+        recipe: { kind: "pick", values: Array.from({ length: 24 }, () => "y".repeat(160)) },
+      })),
+    };
+    chatMock
+      .mockResolvedValueOnce({ text: JSON.stringify(bloated) } as AiChatResult)
+      .mockResolvedValueOnce({ text: JSON.stringify(PLAN) } as AiChatResult);
+
+    await expect(buildPlan(input)).resolves.toMatchObject({ version: 1 });
+    expect(chatMock).toHaveBeenCalledTimes(2);
+    expect(String(chatMock.mock.calls[1]![0].messages[2]!.content)).toContain("byte limit");
+    consoleError.mockRestore();
+  });
+
+  it("fences the body and the hint, with a nonce that changes every call", async () => {
+    respond(JSON.stringify(PLAN));
+
+    await buildPlan({ ...input, aiPrompt: "prices from 10k to 500k" });
+    await buildPlan({ ...input, aiPrompt: "prices from 10k to 500k" });
+
+    const nonceOf = (call: number) =>
+      String(chatMock.mock.calls[call]![0].messages[0]!.content).match(
+        /<author_hint id="([^"]+)">/
+      )?.[1];
+
+    expect(nonceOf(0)).toBeDefined();
+    expect(nonceOf(0)).not.toBe(nonceOf(1));
+
+    const message = String(chatMock.mock.calls[0]![0].messages[0]!.content);
+    expect(message).toContain(`<response_body id="${nonceOf(0)}">`);
+    expect(message).toContain("prices from 10k to 500k");
+  });
+
+  it("keeps the system turn free of anything the author wrote, so it can be cached", async () => {
+    respond(JSON.stringify(PLAN));
+
+    await buildPlan({ ...input, aiPrompt: "make every buyer a florist" });
+
+    const system = chatMock.mock.calls[0]![0].system as { text: string; cacheable?: boolean }[];
+    expect(system).toHaveLength(1);
+    expect(system[0]!.cacheable).toBe(true);
+    expect(system[0]!.text).not.toContain("make every buyer a florist");
+    expect(system[0]!.text).not.toContain('"An"');
   });
 
   it("rejects a body that is not a JSON object before calling anything", async () => {

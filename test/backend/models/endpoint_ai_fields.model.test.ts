@@ -2,6 +2,7 @@ import {
   AiPreviewSchema,
   CreateEndpointSchema,
   MAX_ARRAY_ITEMS,
+  MAX_AI_PROMPT_LENGTH,
   MAX_AI_VALUES,
 } from "@/models/endpoint/endpoint.model";
 import { VALID } from "./endpoint_fixture";
@@ -111,5 +112,46 @@ describe("AiPreviewSchema applies the same field checks as saving", () => {
     expect(
       parse({ response_body: body, ai_enabled: true, ai_fields: ["user.name"] }).success
     ).toBe(true);
+  });
+});
+
+// The hint is author-written text handed to a model, so it is cleaned on the way in rather than
+// judged for intent. Both write paths share one schema, so neither can drift from the other.
+describe("the hint is cleaned before anything reads it", () => {
+  const previewWith = (ai_prompt: unknown) =>
+    AiPreviewSchema.safeParse({
+      method: "GET" as const,
+      path: "/users",
+      response_body: '{"name":"An"}',
+      ai_fields: ["name"],
+      count: 3,
+      ai_prompt,
+    });
+
+  it("folds a multi line hint onto one line", () => {
+    expect(previewWith("use uuid for id\n\n\nand keep names short").data?.ai_prompt).toBe(
+      "use uuid for id and keep names short"
+    );
+  });
+
+  it("takes out zero width and bidi characters, which only ever hide text", () => {
+    const hidden = "use​uuid\u202Efor id\u2066";
+
+    expect(previewWith(hidden).data?.ai_prompt).toBe("useuuidfor id");
+  });
+
+  it("normalises a fullwidth lookalike to the plain character", () => {
+    expect(previewWith("ｕｓｅ ｕｕｉｄ").data?.ai_prompt).toBe("use uuid");
+  });
+
+  it("refuses a hint past the cap, counting what the author typed", () => {
+    const result = previewWith("x".repeat(MAX_AI_PROMPT_LENGTH + 1));
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toContain(String(MAX_AI_PROMPT_LENGTH));
+  });
+
+  it("cleans the same way when the endpoint is saved", () => {
+    expect(parse({ ai_prompt: "  use​uuid  " }).data?.ai_prompt).toBe("useuuid");
   });
 });

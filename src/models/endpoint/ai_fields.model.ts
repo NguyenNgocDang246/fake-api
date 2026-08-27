@@ -2,10 +2,25 @@ import { z } from "zod";
 import { MAX_ARRAY_ITEMS } from "@/models/endpoint/primitives.model";
 import { arrayDepthOf, flattenPathValues } from "@/app/libs/helpers/json_path";
 import { buildFieldTree, collectSelectablePaths } from "@/app/libs/helpers/json_field_tree";
+import { collapseUntrusted } from "@/app/libs/helpers/untrusted_text";
 
 export const MAX_AI_FIELDS = 50;
-export const MAX_AI_PROMPT_LENGTH = 500;
+export const MAX_AI_PROMPT_LENGTH = 300;
 export const MAX_AI_VALUES = 150;
+
+// The hint is author-written text handed to a model, so it is cleaned before anything reads it.
+// The input is one line and capped by the browser, so a newline can only come from a hand-written
+// request, and folding it away costs a real author nothing.
+export function normalizeAiPrompt(raw: string): string {
+  return collapseUntrusted(raw);
+}
+
+// Capped before the clean, not after: the field counts characters the same way the input does,
+// so a hint the browser accepted is never refused over characters the server took out.
+export const AiPromptSchema = z
+  .string()
+  .max(MAX_AI_PROMPT_LENGTH, `The hint cannot be longer than ${MAX_AI_PROMPT_LENGTH} characters`)
+  .transform(normalizeAiPrompt);
 
 // A path crossing arrays asks for one value per element, and crossing two multiplies, which is
 // what makes this the real ceiling on a nested selection rather than the field count.

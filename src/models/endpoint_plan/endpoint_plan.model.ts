@@ -3,11 +3,14 @@ import {
   MAX_CATALOGS,
   MAX_CATALOG_COLUMNS,
   MAX_CATALOG_ROWS,
+  MAX_LANGUAGE_NAME_CHARS,
   MAX_PLAN_ENTITIES,
   MAX_PLAN_FIELDS,
   MAX_UNAPPLIED_HINTS,
+  MAX_UNAPPLIED_HINT_CHARS,
   PLAN_VERSION,
 } from "@/models/endpoint_plan/limits.model";
+import { carriesLinkOrFence, collapseUntrusted } from "@/app/libs/helpers/untrusted_text";
 import {
   DATE_FORMAT_TYPES,
   ENTITY_KINDS,
@@ -30,6 +33,28 @@ import {
 export * from "@/models/endpoint_plan/limits.model";
 export * from "@/models/endpoint_plan/catalog.model";
 export * from "@/models/endpoint_plan/recipe.model";
+
+// The two fields a model writes in its own words, and so the only ones whose content is not
+// drawn from a closed vocabulary. Both are shown to the user and neither is read by the executor,
+// which is why they are trimmed to what a reader can use rather than checked for meaning.
+function cleanUnappliedHints(hints: string[]): string[] {
+  return hints
+    .map((hint) => collapseUntrusted(hint).slice(0, MAX_UNAPPLIED_HINT_CHARS))
+    .filter((hint) => hint.length > 0 && !carriesLinkOrFence(hint))
+    .slice(0, MAX_UNAPPLIED_HINTS);
+}
+
+function cleanLanguageName(name: string | null): string | null {
+  if (name === null) return null;
+
+  const letters = collapseUntrusted(name)
+    .replace(/[^A-Za-z ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_LANGUAGE_NAME_CHARS);
+
+  return letters.length > 0 ? letters : null;
+}
 
 const PlanEntity = z.object({
   id: Identifier,
@@ -62,9 +87,12 @@ export const VariantPlanSchema = z
     entities: z.array(PlanEntity).max(MAX_PLAN_ENTITIES).default([]),
     catalogs: z.array(PlanCatalog).max(MAX_CATALOGS).default([]),
     fields: z.array(PlanField).min(1).max(MAX_PLAN_FIELDS),
-    unapplied_hints: z.array(z.string().max(200)).max(MAX_UNAPPLIED_HINTS).default([]),
+    // Cleaned rather than rejected: a dropped instruction is the one thing a user has no other
+    // signal for, so a blueprint that is otherwise sound must not fail over how it was worded.
+    unapplied_hints: z.array(z.string()).default([]).transform(cleanUnappliedHints),
     // `locale` is a closed enum, so a Thai body would come back as `en` with nothing saying why.
-    unsupported_language: z.string().max(40).nullable().default(null),
+    // The prompt asks for the name alone, and this is what holds it to that.
+    unsupported_language: z.string().nullable().default(null).transform(cleanLanguageName),
   })
   .strict();
 export type VariantPlanDTO = z.infer<typeof VariantPlanSchema>;

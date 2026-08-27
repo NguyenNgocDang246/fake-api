@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { PublicIdSchema } from "@/app/libs/helpers/publicId";
-import { MAX_AI_FIELDS, MAX_AI_PROMPT_LENGTH } from "@/models/endpoint/ai_fields.model";
+import { AiPromptSchema, MAX_AI_FIELDS } from "@/models/endpoint/ai_fields.model";
 import {
   IntegerFromInput,
   JsonSchema,
@@ -41,11 +41,7 @@ export const EndpointSchema = z
         `You can select at most ${MAX_AI_FIELDS} fields`
       )
       .default([]),
-    ai_prompt: z
-      .string()
-      .max(MAX_AI_PROMPT_LENGTH, `The hint cannot be longer than ${MAX_AI_PROMPT_LENGTH} characters`)
-      .nullable()
-      .default(null),
+    ai_prompt: AiPromptSchema.nullable().default(null),
   })
   .strict();
 export type EndpointDTO = z.infer<typeof EndpointSchema>;
