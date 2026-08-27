@@ -2,6 +2,9 @@ export const QUERY_KEY = {
   AUTH: {
     CHECK: "auth-check",
   },
+  USER: {
+    USAGE: "user-usage",
+  },
   PROJECT: {
     ALL: "projects",
     ONE: "project",

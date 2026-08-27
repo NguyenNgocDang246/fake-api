@@ -6,13 +6,6 @@ interface CheckboxProps {
   id: string;
   label: string;
   register: UseFormRegisterReturn;
-  /**
-   * Current tick state. Required whenever the form can open with the box already on, because
-   * `register` carries the name, the ref and the handlers but never the value, so without this
-   * the input is uncontrolled and always renders empty however the field is set.
-   *
-   * Leave it out only for a box that genuinely starts empty and is never set from outside.
-   */
   checked?: boolean;
   disabled?: boolean;
   className?: string;

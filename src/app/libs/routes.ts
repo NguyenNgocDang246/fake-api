@@ -20,6 +20,7 @@ export const API_ROUTES = {
   },
   USER: {
     GET: "/api/user",
+    USAGE: "/api/user/usage",
     CREATE: "/api/user",
     // UPDATE: "/api/users/:id",
     // DELETE: "/api/users/:id",

@@ -40,9 +40,9 @@ describe("src/app/api/project/route.ts", () => {
       expect(typeof body.data[0].public_id).toBe("string");
     });
 
-    it("returns 500 when x-userId missing (current behavior)", async () => {
+    it("returns 400 when x-userId is missing", async () => {
       const res = await GET(createJsonRequest({}, {}));
-      await expectError(res, STATUS_CODE.SERVER_ERROR, ERROR_MESSAGES.SERVER_ERROR);
+      await expectError(res, STATUS_CODE.BAD_REQUEST, ERROR_MESSAGES.VALIDATION_FAILED);
     });
   });
 

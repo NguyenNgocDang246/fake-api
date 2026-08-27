@@ -1,14 +1,14 @@
 "use client";
-import { forwardRef, useImperativeHandle } from "react";
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import Notify from "@/app/components/Notify";
-import customResolver from "./customResolver";
+import customResolver from "@/app/(pages)/project/[id]/components/EndpointForm/customResolver";
 import { useForm } from "react-hook-form";
-import { ClientCreateEndpointDTO } from "@/models/endpoint.model";
-import { DefaultInput } from "@/app/components/Input/DefaultInput";
-import { ErrorText } from "@/app/components/Text/ErrorText";
-import { SelectInput } from "@/app/components/Input/SelectInput";
-import { JsonEditor } from "@/app/components/Input/JsonEditor";
-import { AiEndpointSection } from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
+import { ClientCreateEndpointDTO } from "@/models/endpoint/endpoint.model";
+import { EndpointForm } from "@/app/(pages)/project/[id]/components/EndpointForm/EndpointForm";
+import {
+  EndpointDesign,
+  planEnvelopeOf,
+} from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
 import { API_ROUTES } from "@/app/libs/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
@@ -25,14 +25,6 @@ export interface CreateEndpointFormProps {
   endpointGroupId: string;
 }
 
-const httpMethods: { label: string; value: string }[] = [
-  { value: "GET", label: "GET" },
-  { value: "POST", label: "POST" },
-  { value: "PUT", label: "PUT" },
-  { value: "PATCH", label: "PATCH" },
-  { value: "DELETE", label: "DELETE" },
-];
-
 export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEndpointFormProps>(
   (props, ref) => {
     const {
@@ -40,11 +32,15 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
       handleSubmit,
       reset,
       control,
-      formState: { errors },
+      formState: { errors, submitCount },
     } = useForm<ClientCreateEndpointDTO>({
       resolver: customResolver,
       defaultValues: { ai_enabled: false, ai_fields: [], ai_prompt: null },
     });
+
+    // Beside the form rather than in it: the blueprint carries `.default()`s, so its zod input and
+    // output types differ and a `Resolver` cannot hold both.
+    const designRef = useRef<EndpointDesign | null>(null);
 
     const queryClient = useQueryClient();
     const pathname = usePathname();
@@ -62,7 +58,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
             projectId,
             endpointGroupId: props.endpointGroupId,
           }),
-          data,
+          { ...data, ...planEnvelopeOf(designRef.current) },
         ),
       onSuccess() {
         reset();
@@ -78,9 +74,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
       try {
         await createEndpointMutation.mutateAsync(data);
         return true;
-      } catch (error) {
-        const data = (error as { data: ApiErrorResponse }).data;
-        void data;
+      } catch {
         return false;
       }
     };
@@ -91,10 +85,9 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
 
         await handleSubmit(
           async (data) => {
-            isValid = await onSubmit(data); // onSubmit trả về true/false
+            isValid = await onSubmit(data);
           },
-          (errors) => {
-            void errors;
+          () => {
             isValid = false;
           },
         )();
@@ -104,76 +97,18 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
     }));
 
     return (
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
-          <div className="flex-1 flex flex-col gap-1">
-            <SelectInput
-              className="w-full"
-              label="Method"
-              id="method"
-              options={httpMethods}
-              register={register("method")}
-            />
-            {errors.method && <ErrorText message={errors.method.message} />}
-          </div>
-          <div className="flex-1 flex flex-col gap-1">
-            <DefaultInput
-              className="w-full"
-              label="Path"
-              register={register("path")}
-              type="text"
-              id="path"
-              placeholder="/api/user/:id"
-            />
-            {errors.path && <ErrorText message={errors.path.message} />}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <JsonEditor
-            label="Response body"
-            register={register("response_body")}
-            id="response_body"
-            placeholder={`{ "message": "Success" }`}
-          />
-          {errors.response_body && <ErrorText message={errors.response_body.message} />}
-        </div>
-
-        <AiEndpointSection
-          control={control}
-          register={register}
-          projectId={projectId}
-          endpointGroupId={props.endpointGroupId}
-          errorMessage={errors.ai_fields?.message}
-        />
-
-        <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
-          <div className="flex-1 flex flex-col gap-1">
-            <DefaultInput
-              className="w-full"
-              label="Delay (ms)"
-              register={register("delay_ms")}
-              type="text"
-              id="delay_ms"
-              placeholder="100"
-              defaultValue="0"
-            />
-            {errors.delay_ms && <ErrorText message={errors.delay_ms.message} />}
-          </div>
-          <div className="flex-1 flex flex-col gap-1">
-            <DefaultInput
-              className="w-full"
-              label="Status Code"
-              register={register("status_code")}
-              type="text"
-              id="status_code"
-              placeholder="200"
-              defaultValue="200"
-            />
-            {errors.status_code && <ErrorText message={errors.status_code.message} />}
-          </div>
-        </div>
-      </div>
+      <EndpointForm
+        register={register}
+        control={control}
+        errors={errors}
+        submitCount={submitCount}
+        projectId={projectId}
+        endpointGroupId={props.endpointGroupId}
+        defaults={{ delay_ms: "0", status_code: "200" }}
+        onDesign={(design) => {
+          designRef.current = design;
+        }}
+      />
     );
   },
 );

@@ -6,11 +6,14 @@ import { validateData } from "@/server/core/validation";
 import {
   EndpointInfoSchema,
   CreateEndpointSchema,
+  PlanEnvelopeSchema,
+  splitPlanEnvelope,
   toEndpointInfoInput,
-} from "@/models/endpoint.model";
+} from "@/models/endpoint/endpoint.model";
 import endpointService from "@/server/services/endpoint/endpoint.service";
 import endpointGroupService from "@/server/services/endpoint_group.service";
-import endpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
+import aiUsageService from "@/server/services/ai_usage.service";
+import endpointVariantPlanService from "@/server/services/endpoint/variant/plan.service";
 import {
   createRouteHandler,
   withEndpointGroupId,
@@ -45,7 +48,9 @@ export const GET = createRouteHandler<EndpointCollectionRouteParams>(
         }
 
         const endpointInfoValidation = validateData(
-          endpoints.map((e) => toEndpointInfoInput(e, ctx.endpointGroupId)),
+          endpoints.map((e) =>
+            toEndpointInfoInput(e, ctx.endpointGroupId, endpointVariantPlanService.planInfoOf(e))
+          ),
           [EndpointInfoSchema]
         );
         if (!endpointInfoValidation.success) return endpointInfoValidation.response;
@@ -82,12 +87,27 @@ export const POST = createRouteHandler<EndpointCollectionRouteParams>(
           });
         }
 
-        const body = await req.json();
+        const { envelope, endpoint: endpointBody } = splitPlanEnvelope(await req.json());
+        const planValidation = validateData(envelope, PlanEnvelopeSchema);
+        if (!planValidation.success) return planValidation.response;
+
         const endpointValidation = validateData(
-          { ...body, endpoint_groups_public_id: ctx.endpointGroupId },
+          { ...endpointBody, endpoint_groups_public_id: ctx.endpointGroupId },
           CreateEndpointSchema
         );
         if (!endpointValidation.success) return endpointValidation.response;
+
+        // Only asked when the flag is on, so an ordinary endpoint costs no extra query. Without
+        // it a role with no AI saves the flag and is served the base body forever, silently.
+        if (
+          endpointValidation.data.ai_enabled &&
+          !(await aiUsageService.isAiAllowed({ public_id: ctx.userId }))
+        ) {
+          return ApiResponse.error({
+            message: LIMIT_MESSAGES.AI_NOT_AVAILABLE_FOR_ROLE,
+            statusCode: STATUS_CODE.FORBIDDEN,
+          });
+        }
 
         const endpointExists = await endpointService.getEndpointByPath({
           project_public_id: ctx.projectId,
@@ -103,7 +123,20 @@ export const POST = createRouteHandler<EndpointCollectionRouteParams>(
 
         const endpointCreate = await endpointService.createEndpoint(endpointValidation.data);
 
-        after(() => endpointVariantService.refillIfNeeded(endpointCreate));
+        // Warms the blueprint so the first real request already serves varied data. A blueprint
+        // the user previewed is adopted instead, which is the same design they already paid for.
+        after(async () => {
+          const { plan, plan_hash } = planValidation.data;
+          if (plan && plan_hash) {
+            const adopted = await endpointVariantPlanService.adoptPlan(
+              endpointCreate,
+              plan,
+              plan_hash
+            );
+            if (adopted) return;
+          }
+          await endpointVariantPlanService.ensurePlan(endpointCreate);
+        });
 
         const endpointInfoValidation = validateData(
           toEndpointInfoInput(endpointCreate, ctx.endpointGroupId),

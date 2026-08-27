@@ -1,269 +1,175 @@
 // Path syntax: `.` separates object keys (`user.name`), `[]` means every element of an array
-// (`items[].price`). One `[]` per path, so arrays inside arrays cannot be expressed, and nor
-// can a key containing `.` or `[`.
+// (`items[].price`). A path may cross any number of arrays (`rows[].cells[]`), and `\` escapes a
+// `.`, `[`, `]` or `\` inside a key, so every JSON key is expressible.
 
 export type JsonLeafType = "string" | "number" | "boolean" | "null";
 
-export interface FieldNode {
-  path: string;
-  label: string;
-  kind: "leaf" | "object" | "array";
-  type?: JsonLeafType;
-  sample?: unknown;
-  arrayLength?: number;
-  selectable: boolean;
-  disabledReason?: string;
-  children?: FieldNode[];
-}
+export type PathStep = { kind: "key"; key: string } | { kind: "array" };
 
-const UNSUPPORTED_KEY = /[.[\]]/;
+// How many arrays one path may cross. A guard rather than a design limit: each level multiplies
+// the values a single recipe writes, and `MAX_AI_VALUES` is what really bounds a selection.
+export const MAX_ARRAY_DEPTH = 3;
 
-const NESTED_ARRAY_REASON = "Arrays inside arrays are not supported yet";
-const EMPTY_ARRAY_REASON = "An empty array has no values to vary";
-const RAGGED_ARRAY_REASON = "The elements of this array do not all have the same type";
-const RAGGED_FIELD_REASON =
-  "The elements of this array do not all carry this field with the same type";
+const SPECIAL = /[\\.[\]]/g;
 
-function leafTypeOf(value: unknown): JsonLeafType | undefined {
-  if (value === null) return "null";
-  if (typeof value === "string") return "string";
-  if (typeof value === "number") return "number";
-  if (typeof value === "boolean") return "boolean";
-  return undefined;
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+export function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function joinPath(parent: string, key: string): string {
-  return parent ? `${parent}.${key}` : key;
+export function escapeKey(key: string): string {
+  return key.replace(SPECIAL, (char) => `\\${char}`);
 }
 
-// A `[]` path describes one element type, so a ragged array describes a field no reply can
-// satisfy and must not be offered. `null` counts as its own type, matching
-// `uniformElementType` in the generator, or one side would accept what the other drops.
-function uniformLeafType(elements: unknown[], tail: string[]): JsonLeafType | undefined {
-  const [first, ...rest] = elements;
-  if (first === undefined) return undefined;
+// One segment per unescaped `.`, each segment being a key followed by any number of `[]`.
+export function parsePath(path: string): PathStep[] {
+  const steps: PathStep[] = [];
+  let key = "";
+  let markers = 0;
+  let escaped = false;
 
-  const type = leafTypeOf(readKeys(first, tail));
-  if (!type) return undefined;
+  const flush = () => {
+    steps.push({ kind: "key", key });
+    for (let marker = 0; marker < markers; marker += 1) steps.push({ kind: "array" });
+    key = "";
+    markers = 0;
+  };
 
-  return rest.every((element) => leafTypeOf(readKeys(element, tail)) === type) ? type : undefined;
-}
+  for (let index = 0; index < path.length; index += 1) {
+    const char = path[index]!;
 
-// The array a `[]` was opened on, carried down so the leaves below are judged against every
-// element rather than against the first one.
-interface ArrayContext {
-  elements: unknown[];
-  tail: string[];
-}
-
-// `limit` is how many array elements are inspected when deciding an element type. It has to
-// match the generator's `MAX_AI_ARRAY_ITEMS`, or a path is refused over an element no call
-// would ever have seen. Passed in because `@/models/endpoint.model` already imports this file.
-function buildNodes(
-  value: unknown,
-  parentPath: string,
-  limit: number | undefined,
-  arrayCtx?: ArrayContext
-): FieldNode[] {
-  if (!isPlainObject(value)) return [];
-
-  return Object.entries(value).map(([key, child]) => {
-    const path = joinPath(parentPath, key);
-    const unsupportedKey = UNSUPPORTED_KEY.test(key);
-
-    const base = {
-      path,
-      label: key,
-      selectable: !unsupportedKey,
-      ...(unsupportedKey
-        ? { disabledReason: "Field names containing . or [ ] are not supported yet" }
-        : {}),
-    };
-
-    const ownType = leafTypeOf(child);
-    if (ownType) {
-      const sharedType = arrayCtx
-        ? uniformLeafType(arrayCtx.elements, [...arrayCtx.tail, key])
-        : ownType;
-      if (!sharedType) {
-        return {
-          ...base,
-          kind: "leaf" as const,
-          selectable: false,
-          sample: child,
-          disabledReason: RAGGED_FIELD_REASON,
-        };
-      }
-
-      return { ...base, kind: "leaf" as const, type: sharedType, sample: child };
+    if (escaped) {
+      key += char;
+      escaped = false;
+    } else if (char === "\\") {
+      escaped = true;
+    } else if (char === ".") {
+      flush();
+    } else if (char === "[" && path[index + 1] === "]") {
+      markers += 1;
+      index += 1;
+    } else {
+      key += char;
     }
+  }
 
-    if (Array.isArray(child)) {
-      if (arrayCtx) {
-        return {
-          ...base,
-          kind: "array" as const,
-          selectable: false,
-          disabledReason: NESTED_ARRAY_REASON,
-          arrayLength: child.length,
-        };
-      }
-
-      const elements = typeof limit === "number" ? child.slice(0, limit) : child;
-      const elementLeafType = uniformLeafType(elements, []);
-
-      if (elementLeafType) {
-        return {
-          ...base,
-          path: `${path}[]`,
-          kind: "leaf" as const,
-          type: elementLeafType,
-          sample: elements[0],
-          arrayLength: child.length,
-        };
-      }
-
-      const first = elements[0];
-
-      if (isPlainObject(first)) {
-        return {
-          ...base,
-          kind: "array" as const,
-          selectable: false,
-          arrayLength: child.length,
-          children: buildNodes(first, `${path}[]`, limit, { elements, tail: [] }),
-        };
-      }
-
-      return {
-        ...base,
-        kind: "array" as const,
-        selectable: false,
-        arrayLength: child.length,
-        disabledReason: Array.isArray(first)
-          ? NESTED_ARRAY_REASON
-          : first === undefined
-            ? EMPTY_ARRAY_REASON
-            : RAGGED_ARRAY_REASON,
-      };
-    }
-
-    if (isPlainObject(child)) {
-      return {
-        ...base,
-        kind: "object" as const,
-        selectable: false,
-        children: buildNodes(
-          child,
-          path,
-          limit,
-          arrayCtx ? { ...arrayCtx, tail: [...arrayCtx.tail, key] } : undefined
-        ),
-      };
-    }
-
-    return {
-      ...base,
-      kind: "leaf" as const,
-      selectable: false,
-      disabledReason: "Not a valid JSON value",
-    };
-  });
+  flush();
+  return steps;
 }
 
-export function buildFieldTree(value: unknown, limit?: number): FieldNode[] {
-  return buildNodes(value, "", limit);
-}
-
-export function collectSelectablePaths(nodes: FieldNode[]): string[] {
-  return nodes.flatMap((node) => [
-    ...(node.selectable && node.kind === "leaf" ? [node.path] : []),
-    ...(node.children ? collectSelectablePaths(node.children) : []),
-  ]);
-}
-
-interface ParsedPath {
-  // Keys before the `[]`. Without a `[]` this is the whole path.
-  head: string[];
-  // Keys after the `[]`. `undefined` means the path has no `[]`.
-  tail?: string[];
-}
-
-export function parsePath(path: string): ParsedPath {
-  const markerIndex = path.indexOf("[]");
-  if (markerIndex === -1) return { head: path.split(".").filter(Boolean) };
-
-  const head = path.slice(0, markerIndex).split(".").filter(Boolean);
-  const tail = path
-    .slice(markerIndex + 2)
-    .split(".")
-    .filter(Boolean);
-  return { head, tail };
+export function formatPath(steps: PathStep[]): string {
+  return steps.reduce((path, step, index) => {
+    if (step.kind === "array") return `${path}[]`;
+    return index === 0 ? escapeKey(step.key) : `${path}.${escapeKey(step.key)}`;
+  }, "");
 }
 
 export function isArrayPath(path: string): boolean {
-  return path.includes("[]");
+  return parsePath(path).some((step) => step.kind === "array");
 }
 
-function readKeys(source: unknown, keys: string[]): unknown {
-  return keys.reduce<unknown>(
-    (acc, key) => (isPlainObject(acc) ? acc[key] : undefined),
-    source
-  );
+export function arrayDepthOf(path: string): number {
+  return parsePath(path).filter((step) => step.kind === "array").length;
 }
 
-// A `[]` path returns the array of values from each element, capped to `limit`. `undefined`
-// when the path does not exist.
+// The innermost array a path sits in, written as a path of its own. `""` for a path that crosses
+// no array. Two fields are drawn once per element of the same array when these match.
+export function scopePathOf(path: string): string {
+  const steps = parsePath(path);
+  const last = steps.map((step) => step.kind).lastIndexOf("array");
+  return last === -1 ? "" : formatPath(steps.slice(0, last + 1));
+}
+
+// Scopes are canonical, and every non-root one ends in `[]`, so an outer scope is exactly a
+// string prefix of an inner one.
+export function isOuterScope(outer: string, inner: string): boolean {
+  return outer === "" || outer === inner || inner.startsWith(outer);
+}
+
+export function readKeys(source: unknown, keys: string[]): unknown {
+  return keys.reduce<unknown>((acc, key) => (isPlainObject(acc) ? acc[key] : undefined), source);
+}
+
+function readSteps(value: unknown, steps: PathStep[], limit: number | undefined): unknown {
+  const [step, ...rest] = steps;
+  if (!step) return value;
+
+  if (step.kind === "key") {
+    return isPlainObject(value) ? readSteps(value[step.key], rest, limit) : undefined;
+  }
+
+  if (!Array.isArray(value)) return undefined;
+  const slice = typeof limit === "number" ? value.slice(0, limit) : value;
+  return slice.map((item) => readSteps(item, rest, limit));
+}
+
+// A path crossing N arrays returns a value nested N arrays deep, each level capped to `limit`.
+// `undefined` when the path does not exist.
 export function getAtPath(source: unknown, path: string, limit?: number): unknown {
-  const { head, tail } = parsePath(path);
-
-  if (!tail) return readKeys(source, head);
-
-  const array = readKeys(source, head);
-  if (!Array.isArray(array)) return undefined;
-
-  const slice = typeof limit === "number" ? array.slice(0, limit) : array;
-  return slice.map((item) => (tail.length === 0 ? item : readKeys(item, tail)));
+  return readSteps(source, parsePath(path), limit);
 }
 
 export function findMissingPaths(value: unknown, paths: string[]): string[] {
   return paths.filter((path) => getAtPath(value, path) === undefined);
 }
 
-function writeKeys(target: unknown, keys: string[], value: unknown): boolean {
-  if (keys.length === 0) return false;
+// The values a path controls, flattened across every array it crosses. `null` when some level is
+// not an array, which is what tells a caller the path does not describe one uniform thing.
+export function flattenAtDepth(value: unknown, depth: number): unknown[] | null {
+  if (depth === 0) return [value];
+  if (!Array.isArray(value)) return null;
 
-  const parent = readKeys(target, keys.slice(0, -1));
-  const lastKey = keys[keys.length - 1]!;
-  if (!isPlainObject(parent) || !(lastKey in parent)) return false;
-
-  parent[lastKey] = value;
-  return true;
+  const flattened: unknown[] = [];
+  for (const item of value) {
+    const inner = flattenAtDepth(item, depth - 1);
+    if (inner === null) return null;
+    flattened.push(...inner);
+  }
+  return flattened;
 }
 
-// Mutates `target` in place, and a `[]` path can be partially written before a mismatch is
-// found, so callers work on a clone and discard the whole clone when this returns `false`.
-// A `value` shorter than the target array leaves the remainder untouched, which is the cap.
-export function setAtPath(target: unknown, path: string, value: unknown): boolean {
-  const { head, tail } = parsePath(path);
+export function flattenPathValues(
+  source: unknown,
+  path: string,
+  limit?: number
+): unknown[] | null {
+  return flattenAtDepth(getAtPath(source, path, limit), arrayDepthOf(path));
+}
 
-  if (!tail) return writeKeys(target, head, value);
+// Own properties only. `"__proto__" in target` is true for any object, so `in` would let a write
+// through a path that reaches the prototype instead of the body.
+function hasOwnKey(target: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(target, key);
+}
 
-  const array = readKeys(target, head);
-  if (!Array.isArray(array) || !Array.isArray(value)) return false;
-  if (value.length > array.length) return false;
+function writeSteps(target: unknown, steps: PathStep[], value: unknown): boolean {
+  const [step, ...rest] = steps;
+  if (!step) return false;
 
-  for (const [index, item] of value.entries()) {
-    if (tail.length === 0) {
-      array[index] = item;
-      continue;
+  if (step.kind === "array") {
+    if (!Array.isArray(target) || !Array.isArray(value)) return false;
+    if (value.length > target.length) return false;
+
+    for (const [index, item] of value.entries()) {
+      if (rest.length === 0) {
+        target[index] = item;
+        continue;
+      }
+      if (!writeSteps(target[index], rest, item)) return false;
     }
-    if (!writeKeys(array[index], tail, item)) return false;
+    return true;
   }
 
-  return true;
+  if (!isPlainObject(target) || !hasOwnKey(target, step.key)) return false;
+  if (rest.length === 0) {
+    target[step.key] = value;
+    return true;
+  }
+  return writeSteps(target[step.key], rest, value);
+}
+
+// Mutates `target` in place, and a path crossing an array can be partially written before a
+// mismatch is found, so callers work on a clone and discard the whole clone on `false`.
+// A `value` shorter than the target array leaves the remainder untouched, which is the cap.
+export function setAtPath(target: unknown, path: string, value: unknown): boolean {
+  return writeSteps(target, parsePath(path), value);
 }

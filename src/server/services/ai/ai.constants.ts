@@ -1,10 +1,8 @@
+// Only what this layer itself raises. A message about response bodies, field selection or
+// variants describes the caller's feature, not the LLM, and lives in that domain's constants.
 export enum AI_MESSAGES {
   NOT_CONFIGURED = "AI generation is not configured on this server.",
   PROVIDER_NOT_AVAILABLE = "The AI provider this feature requires is not configured on this server.",
-  NO_FIELDS_SELECTED = "Select at least one field before generating variants.",
-  FIELDS_NOT_PATCHABLE = "The selected fields can no longer be varied. Please choose them again.",
-  FIELDS_TOO_LARGE = "Too many values to generate at once. Select fewer fields, or a smaller array.",
-  INVALID_BASE_BODY = "The response body must be a valid JSON object before generating variants.",
   RATE_LIMITED = "The AI provider is rate limiting requests. Please try again shortly.",
   TOO_MANY_REQUESTS = "Too many AI requests. Please wait a moment and try again.",
   PROVIDER_OVERLOADED = "The AI provider is temporarily overloaded. Please try again shortly.",
@@ -13,7 +11,6 @@ export enum AI_MESSAGES {
   MODEL_NOT_AVAILABLE = "The configured AI model is not available for these credentials.",
   PROVIDER_REJECTED_REQUEST = "The AI provider rejected the request as malformed.",
   PROVIDER_FAILED = "The AI provider could not complete the request.",
-  NO_USABLE_VARIANT = "The AI provider returned no usable variant. Please try again.",
 }
 
 // Read as "calls per window", so this pair is ten per second. Used when the env vars are unset.

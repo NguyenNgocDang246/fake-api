@@ -1,5 +1,11 @@
-import { validateAiFields } from "@/app/(pages)/project/[id]/components/validateAiFields";
-import { MAX_AI_ARRAY_ITEMS, MAX_AI_FIELDS, MAX_AI_VALUES } from "@/models/endpoint.model";
+import { validateAiFields } from "@/app/(pages)/project/[id]/components/EndpointForm/validateAiFields";
+import {
+  MAX_ARRAY_ITEMS,
+  MAX_AI_FIELDS,
+  MAX_AI_VALUES,
+  checkAiFieldList,
+} from "@/models/endpoint/endpoint.model";
+import { z } from "zod";
 
 const valid = {
   ai_enabled: true,
@@ -73,7 +79,7 @@ describe("validateAiFields", () => {
 
     it("ignores a type break past the element cap the generator applies", () => {
       const items = [
-        ...Array.from({ length: MAX_AI_ARRAY_ITEMS }, () => ({ price: 1 })),
+        ...Array.from({ length: MAX_ARRAY_ITEMS }, () => ({ price: 1 })),
         { price: "broken" },
       ];
 
@@ -88,7 +94,7 @@ describe("validateAiFields", () => {
 
   it("still applies the value ceiling once every path is selectable", () => {
     const body = JSON.stringify({
-      items: Array.from({ length: MAX_AI_ARRAY_ITEMS }, () => ({
+      items: Array.from({ length: MAX_ARRAY_ITEMS }, () => ({
         price: 1,
         name: "a",
         sku: "b",
@@ -102,5 +108,32 @@ describe("validateAiFields", () => {
     expect(check({ response_body: body, ai_fields: paths })?.message).toContain(
       `more than ${MAX_AI_VALUES} values`
     );
+  });
+});
+
+// The form refuses a selection before the request goes out and Zod refuses it on the way in.
+// They read one implementation, and this is what says so out loud.
+describe("client and server agree on a refusal", () => {
+  const serverMessage = (values: { ai_fields: string[]; response_body: string }) => {
+    const issues: string[] = [];
+    checkAiFieldList(values, {
+      addIssue: (issue: { message?: string }) => issues.push(issue.message ?? ""),
+    } as unknown as z.RefinementCtx);
+    return issues[0];
+  };
+
+  const cases = [
+    { ai_fields: [], response_body: '{"name":"An"}' },
+    { ai_fields: ["items"], response_body: '{"items":[]}' },
+    {
+      ai_fields: ["rows[].n"],
+      response_body: JSON.stringify({
+        rows: Array.from({ length: MAX_AI_VALUES + 1 }, () => ({ n: 1 })),
+      }),
+    },
+  ];
+
+  it.each(cases)("gives the same message for %j", (values) => {
+    expect(check({ ...values })?.message).toBe(serverMessage(values));
   });
 });

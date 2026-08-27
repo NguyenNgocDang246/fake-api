@@ -30,6 +30,7 @@ export enum STATUS_CODE {
   NOT_FOUND = 404,
   METHOD_NOT_ALLOWED = 405,
   CONFLICT = 409,
+  PAYLOAD_TOO_LARGE = 413,
   TOO_MANY_REQUESTS = 429,
   SERVER_ERROR = 500,
   BAD_GATEWAY = 502,
@@ -41,5 +42,8 @@ export enum LIMIT_MESSAGES {
   PROJECT_LIMIT_REACHED = "You have reached the maximum number of projects allowed for your account.",
   ENDPOINT_GROUP_LIMIT_REACHED = "You have reached the maximum number of groups allowed for this project.",
   ENDPOINT_LIMIT_REACHED = "You have reached the maximum number of endpoints allowed for this group.",
-  AI_VARIANT_LIMIT_REACHED = "You have reached the maximum number of AI generations allowed for today.",
+  AI_PLAN_LIMIT_REACHED = "You have reached the maximum number of AI designs allowed for today.",
+  // Separate from the one above: a role with no AI at all needs a different fix from a role
+  // that has spent today's calls, and "try again tomorrow" would never come true.
+  AI_NOT_AVAILABLE_FOR_ROLE = "AI response variants are not available for your account.",
 }

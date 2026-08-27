@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/Constants";
 import api from "@/app/libs/helpers/api_call.client";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
-import { ClientDeleteEndpointByIdDTO } from "@/models/endpoint.model";
+import { ClientDeleteEndpointByIdDTO } from "@/models/endpoint/endpoint.model";
 import buildUrl from "@/app/libs/helpers/url_builder";
 import { API_ROUTES } from "@/app/libs/routes";
 import Notify from "@/app/components/Notify";

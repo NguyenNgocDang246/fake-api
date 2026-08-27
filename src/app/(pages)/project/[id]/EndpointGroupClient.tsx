@@ -95,6 +95,9 @@ export default function EndpointGroupClient({
                         ai_enabled: endpoint.ai_enabled,
                         ai_fields: endpoint.ai_fields,
                         ai_prompt: endpoint.ai_prompt,
+                        ai_unsupported_language: endpoint.ai_unsupported_language,
+                        ai_unapplied_hints: endpoint.ai_unapplied_hints,
+                        ai_has_plan: endpoint.ai_has_plan,
                       }}
                     />
                   </div>

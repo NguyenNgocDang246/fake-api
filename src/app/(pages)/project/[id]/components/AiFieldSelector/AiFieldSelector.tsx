@@ -3,9 +3,9 @@
 import React, { useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import { AlertCircle, Braces, X } from "lucide-react";
-import { FieldNode, collectSelectablePaths } from "@/app/libs/helpers/json_path";
+import { FieldNode, collectSelectablePaths } from "@/app/libs/helpers/json_field_tree";
 import { useAiFieldTree } from "@/app/(pages)/project/[id]/components/AiFieldSelector/useAiFieldTree";
-import { MAX_AI_ARRAY_ITEMS } from "@/models/endpoint.model";
+import { MAX_AI_FIELDS, MAX_ARRAY_ITEMS } from "@/models/endpoint/endpoint.model";
 
 interface AiFieldSelectorProps {
   bodyJson: string;
@@ -17,9 +17,9 @@ interface AiFieldSelectorProps {
 
 function describeSample(node: FieldNode): string {
   if (node.arrayLength !== undefined) {
-    const capped = Math.min(node.arrayLength, MAX_AI_ARRAY_ITEMS);
+    const capped = Math.min(node.arrayLength, MAX_ARRAY_ITEMS);
     const suffix =
-      node.arrayLength > MAX_AI_ARRAY_ITEMS ? `, only the first ${capped} are varied` : "";
+      node.arrayLength > MAX_ARRAY_ITEMS ? `, only the first ${capped} are varied` : "";
     return `array of ${node.arrayLength}${suffix}`;
   }
   return JSON.stringify(node.sample) ?? "";
@@ -50,10 +50,20 @@ interface FieldRowsProps {
 const FieldRows: React.FC<FieldRowsProps> = ({ nodes, depth, selected, disabled, onToggle }) => (
   <>
     {nodes.map((node) => {
-      const descendants = collectSelectablePaths([node]);
-      const allChecked =
-        descendants.length > 0 && descendants.every((path) => selected.has(path));
+      // An array container carries two independent choices: how many elements there are (its
+      // own path) and what is inside them (the paths below it). The main checkbox is the
+      // contents, so ticking a group never silently changes the length as well.
+      const countPath = node.kind === "array" && node.selectable ? node.path : null;
+      const descendants = collectSelectablePaths([node]).filter((path) => path !== countPath);
+      const allChecked = descendants.length > 0 && descendants.every((path) => selected.has(path));
       const someChecked = descendants.some((path) => selected.has(path));
+
+      // Extra items are copied from the first one, so anything left unticked comes back holding
+      // that item's value on every element. An id or a code repeating reads as a bug.
+      const clonesUnticked =
+        countPath !== null &&
+        selected.has(countPath) &&
+        descendants.some((path) => !selected.has(path));
 
       return (
         <React.Fragment key={node.path}>
@@ -76,7 +86,7 @@ const FieldRows: React.FC<FieldRowsProps> = ({ nodes, depth, selected, disabled,
               htmlFor={`ai-field-${node.path}`}
               className={twMerge(
                 "flex min-w-0 flex-1 items-baseline gap-2 text-sm",
-                descendants.length === 0 ? "text-gray-400" : "cursor-pointer text-gray-700"
+                descendants.length === 0 ? "text-gray-400" : "cursor-pointer text-gray-700",
               )}
               title={node.disabledReason}
             >
@@ -88,7 +98,35 @@ const FieldRows: React.FC<FieldRowsProps> = ({ nodes, depth, selected, disabled,
                 </span>
               )}
             </label>
+
+            {countPath && (
+              <label
+                htmlFor={`ai-count-${countPath}`}
+                title="Return a different number of items on each call"
+                className="ml-auto flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-xs text-gray-500 transition-colors hover:border-blue-300 hover:text-blue-700"
+              >
+                <input
+                  type="checkbox"
+                  id={`ai-count-${countPath}`}
+                  checked={selected.has(countPath)}
+                  disabled={disabled}
+                  onChange={(event) => onToggle([countPath], event.target.checked)}
+                  className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-40"
+                />
+                vary count
+              </label>
+            )}
           </div>
+
+          {clonesUnticked && (
+            <div
+              className="pb-1 pr-1.5 text-xs text-blue-600"
+              style={{ paddingLeft: `${depth * 16 + 30}px` }}
+            >
+              Extra items are copied from the first one, so the fields left unticked here repeat its
+              values.
+            </div>
+          )}
 
           {node.children && (
             <FieldRows
@@ -115,7 +153,10 @@ export const AiFieldSelector: React.FC<AiFieldSelectorProps> = ({
   const { state, tree, availablePaths } = useAiFieldTree(bodyJson);
   const selected = useMemo(() => new Set(value), [value]);
 
-  const stalePaths = value.filter((path) => !availablePaths.has(path));
+  // Only while the body actually parses. An unparseable one yields no paths at all, so every
+  // selection would read as gone the moment a brace is mid-edit, offering to delete fields that
+  // are still there. Nothing known is reported as nothing, not as absence.
+  const stalePaths = state === "invalid" ? [] : value.filter((path) => !availablePaths.has(path));
 
   const toggle = (paths: string[], checked: boolean) => {
     const next = new Set(value);
@@ -178,9 +219,10 @@ export const AiFieldSelector: React.FC<AiFieldSelectorProps> = ({
           <span className="text-xs text-amber-600">None of these fields can be varied yet</span>
         ) : (
           <>
+            {/* The count itself lives in the section's legend pill. Only the cap is repeated here,
+                and only once it is close enough to matter. */}
             <span className="text-xs text-gray-500">
-              <span className="font-medium text-gray-700">{selected.size}</span> of{" "}
-              {availablePaths.size} fields selected
+              {selected.size > MAX_AI_FIELDS / 2 && `At most ${MAX_AI_FIELDS} fields`}
             </span>
             <button
               type="button"

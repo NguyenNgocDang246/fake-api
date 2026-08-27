@@ -2,21 +2,34 @@ export enum ENDPOINT_MESSAGES {
   ENDPOINT_DUPLICATED = "This endpoint already exists.",
 }
 
-export const AI_POOL_SIZE = 10;
-export const AI_POOL_LOW_WATER = 3;
-export const AI_VARIANT_MAX_USES = 2;
-export const AI_REFILL_LOCK_MS = 180_000;
+// Raised while designing or serving a blueprint. They keep the `AI_` subject the way the tuning
+// below does, but every one of them is about this feature's response body and field selection
+// rather than about the LLM layer, so `../ai/` must not carry them.
+export enum ENDPOINT_AI_MESSAGES {
+  NO_FIELDS_SELECTED = "Select at least one field before generating variants.",
+  FIELDS_NOT_PATCHABLE = "The selected fields can no longer be varied. Please choose them again.",
+  FIELDS_TOO_LARGE = "Too many values to generate at once. Select fewer fields, or a smaller array.",
+  INVALID_BASE_BODY = "The response body must be a valid JSON object before generating variants.",
+  NO_USABLE_VARIANT = "The AI provider returned no usable variant. Please try again.",
+  REQUEST_TOO_LARGE = "This request is too large to preview. Use a smaller response body.",
+}
 
+// Lock for building a blueprint, doubling as the cooldown before a failed build is retried.
+export const AI_PLAN_LOCK_MS = 180_000;
+
+// How much of the body is shown to the model as context when it designs a blueprint.
 export const AI_CONTEXT_FULL_CHARS = 4_000;
 export const AI_CONTEXT_ARRAY_SAMPLE = 2;
 export const AI_CONTEXT_STRING_CHARS = 120;
 export const AI_CONTEXT_MAX_DEPTH = 6;
 export const AI_CONTEXT_MAX_CHARS = 12_000;
 
-export const AI_MAX_OUTPUT_TOKENS = 8_000;
-export const AI_TOKENS_PER_VALUE = 24;
+// Ceiling on the preview request body. Checked before the JSON is parsed, because Zod's `.max()`
+// on a collection only runs once every element has already been parsed, which is too late to
+// stop an oversized payload from costing anything.
+export const AI_PREVIEW_MAX_REQUEST_BYTES = 256_000;
 
-export const AI_MIN_OUTPUT_TOKENS = 1_024;
-
-// Fraction of the output budget kept back for thinking, which is billed against it too.
-export const AI_THINKING_RESERVE = 0.4;
+// A blueprint's size follows the number of fields, not the number of responses it will produce,
+// so this is one flat ceiling rather than the per-batch budget the old value generator needed.
+// Generous because a catalog with real domain rows is the largest thing a blueprint can hold.
+export const AI_PLAN_MAX_OUTPUT_TOKENS = 16_000;

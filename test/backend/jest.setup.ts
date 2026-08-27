@@ -86,8 +86,10 @@ jest.mock("next/server", () => {
       return new NextResponse(null, { status: 200 });
     }
 
+    // A real Response parses a text body, so a route writing JSON text and one handing an object
+    // to `NextResponse.json` have to read back the same way here too.
     async json() {
-      return this.#body;
+      return typeof this.#body === "string" ? JSON.parse(this.#body) : this.#body;
     }
 
     async text() {
@@ -123,6 +125,17 @@ beforeEach(() => {
   // `clearMocks` resets jest.fn()s but not the queue held inside the next/server mock.
   const server = jest.requireMock("next/server") as { __clearAfter: () => void };
   server.__clearAfter();
+
+  // The blueprint cache is module state, so one spec's blueprint would otherwise be visible to
+  // the next. Required lazily: most specs never load this module, and it pulls in Prisma.
+  try {
+    const cache = jest.requireActual<{
+      resetPlanCache: () => void;
+    }>("@/server/services/endpoint/variant/plan_cache");
+    cache.resetPlanCache();
+  } catch {
+    // Not every spec has the module resolvable; nothing to reset then.
+  }
 });
 
 jest.mock("next/headers", () => {

@@ -9,7 +9,7 @@ import { isAiConfigured } from "@/server/services/ai/ai_router.service";
 import { ApiSuccessResponse } from "@/models/api_response.model";
 import { ProjectInfoDTO } from "@/models/project.model";
 import { EndpointGroupInfoDTO } from "@/models/endpoint_group.model";
-import { EndpointInfoDTO } from "@/models/endpoint.model";
+import { EndpointInfoDTO } from "@/models/endpoint/endpoint.model";
 import EndpointGroupClient from "@/app/(pages)/project/[id]/EndpointGroupClient";
 
 async function fetchProjectInfo(projectId: string): Promise<ProjectInfoDTO> {
@@ -53,10 +53,8 @@ export default async function ProjectDetailPage({
     queryFn: () => fetchProjectInfo(projectId),
   });
 
-  // Whether AI is configured is decided by env at boot and never changes while the process
-  // runs, so seed it here instead of letting the endpoint form ask over HTTP. That also
-  // spares the form a first render where the AI block is hidden because the answer has not
-  // arrived yet.
+  // Decided by env at boot and never changes while the process runs, so seed it rather than let
+  // the form ask over HTTP and spend a first render with the AI block hidden.
   queryClient.setQueryData([QUERY_KEY.AI.STATUS], isAiConfigured());
 
   let endpointGroups: EndpointGroupInfoDTO[] = [];

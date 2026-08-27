@@ -1,39 +1,82 @@
 import {
-  buildFieldTree,
-  collectSelectablePaths,
+  arrayDepthOf,
+  escapeKey,
+  flattenPathValues,
+  formatPath,
   getAtPath,
   isArrayPath,
+  isOuterScope,
   parsePath,
+  scopePathOf,
   setAtPath,
 } from "@/app/libs/helpers/json_path";
+import { sample } from "./json_sample";
 
-const sample = () => ({
-  id: 1,
-  user: { name: "An", email: "an@x.com", verified: true, deletedAt: null },
-  tags: ["hot", "new"],
-  items: [
-    { sku: "A1", price: 10 },
-    { sku: "B2", price: 20 },
-    { sku: "C3", price: 30 },
-  ],
-});
+const key = (name: string) => ({ kind: "key", key: name });
+const array = { kind: "array" };
 
 describe("parsePath", () => {
-  it("splits a plain path into its keys", () => {
-    expect(parsePath("user.name")).toEqual({ head: ["user", "name"] });
+  it("splits a plain path into key steps", () => {
+    expect(parsePath("user.name")).toEqual([key("user"), key("name")]);
   });
 
-  it("splits an array path into head and tail", () => {
-    expect(parsePath("items[].price")).toEqual({ head: ["items"], tail: ["price"] });
+  it("marks each array it crosses", () => {
+    expect(parsePath("items[].price")).toEqual([key("items"), array, key("price")]);
+    expect(parsePath("tags[]")).toEqual([key("tags"), array]);
+    expect(parsePath("rows[].cells[]")).toEqual([key("rows"), array, key("cells"), array]);
+    expect(parsePath("grid[][]")).toEqual([key("grid"), array, array]);
   });
 
-  it("gives a scalar array path an empty tail", () => {
-    expect(parsePath("tags[]")).toEqual({ head: ["tags"], tail: [] });
+  it("reads an escaped separator as part of the key", () => {
+    expect(parsePath("a\\.b.c")).toEqual([key("a.b"), key("c")]);
+    expect(parsePath("x\\[\\].y")).toEqual([key("x[]"), key("y")]);
+    expect(parsePath("back\\\\slash")).toEqual([key("back\\slash")]);
   });
 
-  it("isArrayPath tells the two kinds apart", () => {
+  it("keeps an empty key, which is a key like any other", () => {
+    expect(parsePath("")).toEqual([key("")]);
+    expect(parsePath("a.")).toEqual([key("a"), key("")]);
+  });
+
+  it("round trips through formatPath", () => {
+    for (const path of ["user.name", "items[].price", "rows[].cells[]", "a\\.b.c", "a.", ""]) {
+      expect(formatPath(parsePath(path))).toBe(path);
+    }
+  });
+
+  it("escapeKey covers every character the syntax reserves", () => {
+    expect(escapeKey("a.b[]c\\d")).toBe("a\\.b\\[\\]c\\\\d");
+    expect(parsePath(escapeKey("a.b[]c\\d"))).toEqual([key("a.b[]c\\d")]);
+  });
+
+  it("isArrayPath and arrayDepthOf count only unescaped markers", () => {
     expect(isArrayPath("items[].price")).toBe(true);
     expect(isArrayPath("user.name")).toBe(false);
+    expect(isArrayPath("x\\[\\].y")).toBe(false);
+
+    expect(arrayDepthOf("user.name")).toBe(0);
+    expect(arrayDepthOf("items[].price")).toBe(1);
+    expect(arrayDepthOf("rows[].cells[].value")).toBe(2);
+    expect(arrayDepthOf("grid[][]")).toBe(2);
+  });
+});
+
+describe("scopes", () => {
+  it("names the innermost array a path sits in", () => {
+    expect(scopePathOf("user.name")).toBe("");
+    expect(scopePathOf("items[].price")).toBe("items[]");
+    expect(scopePathOf("rows[].cells[].value")).toBe("rows[].cells[]");
+    expect(scopePathOf("rows[].label")).toBe("rows[]");
+  });
+
+  it("treats a wrapping array as readable from inside", () => {
+    expect(isOuterScope("", "rows[].cells[]")).toBe(true);
+    expect(isOuterScope("rows[]", "rows[].cells[]")).toBe(true);
+    expect(isOuterScope("rows[].cells[]", "rows[].cells[]")).toBe(true);
+
+    // The other direction, and a different array entirely, are both unreadable.
+    expect(isOuterScope("rows[].cells[]", "rows[]")).toBe(false);
+    expect(isOuterScope("others[]", "rows[]")).toBe(false);
   });
 });
 
@@ -100,161 +143,83 @@ describe("setAtPath", () => {
     const target = sample();
     expect(setAtPath(target, "items[].price", 99)).toBe(false);
   });
+
+  // `"__proto__" in target` is true for every object, so a plain `in` check would let a write
+  // reach the prototype instead of the body.
+  it("refuses to write through an inherited key", () => {
+    const target: Record<string, unknown> = { a: 1 };
+
+    expect(setAtPath(target, "__proto__", { polluted: true })).toBe(false);
+    expect(setAtPath(target, "constructor", 1)).toBe(false);
+    expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
+    expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+  });
+
+  it("writes an own __proto__ key, which JSON.parse really does create", () => {
+    const target = JSON.parse('{"__proto__":{"x":1}}') as Record<string, unknown>;
+
+    expect(setAtPath(target, "__proto__.x", 2)).toBe(true);
+    expect(getAtPath(target, "__proto__.x")).toBe(2);
+    expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
+  });
 });
 
-describe("buildFieldTree", () => {
-  it("expands a nested object into a parent node with children", () => {
-    const tree = buildFieldTree(sample());
-    const user = tree.find((node) => node.path === "user");
+describe("nested arrays", () => {
+  const grid = () => ({
+    rows: [
+      { label: "a", cells: [{ n: 1 }, { n: 2 }] },
+      { label: "b", cells: [{ n: 3 }] },
+    ],
+    grid: [
+      [1, 2],
+      [3, 4, 5],
+    ],
+  });
 
-    expect(user?.kind).toBe("object");
-    expect(user?.selectable).toBe(false);
-    expect(user?.children?.map((child) => child.path)).toEqual([
-      "user.name",
-      "user.email",
-      "user.verified",
-      "user.deletedAt",
+  it("reads one value per element of every inner array", () => {
+    expect(getAtPath(grid(), "rows[].cells[].n")).toEqual([[1, 2], [3]]);
+    expect(getAtPath(grid(), "grid[][]")).toEqual([
+      [1, 2],
+      [3, 4, 5],
     ]);
   });
 
-  it("gives each leaf its type and sample value", () => {
-    const tree = buildFieldTree(sample());
-    const id = tree.find((node) => node.path === "id");
-
-    expect(id).toMatchObject({ kind: "leaf", type: "number", sample: 1, selectable: true });
+  it("reads the inner arrays themselves when the path stops one level short", () => {
+    expect(getAtPath(grid(), "rows[].cells")).toEqual([[{ n: 1 }, { n: 2 }], [{ n: 3 }]]);
   });
 
-  it("turns a scalar array into a single tags[] leaf", () => {
-    const tree = buildFieldTree(sample());
-    const tags = tree.find((node) => node.path === "tags[]");
-
-    expect(tags).toMatchObject({ kind: "leaf", type: "string", arrayLength: 2, selectable: true });
+  it("flattens across levels, and reports a level that is not an array", () => {
+    expect(flattenPathValues(grid(), "rows[].cells[].n")).toEqual([1, 2, 3]);
+    expect(flattenPathValues(grid(), "grid[][]")).toEqual([1, 2, 3, 4, 5]);
+    expect(flattenPathValues(grid(), "rows[].label")).toEqual(["a", "b"]);
+    expect(flattenPathValues(grid(), "rows[].label[]")).toBeNull();
   });
 
-  it("expands an object array into its inner fields with the [] prefix", () => {
-    const tree = buildFieldTree(sample());
-    const items = tree.find((node) => node.path === "items");
-
-    expect(items?.kind).toBe("array");
-    expect(items?.arrayLength).toBe(3);
-    expect(items?.children?.map((child) => child.path)).toEqual([
-      "items[].sku",
-      "items[].price",
-    ]);
+  it("caps every level, not only the outermost", () => {
+    expect(getAtPath(grid(), "grid[][]", 1)).toEqual([[1]]);
   });
 
-  it("marks arrays inside arrays as not selectable", () => {
-    const tree = buildFieldTree({ rows: [{ cells: [1, 2] }] });
-    const cells = tree
-      .find((node) => node.path === "rows")
-      ?.children?.find((child) => child.label === "cells");
+  it("writes back element-wise at every level", () => {
+    const target = grid();
 
-    expect(cells).toMatchObject({
-      selectable: false,
-      disabledReason: "Arrays inside arrays are not supported yet",
-    });
+    expect(setAtPath(target, "rows[].cells[].n", [[10, 20], [30]])).toBe(true);
+    expect(target.rows.map((row) => row.cells.map((cell) => cell.n))).toEqual([[10, 20], [30]]);
+    expect(target.rows.map((row) => row.label)).toEqual(["a", "b"]);
   });
 
-  it("makes keys with special characters unselectable, since no path can express them", () => {
-    const tree = buildFieldTree({ "a.b": 1, "c[0]": 2, ok: 3 });
+  it("round trips: reading then writing back changes nothing", () => {
+    const target = grid();
 
-    expect(tree.find((node) => node.label === "a.b")?.selectable).toBe(false);
-    expect(tree.find((node) => node.label === "c[0]")?.selectable).toBe(false);
-    expect(tree.find((node) => node.label === "ok")?.selectable).toBe(true);
-  });
-
-  it("collectSelectablePaths gathers exactly the selectable leaves", () => {
-    expect(collectSelectablePaths(buildFieldTree(sample()))).toEqual([
-      "id",
-      "user.name",
-      "user.email",
-      "user.verified",
-      "user.deletedAt",
-      "tags[]",
-      "items[].sku",
-      "items[].price",
-    ]);
-  });
-
-  it("every collected path reads back through getAtPath", () => {
-    const value = sample();
-    const paths = collectSelectablePaths(buildFieldTree(value));
-
-    for (const path of paths) {
-      expect(getAtPath(value, path)).toBeDefined();
+    for (const path of ["rows[].cells[].n", "grid[][]", "rows[].label"]) {
+      expect(setAtPath(target, path, getAtPath(target, path))).toBe(true);
     }
-  });
-});
-
-describe("buildFieldTree array element types", () => {
-  const leafFor = (value: unknown, label: string) => {
-    const arrayNode = buildFieldTree(value).find((node) => node.label === "items");
-    return arrayNode?.children?.find((child) => child.label === label);
-  };
-
-  it("offers a field the whole array carries with one type", () => {
-    const leaf = leafFor({ items: [{ price: 1 }, { price: 2 }] }, "price");
-
-    expect(leaf?.selectable).toBe(true);
-    expect(leaf?.type).toBe("number");
+    expect(target).toEqual(grid());
   });
 
-  it("refuses a field whose type changes between elements", () => {
-    const leaf = leafFor({ items: [{ price: 1 }, { price: "2" }] }, "price");
+  it("refuses a value whose nesting does not match the path", () => {
+    const target = grid();
 
-    expect(leaf?.selectable).toBe(false);
-    expect(leaf?.disabledReason).toBeDefined();
-  });
-
-  it("refuses a field a later element does not carry at all", () => {
-    const leaf = leafFor({ items: [{ price: 1 }, { sku: "B2" }] }, "price");
-
-    expect(leaf?.selectable).toBe(false);
-  });
-
-  it("refuses a field under an element that is not an object at all", () => {
-    const leaf = leafFor({ items: [{ price: 1 }, "surprise"] }, "price");
-
-    expect(leaf?.selectable).toBe(false);
-  });
-
-  it("treats null as its own element type", () => {
-    expect(leafFor({ items: [{ price: null }, { price: 2 }] }, "price")?.selectable).toBe(false);
-    expect(leafFor({ items: [{ price: null }, { price: null }] }, "price")?.selectable).toBe(true);
-  });
-
-  it("refuses a scalar array whose elements disagree on type", () => {
-    const tree = buildFieldTree({ tags: ["hot", 2] });
-    const node = tree.find((child) => child.label === "tags");
-
-    expect(node?.selectable).toBe(false);
-    expect(node?.disabledReason).toBeDefined();
-    expect(collectSelectablePaths(tree)).toEqual([]);
-  });
-
-  it("explains an empty array rather than leaving it blank", () => {
-    const node = buildFieldTree({ items: [] }).find((child) => child.label === "items");
-
-    expect(node?.selectable).toBe(false);
-    expect(node?.disabledReason).toBeDefined();
-  });
-
-  it("checks a field nested under an array element against every element", () => {
-    const uniform = buildFieldTree({ items: [{ meta: { color: "red" } }, { meta: { color: "b" } }] });
-    expect(collectSelectablePaths(uniform)).toEqual(["items[].meta.color"]);
-
-    const ragged = buildFieldTree({ items: [{ meta: { color: "red" } }, { meta: { color: 2 } }] });
-    expect(collectSelectablePaths(ragged)).toEqual([]);
-  });
-
-  it("ignores elements past the cap the generator applies", () => {
-    const items = [
-      ...Array.from({ length: 3 }, () => ({ price: 1 })),
-      { price: "not a number" },
-    ];
-
-    expect(collectSelectablePaths(buildFieldTree({ items }, 3))).toEqual(["items[].price"]);
-    expect(collectSelectablePaths(buildFieldTree({ items }, 4))).toEqual([]);
-    expect(collectSelectablePaths(buildFieldTree({ items }))).toEqual([]);
+    expect(setAtPath(target, "rows[].cells[].n", [10, 20])).toBe(false);
+    expect(setAtPath(target, "rows[].cells[].n", [[10, 20, 30], [30]])).toBe(false);
   });
 });

@@ -5,8 +5,8 @@ import {
   buildFieldTree,
   collectSelectablePaths,
   FieldNode,
-} from "@/app/libs/helpers/json_path";
-import { MAX_AI_ARRAY_ITEMS } from "@/models/endpoint.model";
+} from "@/app/libs/helpers/json_field_tree";
+import { MAX_ARRAY_ITEMS } from "@/models/endpoint/endpoint.model";
 
 export type AiFieldState = "invalid" | "empty" | "unselectable" | "ready";
 
@@ -33,7 +33,7 @@ export function useAiFieldTree(bodyJson: string): AiFieldTree {
 
     // Same element cap the generator applies, so the tree greys out exactly the fields a
     // generated batch would have dropped.
-    const tree = buildFieldTree(parsed, MAX_AI_ARRAY_ITEMS);
+    const tree = buildFieldTree(parsed, MAX_ARRAY_ITEMS);
     if (tree.length === 0) return { state: "empty", tree, availablePaths: new Set<string>() };
 
     const availablePaths = new Set(collectSelectablePaths(tree));

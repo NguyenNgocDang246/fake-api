@@ -1,6 +1,6 @@
 import { after } from "next/server";
 import ApiResponse from "@/server/core/api_response";
-import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { ERROR_MESSAGES, LIMIT_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { ENDPOINT_MESSAGES } from "@/server/services/endpoint/endpoint.constants";
 import { AppError } from "@/server/core/errors";
 import { validateData } from "@/server/core/validation";
@@ -13,11 +13,14 @@ import {
 } from "@/server/core/route_helpers";
 import {
   EndpointInfoSchema,
+  PlanEnvelopeSchema,
   UpdateEndpointByIdSchema,
+  splitPlanEnvelope,
   toEndpointInfoInput,
-} from "@/models/endpoint.model";
+} from "@/models/endpoint/endpoint.model";
 import endpointService from "@/server/services/endpoint/endpoint.service";
-import endpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
+import aiUsageService from "@/server/services/ai_usage.service";
+import endpointVariantPlanService from "@/server/services/endpoint/variant/plan.service";
 
 type EndpointRouteParams = {
   projectId: string;
@@ -25,37 +28,12 @@ type EndpointRouteParams = {
   endpointId: string;
 };
 
-type PoolInputs = {
-  response_body?: string;
-  ai_prompt?: string | null;
-  ai_fields?: string[];
-};
-
-function sameFields(previous: string[] = [], updated: string[] = []): boolean {
-  const seen = new Set(previous);
-  // Set sizes, not array lengths: nothing rejects a repeated path on the way in, so lengths
-  // would call `["a", "b"]` and `["a", "a"]` the same selection and keep a stale pool.
-  if (seen.size !== new Set(updated).size) return false;
-
-  return updated.every((path) => seen.has(path));
-}
-
-function isPoolStale(previous: PoolInputs | null, updated: PoolInputs): boolean {
-  if (!previous) return true;
-
-  return (
-    previous.response_body !== updated.response_body ||
-    previous.ai_prompt !== updated.ai_prompt ||
-    !sameFields(previous.ai_fields, updated.ai_fields)
-  );
-}
-
 export const GET = createRouteHandler<EndpointRouteParams>(
   withUserId(
     withProjectId(
       withEndpointGroupId(
         withEndpointId(async (_req, _params, ctx) => {
-          const hasPermission = await endpointService.checkPermissions({
+          const hasPermission = await endpointService.checkPermission({
             userProps: { public_id: ctx.userId },
             projectProps: { public_id: ctx.projectId },
             endpointGroupProps: { public_id: ctx.endpointGroupId },
@@ -77,7 +55,11 @@ export const GET = createRouteHandler<EndpointRouteParams>(
           }
 
           const endpointValidation = validateData(
-            toEndpointInfoInput(endpoint, ctx.endpointGroupId),
+            toEndpointInfoInput(
+              endpoint,
+              ctx.endpointGroupId,
+              endpointVariantPlanService.planInfoOf(endpoint)
+            ),
             EndpointInfoSchema
           );
           if (!endpointValidation.success) return endpointValidation.response;
@@ -93,7 +75,7 @@ export const PUT = createRouteHandler<EndpointRouteParams>(
     withProjectId(
       withEndpointGroupId(
         withEndpointId(async (req, _params, ctx) => {
-          const hasPermission = await endpointService.checkPermissions({
+          const hasPermission = await endpointService.checkPermission({
             userProps: { public_id: ctx.userId },
             projectProps: { public_id: ctx.projectId },
             endpointGroupProps: { public_id: ctx.endpointGroupId },
@@ -106,13 +88,29 @@ export const PUT = createRouteHandler<EndpointRouteParams>(
             });
           }
 
-          const data = await req.json();
+          const { envelope, endpoint: endpointBody } = splitPlanEnvelope(await req.json());
+          const planValidation = validateData(envelope, PlanEnvelopeSchema);
+          if (!planValidation.success) return planValidation.response;
+
           const updateEndpointInfoValidation = validateData(
-            { ...data, public_id: ctx.endpointId },
+            { ...endpointBody, public_id: ctx.endpointId },
             UpdateEndpointByIdSchema
           );
           if (!updateEndpointInfoValidation.success) return updateEndpointInfoValidation.response;
           const endpointInfo = updateEndpointInfoValidation.data;
+
+          // Turning the flag on here would otherwise walk straight around the same check on
+          // create. Only the `true` case is refused, so an endpoint whose owner lost AI can
+          // still be edited to switch it back off.
+          if (
+            endpointInfo.ai_enabled &&
+            !(await aiUsageService.isAiAllowed({ public_id: ctx.userId }))
+          ) {
+            return ApiResponse.error({
+              message: LIMIT_MESSAGES.AI_NOT_AVAILABLE_FOR_ROLE,
+              statusCode: STATUS_CODE.FORBIDDEN,
+            });
+          }
 
           const endpointExists = await endpointService.getEndpointByPath({
             project_public_id: ctx.projectId,
@@ -126,11 +124,6 @@ export const PUT = createRouteHandler<EndpointRouteParams>(
             });
           }
 
-          const previous =
-            endpointExists?.public_id === ctx.endpointId
-              ? endpointExists
-              : await endpointService.getEndpointById({ public_id: ctx.endpointId });
-
           const endpointUpdated = await endpointService.updateEndpointById(endpointInfo);
           if (!endpointUpdated) {
             return ApiResponse.error({
@@ -139,17 +132,33 @@ export const PUT = createRouteHandler<EndpointRouteParams>(
             });
           }
 
-          // Switching AI on is here as well as staleness: `isPoolStale` only compares the body,
-          // the hint and the field list, so turning the feature on alone would never seed a pool.
-          const turnedOn = endpointUpdated.ai_enabled && !previous?.ai_enabled;
-
-          if (isPoolStale(previous, endpointUpdated) || !endpointUpdated.ai_enabled || turnedOn) {
+          // `ai_plan_hash` covers the body, the sorted field list and the hint, so an edit that
+          // matters shows up as a stale blueprint on its own. The two flags come first because
+          // `isPlanStale` also answers true for an endpoint that is simply not serving variants.
+          if (
+            endpointUpdated.ai_enabled &&
+            endpointUpdated.ai_fields.length > 0 &&
+            endpointVariantPlanService.isPlanStale(endpointUpdated)
+          ) {
             after(async () => {
               try {
-                await endpointVariantService.clearVariants(endpointUpdated.id);
-                await endpointVariantService.refillIfNeeded(endpointUpdated);
+                // Clearing first drops the build lock too, so an edit ends the retry cooldown:
+                // fixing a broken body must not leave the endpoint frozen for another
+                // AI_PLAN_LOCK_MS serving its base body.
+                await endpointVariantPlanService.clearPlan(endpointUpdated.id);
+
+                const { plan, plan_hash } = planValidation.data;
+                if (plan && plan_hash) {
+                  const adopted = await endpointVariantPlanService.adoptPlan(
+                    endpointUpdated,
+                    plan,
+                    plan_hash
+                  );
+                  if (adopted) return;
+                }
+                await endpointVariantPlanService.ensurePlan(endpointUpdated);
               } catch (error) {
-                console.error("[ai] pool invalidation failed", {
+                console.error("[ai] blueprint invalidation failed", {
                   endpoint_id: String(endpointUpdated.id),
                   reason: error instanceof Error ? error.message : String(error),
                   cause: error instanceof AppError ? error.cause : undefined,
@@ -158,8 +167,14 @@ export const PUT = createRouteHandler<EndpointRouteParams>(
             });
           }
 
+          // A stale blueprint reports nothing rather than the previous body's verdict, whether it
+          // is being rebuilt above or the endpoint has simply stopped serving variants.
           const endpointInfoValidation = validateData(
-            toEndpointInfoInput(endpointUpdated, ctx.endpointGroupId),
+            toEndpointInfoInput(
+              endpointUpdated,
+              ctx.endpointGroupId,
+              endpointVariantPlanService.planInfoOf(endpointUpdated)
+            ),
             EndpointInfoSchema
           );
           if (!endpointInfoValidation.success) return endpointInfoValidation.response;
@@ -175,7 +190,7 @@ export const DELETE = createRouteHandler<EndpointRouteParams>(
     withProjectId(
       withEndpointGroupId(
         withEndpointId(async (_req, _params, ctx) => {
-          const hasPermission = await endpointService.checkPermissions({
+          const hasPermission = await endpointService.checkPermission({
             userProps: { public_id: ctx.userId },
             projectProps: { public_id: ctx.projectId },
             endpointGroupProps: { public_id: ctx.endpointGroupId },

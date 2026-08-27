@@ -10,14 +10,15 @@ Business logic layer. One domain per file, except `ai/`, `auth/`, `endpoint/` an
 
 - `user.service.ts` — CRUD on `users` (`getAllUsers`, `createUser`, `getUserById`, `getUserByEmail`, `verifyUserEmail`, `updatePassword`, `increaseTokenVersion`). `increaseTokenVersion` is the token-revocation primitive used by `auth/`.
 - `project.service.ts`, `endpoint_group.service.ts` — CRUD scoped to a user/project, plus role-limit checks before create. Read the file directly, no further doc needed.
+- `ai_usage.service.ts` — the append-only record of model calls a user has spent, which the per-role daily quota counts. `trySpend` is the one a caller about to reach a model uses: it counts and records inside a single transaction behind a row lock on the user, so concurrent designs cannot all pass the same check. `record` is the bare insert, and `isAiAllowed` answers the different question of whether the role has any AI at all, which is what the endpoint routes refuse `ai_enabled` on. `quotaFor` is the read behind the quota badge in the AI card: it reports `{limit, spent}` with a plain `count`, deliberately without the lock or the transaction, since nothing is being claimed and `trySpend` remains the only thing that decides. It sits here rather than in `ai/` because that directory may not import anything from the domain and this file knows about users and roles.
 
-### `endpoint/` — endpoints and their AI variant pool
+### `endpoint/` — endpoints and the blueprint behind their AI variants
 
-See [endpoint/AGENTS.md](endpoint/AGENTS.md). Endpoint CRUD, the path resolution that answers a fake-API request, and the pool of AI generated response bodies an endpoint can serve instead of its static one.
+See [endpoint/AGENTS.md](endpoint/AGENTS.md) for endpoint CRUD and the path resolution that answers a fake-API request, and [endpoint/variant/AGENTS.md](endpoint/variant/AGENTS.md) for the blueprint a model designs once so faker can render a different response body on every call.
 
 ### `ai/` — shared LLM infrastructure
 
-See [ai/AGENTS.md](ai/AGENTS.md). It deliberately knows nothing about endpoints, so a future chatbox can reuse it as is. Everything endpoint-specific (prompt text, path extraction, patch validation) lives in `endpoint/`, not in `ai/`.
+See [ai/AGENTS.md](ai/AGENTS.md). It deliberately knows nothing about endpoints, so a future chatbox can reuse it as is. Everything endpoint-specific (prompt text, path extraction, blueprint validation) lives in `endpoint/`, not in `ai/`.
 
 ### `auth/` — split into three files by responsibility
 
@@ -40,6 +41,7 @@ To add a new email: add a `mail_template/<name>/` pair (follow `verify_email/` a
 
 ## Conventions
 
-- **Error normalization**: every method in every service wraps its body in `try { ... } catch (error) { throw error instanceof AppError ? error : new AppError(); }` — this normalizes every thrown value into a single `AppError` type.
+- **Error normalization**: every method in every service funnels its persistence call through `guardService` (`../core/errors.ts`), which normalizes every thrown value into a single `AppError`. `project.service.ts`, `user.service.ts` and `endpoint_group.service.ts` still spell that try/catch out by hand; they mean the same thing and are the ones left to convert.
+- **Two services opt out of it, and say so.** `endpoint/variant/plan.service.ts` and `endpoint/variant/faker.service.ts` swallow rather than normalize: `ensurePlan` and `adoptPlan` are always run from `after()`, where a thrown error reaches nobody, and `renderVariant` answers `null` so the fake route falls back to the base body. Anything else that runs past the response or on the serving path has the same duty, and has to be as explicit about it.
 - **Default list ordering**: every `findMany` that lists rows for a client orders by `{ updated_at: "desc" }` (most recently updated first). `updated_at` is a Prisma `@updatedAt` column on all four models, auto-set on create/update.
-- **Rows are addressed externally by `public_id`.** The one exception is `endpoint_ai_variants`, for the reason given in [endpoint/AGENTS.md](endpoint/AGENTS.md); any table that *is* addressed externally still gets a `public_id`.
+- **Rows are addressed externally by `public_id`.** The one exception is `ai_usage_logs`, an append-only counter that never appears in a URL or an API response and is only ever aggregated; any table that *is* addressed externally still gets a `public_id`.

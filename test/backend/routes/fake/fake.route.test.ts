@@ -7,22 +7,30 @@ jest.mock("@/server/services/endpoint/endpoint.service", () => ({
   },
 }));
 
-jest.mock("@/server/services/endpoint/endpoint_variant.service", () => ({
+jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
   __esModule: true,
   default: {
-    pickVariant: jest.fn(),
-    markVariantUsed: jest.fn(),
-    refillIfNeeded: jest.fn(),
+    loadPlan: jest.fn(),
+    ensurePlan: jest.fn(),
   },
 }));
 
 import EndpointService from "@/server/services/endpoint/endpoint.service";
-import EndpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
 import { GET, POST } from "@/app/api/fake/[projectId]/route";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { AppError } from "@/server/core/errors";
 import { createJsonRequest, expectError, readJson } from "../../helpers/http";
 
 describe("src/app/api/fake/[projectId]/route.ts", () => {
+  it("answers an AppError as the standard envelope, like every other route", async () => {
+    (EndpointService.getEndpointByPath as jest.Mock).mockRejectedValue(
+      new AppError({ message: ERROR_MESSAGES.SERVER_ERROR, statusCode: STATUS_CODE.SERVER_ERROR })
+    );
+
+    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    await expectError(res, STATUS_CODE.SERVER_ERROR, ERROR_MESSAGES.SERVER_ERROR);
+  });
+
   it("returns 404 when publicId missing", async () => {
     const res = await GET(createJsonRequest({}, { pathname: "/" }));
     await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
@@ -153,123 +161,4 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
     expect(res.status).toBe(200);
     jest.useRealTimers();
   });
-
-  describe("AI variants", () => {
-    const aiEndpoint = {
-      id: 7n,
-      method: "GET",
-      path: "/users",
-      status_code: 200,
-      response_body: '{"name":"An","id":1}',
-      delay_ms: 0,
-      ai_enabled: true,
-      ai_fields: ["name"],
-      ai_prompt: null,
-    };
-
-    it("serves the base body when the pool is empty", async () => {
-      (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
-      (EndpointVariantService.pickVariant as jest.Mock).mockResolvedValue(null);
-
-      const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
-
-      expect(res.status).toBe(200);
-      expect(await readJson(res)).toEqual({ name: "An", id: 1 });
-    });
-
-    it("serves a variant when the pool has one", async () => {
-      (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
-      (EndpointVariantService.pickVariant as jest.Mock).mockResolvedValue({
-        id: 3n,
-        response_body: '{"name":"Binh","id":1}',
-      });
-
-      const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
-
-      expect(res.status).toBe(200);
-      expect(await readJson(res)).toEqual({ name: "Binh", id: 1 });
-    });
-
-    it("falls back to the base body when the pool read fails", async () => {
-      const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
-      (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
-      (EndpointVariantService.pickVariant as jest.Mock).mockRejectedValue(new Error("db down"));
-
-      const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
-
-      expect(res.status).toBe(200);
-      expect(await readJson(res)).toEqual({ name: "An", id: 1 });
-
-      consoleError.mockRestore();
-    });
-
-    it("does not touch the pool when AI is off", async () => {
-      (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-        ...aiEndpoint,
-        ai_enabled: false,
-      });
-
-      const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
-
-      expect(res.status).toBe(200);
-      expect(EndpointVariantService.pickVariant).not.toHaveBeenCalled();
-    });
-
-    it("does not touch the pool when AI is on but no field is selected", async () => {
-      (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-        ...aiEndpoint,
-        ai_fields: [],
-      });
-
-      await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
-
-      expect(EndpointVariantService.pickVariant).not.toHaveBeenCalled();
-    });
-
-    it("defers the use counter and the refill until after the response", async () => {
-      const server = jest.requireMock("next/server") as {
-        __afterCount: () => number;
-        __flushAfter: () => Promise<void>;
-      };
-      (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
-      (EndpointVariantService.pickVariant as jest.Mock).mockResolvedValue({
-        id: 3n,
-        response_body: '{"name":"Binh","id":1}',
-      });
-
-      await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
-
-      expect(EndpointVariantService.markVariantUsed).not.toHaveBeenCalled();
-      expect(EndpointVariantService.refillIfNeeded).not.toHaveBeenCalled();
-      expect(server.__afterCount()).toBe(1);
-
-      await server.__flushAfter();
-
-      expect(EndpointVariantService.markVariantUsed).toHaveBeenCalledWith(3n);
-      expect(EndpointVariantService.refillIfNeeded).toHaveBeenCalledWith(aiEndpoint);
-    });
-
-    it("serves the base body and does not count a use when a stored variant is corrupt", async () => {
-      const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
-      const server = jest.requireMock("next/server") as { __flushAfter: () => Promise<void> };
-      (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
-      (EndpointVariantService.pickVariant as jest.Mock).mockResolvedValue({
-        id: 3n,
-        response_body: "{not json",
-      });
-
-      const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
-
-      expect(res.status).toBe(200);
-      expect(await readJson(res)).toEqual({ name: "An", id: 1 });
-
-      await server.__flushAfter();
-
-      expect(EndpointVariantService.markVariantUsed).not.toHaveBeenCalled();
-      expect(EndpointVariantService.refillIfNeeded).toHaveBeenCalledWith(aiEndpoint);
-
-      consoleError.mockRestore();
-    });
-  });
 });
-

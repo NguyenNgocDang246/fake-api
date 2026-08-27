@@ -1,195 +1,140 @@
-jest.mock("@/server/services/endpoint_group.service", () => ({
-  __esModule: true,
-  default: { checkPermission: jest.fn() },
-}));
+import { expectSuccess } from "../../helpers/http";
+import {
+  USER_PUBLIC_ID,
+  ENDPOINT_PUBLIC_ID,
+  aiUsageService,
+  buildPlan,
+  planHash,
+  storedEndpoint,
+  VALID_BODY,
+  PLAN,
+  post,
+  allowAll,
+  dataOf,
+} from "./ai_preview_harness";
 
-jest.mock("@/server/services/endpoint/endpoint_variant.service", () => ({
-  __esModule: true,
-  default: { canGenerate: jest.fn() },
-}));
-
-jest.mock("@/server/services/endpoint/endpoint_variant_generator.service", () => ({
-  __esModule: true,
-  generateVariants: jest.fn(),
-}));
-
-jest.mock("@/server/services/ai/ai_router.service", () => ({
-  __esModule: true,
-  isAiConfigured: jest.fn(),
-}));
-
-import endpointGroupService from "@/server/services/endpoint_group.service";
-import endpointVariantService from "@/server/services/endpoint/endpoint_variant.service";
-import { generateVariants } from "@/server/services/endpoint/endpoint_variant_generator.service";
-import { isAiConfigured } from "@/server/services/ai/ai_router.service";
-import { POST } from "@/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpoint/ai-preview/route";
-import { ERROR_MESSAGES, LIMIT_MESSAGES, STATUS_CODE } from "@/server/core/constants";
-import { AI_MESSAGES } from "@/server/services/ai/ai.constants";
-import { AppError } from "@/server/core/errors";
-import { createJsonRequest, expectError, expectSuccess, readJson } from "../../helpers/http";
-
-const USER_PUBLIC_ID = "aaaaaaaaaaaa";
-const PROJECT_PUBLIC_ID = "bbbbbbbbbbbb";
-const GROUP_PUBLIC_ID = "cccccccccccc";
-
-const props = () => ({
-  params: Promise.resolve({
-    projectId: PROJECT_PUBLIC_ID,
-    endpointGroupId: GROUP_PUBLIC_ID,
-  }),
-});
-
-const VALID_BODY = {
-  method: "GET",
-  path: "/user",
-  response_body: '{"name":"An"}',
-  ai_fields: ["name"],
-  ai_prompt: null,
-  count: 3,
-};
-
-function post(body: object = VALID_BODY) {
-  return POST(
-    createJsonRequest(body, { headers: { "x-userId": USER_PUBLIC_ID } }),
-    props()
-  );
-}
-
-function allowAll() {
-  (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
-  (isAiConfigured as jest.Mock).mockReturnValue(true);
-  (endpointVariantService.canGenerate as jest.Mock).mockResolvedValue(true);
-}
-
-describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpoint/ai-preview/route.ts", () => {
-  it("returns the generated variants without storing anything", async () => {
+describe("ai-preview route: designing and rerolling", () => {
+  it("designs a blueprint and renders samples from it", async () => {
     allowAll();
-    (generateVariants as jest.Mock).mockResolvedValue({
-      bodies: ['{"name":"Binh"}', '{"name":"Chi"}'],
-    });
 
     const res = await post();
-
     await expectSuccess(res, 200);
-    expect(await readJson(res)).toMatchObject({
-      data: { variants: ['{"name":"Binh"}', '{"name":"Chi"}'] },
-    });
+
+    const data = await dataOf(res);
+    expect(data.variants).toHaveLength(3);
+    expect(data.plan).toMatchObject({ version: 1 });
+    // Each sample is drawn fresh, so the three are not simply the same body repeated.
+    expect(new Set(data.variants).size).toBeGreaterThan(1);
+    for (const variant of data.variants) {
+      expect(typeof (JSON.parse(variant) as { name: unknown }).name).toBe("string");
+    }
   });
 
-  it("passes the form contents through rather than reading a stored row", async () => {
+  it("charges one usage for a design", async () => {
     allowAll();
-    (generateVariants as jest.Mock).mockResolvedValue({ bodies: ['{"name":"Binh"}'] });
-
     await post();
 
-    expect(generateVariants).toHaveBeenCalledWith({
-      method: "GET",
-      path: "/user",
+    expect(buildPlan).toHaveBeenCalledTimes(1);
+    expect(aiUsageService.trySpend).toHaveBeenCalledWith({ public_id: USER_PUBLIC_ID });
+  });
+
+  it("rerolls from a blueprint the caller already holds without a model call", async () => {
+    allowAll();
+    const hash = planHash({ responseBody: '{"name":"An"}', aiFields: ["name"], aiPrompt: null });
+
+    const res = await post({ ...VALID_BODY, plan: PLAN, plan_hash: hash });
+    await expectSuccess(res, 200);
+
+    // The point of the whole design: rerolling is free, so it neither calls a model, nor checks
+    // the quota, nor records a usage.
+    expect(buildPlan).not.toHaveBeenCalled();
+    expect(aiUsageService.trySpend).not.toHaveBeenCalled();
+    expect((await dataOf(res)).variants).toHaveLength(3);
+  });
+
+  it("redesigns when the caller's blueprint was built for different inputs", async () => {
+    allowAll();
+    const staleHash = planHash({
       responseBody: '{"name":"An"}',
       aiFields: ["name"],
+      aiPrompt: "use a uuid",
+    });
+
+    await post({ ...VALID_BODY, plan: PLAN, plan_hash: staleHash });
+
+    expect(buildPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it("redesigns when the caller's blueprint no longer fits the body", async () => {
+    allowAll();
+    const body = { ...VALID_BODY, response_body: '{"name":123}', ai_fields: ["name"] };
+    const hash = planHash({
+      responseBody: body.response_body,
+      aiFields: body.ai_fields,
       aiPrompt: null,
-      count: 3,
-    });
-  });
-
-  it("refuses a caller without permission on the group", async () => {
-    (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(false);
-
-    await expectError(await post(), STATUS_CODE.FORBIDDEN, ERROR_MESSAGES.FORBIDDEN);
-    expect(generateVariants).not.toHaveBeenCalled();
-  });
-
-  it("says so when the server has no AI configured", async () => {
-    (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
-    (isAiConfigured as jest.Mock).mockReturnValue(false);
-
-    await expectError(await post(), STATUS_CODE.SERVER_ERROR, AI_MESSAGES.NOT_CONFIGURED);
-    expect(endpointVariantService.canGenerate).not.toHaveBeenCalled();
-    expect(generateVariants).not.toHaveBeenCalled();
-  });
-
-  it("refuses a user who has spent the daily allowance", async () => {
-    (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
-    (isAiConfigured as jest.Mock).mockReturnValue(true);
-    (endpointVariantService.canGenerate as jest.Mock).mockResolvedValue(false);
-
-    await expectError(
-      await post(),
-      STATUS_CODE.FORBIDDEN,
-      LIMIT_MESSAGES.AI_VARIANT_LIMIT_REACHED
-    );
-    expect(generateVariants).not.toHaveBeenCalled();
-  });
-
-  it("rejects a response body that is not a JSON object", async () => {
-    allowAll();
-
-    const res = await post({ ...VALID_BODY, response_body: "[1,2,3]" });
-
-    expect(res.status).toBe(STATUS_CODE.BAD_REQUEST);
-    expect(generateVariants).not.toHaveBeenCalled();
-  });
-
-  it("rejects a field the generator cannot patch, before spending a call", async () => {
-    allowAll();
-
-    const res = await post({
-      ...VALID_BODY,
-      response_body: '{"user":{"name":"An"}}',
-      ai_fields: ["user"],
     });
 
-    expect(res.status).toBe(STATUS_CODE.BAD_REQUEST);
-    expect(generateVariants).not.toHaveBeenCalled();
+    // The hash matches, but the blueprint promises a string for a field that now holds a
+    // number, so validation rejects it and a fresh design is made instead.
+    (buildPlan as jest.Mock).mockResolvedValue({
+      ...PLAN,
+      fields: [{ path: "name", recipe: { kind: "int", min: 1, max: 9 } }],
+    });
+
+    await post({ ...body, plan: PLAN, plan_hash: hash });
+
+    expect(buildPlan).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects an empty selection rather than asking a model to vary nothing", async () => {
+  // The update form holds no blueprint when it opens, so this is the path that stops reopening an
+  // endpoint from paying for the design it already has.
+  it("rerolls from the endpoint's own blueprint when the caller only names it", async () => {
     allowAll();
+    storedEndpoint(planHash({ responseBody: '{"name":"An"}', aiFields: ["name"], aiPrompt: null }));
 
-    expect((await post({ ...VALID_BODY, ai_fields: [] })).status).toBe(STATUS_CODE.BAD_REQUEST);
-    expect(generateVariants).not.toHaveBeenCalled();
+    const res = await post({ ...VALID_BODY, endpoint_id: ENDPOINT_PUBLIC_ID });
+    await expectSuccess(res, 200);
+
+    expect(buildPlan).not.toHaveBeenCalled();
+    expect(aiUsageService.trySpend).not.toHaveBeenCalled();
+    expect((await dataOf(res)).variants).toHaveLength(3);
   });
 
-  it("rejects a count outside the allowed range", async () => {
+  it("redesigns when the endpoint's blueprint was built for different inputs", async () => {
     allowAll();
+    // The saved body, against a request carrying an unsaved edit to it.
+    storedEndpoint(planHash({ responseBody: '{"name":"Bo"}', aiFields: ["name"], aiPrompt: null }));
 
-    expect((await post({ ...VALID_BODY, count: 0 })).status).toBe(STATUS_CODE.BAD_REQUEST);
-    expect((await post({ ...VALID_BODY, count: 99 })).status).toBe(STATUS_CODE.BAD_REQUEST);
-    expect(generateVariants).not.toHaveBeenCalled();
+    await post({ ...VALID_BODY, endpoint_id: ENDPOINT_PUBLIC_ID });
+
+    expect(buildPlan).toHaveBeenCalledTimes(1);
   });
 
-  it("reports an empty result rather than answering with no variants", async () => {
+  it("redesigns when the endpoint's blueprint no longer fits the body", async () => {
     allowAll();
-    (generateVariants as jest.Mock).mockResolvedValue({ bodies: [] });
-
-    await expectError(
-      await post(),
-      STATUS_CODE.SERVER_ERROR,
-      AI_MESSAGES.NO_USABLE_VARIANT
-    );
-  });
-
-  it("carries a provider failure's own status through to the client", async () => {
-    allowAll();
-    (generateVariants as jest.Mock).mockRejectedValue(
-      new AppError({
-        message: AI_MESSAGES.RATE_LIMITED,
-        statusCode: STATUS_CODE.TOO_MANY_REQUESTS,
-      })
-    );
-
-    await expectError(await post(), STATUS_CODE.TOO_MANY_REQUESTS, AI_MESSAGES.RATE_LIMITED);
-  });
-
-  it("reports a selection too large as the caller's problem, not a server error", async () => {
-    allowAll();
-    (generateVariants as jest.Mock).mockRejectedValue(
-      new AppError({
-        message: AI_MESSAGES.FIELDS_TOO_LARGE,
-        statusCode: STATUS_CODE.BAD_REQUEST,
-      })
+    const body = { ...VALID_BODY, response_body: '{"name":123}', ai_fields: ["name"] };
+    storedEndpoint(
+      planHash({ responseBody: body.response_body, aiFields: ["name"], aiPrompt: null })
     );
 
-    await expectError(await post(), STATUS_CODE.BAD_REQUEST, AI_MESSAGES.FIELDS_TOO_LARGE);
+    (buildPlan as jest.Mock).mockResolvedValue({
+      ...PLAN,
+      fields: [{ path: "name", recipe: { kind: "int", min: 1, max: 9 } }],
+    });
+
+    await post({ ...body, endpoint_id: ENDPOINT_PUBLIC_ID });
+
+    expect(buildPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a stored blueprint the caller did not ask for", async () => {
+    allowAll();
+    storedEndpoint(planHash({ responseBody: '{"name":"An"}', aiFields: ["name"], aiPrompt: null }));
+
+    // No `endpoint_id`, so the route never looks the row up: the create form previews the same
+    // way whether or not an endpoint elsewhere happens to hold a matching blueprint.
+    await post();
+
+    expect(buildPlan).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,5 +1,5 @@
 import { prisma } from "@/server/prisma/prisma_provider";
-import { AppError } from "@/server/core/errors";
+import { guardService } from "@/server/core/errors";
 import { GetUserByIdDTO, UserSchema } from "@/models/user.model";
 import { GetProjectByIdDTO } from "@/models/project.model";
 import { GetEndpointGroupByIdDTO } from "@/models/endpoint_group.model";
@@ -10,17 +10,19 @@ import {
   DeleteAllEndpointDTO,
   DeleteEndpointByIdDTO,
   UpdateEndpointByIdDTO,
-} from "@/models/endpoint.model";
+} from "@/models/endpoint/endpoint.model";
 import { createWithUniquePublicId } from "@/server/core/prisma_retry";
 import userService from "@/server/services/user.service";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
+import {
+  compareTemplateSpecificity,
+  matchPathTemplate,
+} from "@/server/services/endpoint/endpoint_path_match";
 
-export function matchPathTemplate(template: string, pathname: string): boolean {
-  const templateSegments = template.split("/").filter(Boolean);
-  const pathSegments = pathname.split("/").filter(Boolean);
-  if (templateSegments.length !== pathSegments.length) return false;
-  return templateSegments.every((segment, i) => segment.startsWith(":") || segment === pathSegments[i]);
-}
+export {
+  compareTemplateSpecificity,
+  matchPathTemplate,
+} from "@/server/services/endpoint/endpoint_path_match";
 
 class EndpointService {
   async canCreateEndpoint({
@@ -39,7 +41,7 @@ class EndpointService {
     return endpointCount < ROLE_LIMITS[role].maxEndpointsPerGroup;
   }
 
-  async checkPermissions({
+  async checkPermission({
     userProps,
     projectProps,
     endpointGroupProps,
@@ -64,6 +66,7 @@ class EndpointService {
     });
     return !!endpointGroup;
   }
+
   async createEndpoint({
     method,
     path,
@@ -75,8 +78,8 @@ class EndpointService {
     ai_prompt,
     endpoint_groups_public_id,
   }: CreateEndpointDTO) {
-    try {
-      return await createWithUniquePublicId((public_id) =>
+    return guardService(() =>
+      createWithUniquePublicId((public_id) =>
         prisma.endpoints.create({
           data: {
             public_id,
@@ -91,44 +94,47 @@ class EndpointService {
             endpoint_groups: { connect: { public_id: endpoint_groups_public_id } },
           },
         })
-      );
-    } catch (error) {
-      throw error instanceof AppError ? error : new AppError();
-    }
+      )
+    );
   }
 
   async getEndpointById({ public_id }: GetEndpointByIdDTO) {
-    try {
-      return await prisma.endpoints.findUnique({ where: { public_id } });
-    } catch (error) {
-      throw error instanceof AppError ? error : new AppError();
-    }
+    return guardService(() => prisma.endpoints.findUnique({ where: { public_id } }));
+  }
+
+  // The group is part of the lookup rather than a check before it: the preview route reads a
+  // stored blueprint off this row, and the caller was only ever cleared for one group.
+  async getEndpointInGroup({
+    public_id,
+    endpoint_groups_public_id,
+  }: GetEndpointByIdDTO & { endpoint_groups_public_id: GetEndpointGroupByIdDTO["public_id"] }) {
+    return guardService(() =>
+      prisma.endpoints.findUnique({
+        where: { public_id, endpoint_groups: { public_id: endpoint_groups_public_id } },
+      })
+    );
   }
 
   async getEndpointByPath({
     project_public_id,
     path,
     method,
-  }: GetEndpointByPathDTO & {
-    project_public_id: GetProjectByIdDTO["public_id"];
-  }) {
-    try {
-      return await prisma.endpoints.findFirst({
+  }: GetEndpointByPathDTO & { project_public_id: GetProjectByIdDTO["public_id"] }) {
+    return guardService(() =>
+      prisma.endpoints.findFirst({
         where: { path, method, endpoint_groups: { projects: { public_id: project_public_id } } },
-      });
-    } catch (error) {
-      throw error instanceof AppError ? error : new AppError();
-    }
+      })
+    );
   }
 
+  // Specificity decides, not the order the rows came back in: `updated_at desc` used to pick the
+  // winner by accident, so any write to a row could silently reroute a live request.
   async getEndpointByDynamicPath({
     project_public_id,
     path,
     method,
-  }: GetEndpointByPathDTO & {
-    project_public_id: GetProjectByIdDTO["public_id"];
-  }) {
-    try {
+  }: GetEndpointByPathDTO & { project_public_id: GetProjectByIdDTO["public_id"] }) {
+    return guardService(async () => {
       const candidates = await prisma.endpoints.findMany({
         where: {
           method,
@@ -137,10 +143,13 @@ class EndpointService {
         },
         orderBy: { updated_at: "desc" },
       });
-      return candidates.find((candidate) => matchPathTemplate(candidate.path, path)) ?? null;
-    } catch (error) {
-      throw error instanceof AppError ? error : new AppError();
-    }
+
+      const matched = candidates
+        .filter((candidate) => matchPathTemplate(candidate.path, path))
+        .sort((a, b) => compareTemplateSpecificity(a.path, b.path));
+
+      return matched[0] ?? null;
+    });
   }
 
   async findMethodsForPath({
@@ -150,7 +159,7 @@ class EndpointService {
     project_public_id: GetProjectByIdDTO["public_id"];
     path: string;
   }) {
-    try {
+    return guardService(async () => {
       const candidates = await prisma.endpoints.findMany({
         where: {
           endpoint_groups: { projects: { public_id: project_public_id } },
@@ -163,46 +172,32 @@ class EndpointService {
         (candidate) => candidate.path === path || matchPathTemplate(candidate.path, path)
       );
       return [...new Set(matched.map((candidate) => candidate.method))];
-    } catch (error) {
-      throw error instanceof AppError ? error : new AppError();
-    }
+    });
   }
 
   async getAllEndpoints({ public_id }: GetEndpointGroupByIdDTO) {
-    try {
-      return await prisma.endpoints.findMany({
+    return guardService(() =>
+      prisma.endpoints.findMany({
         where: { endpoint_groups: { public_id } },
         orderBy: { updated_at: "desc" },
-      });
-    } catch (error) {
-      throw error instanceof AppError ? error : new AppError();
-    }
+      })
+    );
   }
 
   async deleteEndpointById({ public_id }: DeleteEndpointByIdDTO) {
-    try {
-      return await prisma.endpoints.delete({ where: { public_id } });
-    } catch (error) {
-      throw error instanceof AppError ? error : new AppError();
-    }
+    return guardService(() => prisma.endpoints.delete({ where: { public_id } }));
   }
 
   async deleteAllEndpoints({ endpoint_groups_public_id }: DeleteAllEndpointDTO) {
-    try {
-      return await prisma.endpoints.deleteMany({
+    return guardService(() =>
+      prisma.endpoints.deleteMany({
         where: { endpoint_groups: { public_id: endpoint_groups_public_id } },
-      });
-    } catch (error) {
-      throw error instanceof AppError ? error : new AppError();
-    }
+      })
+    );
   }
 
   async updateEndpointById({ public_id, ...rest }: UpdateEndpointByIdDTO) {
-    try {
-      return await prisma.endpoints.update({ where: { public_id }, data: rest });
-    } catch (error) {
-      throw error instanceof AppError ? error : new AppError();
-    }
+    return guardService(() => prisma.endpoints.update({ where: { public_id }, data: rest }));
   }
 }
 const endpointService = new EndpointService();
