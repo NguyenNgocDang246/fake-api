@@ -3,8 +3,11 @@ import {
   entityAttributeType,
   parseTemplatePlaceholders,
 } from "@/models/endpoint_plan/endpoint_plan.model";
+import { MAX_ARRAY_ITEMS } from "@/models/endpoint_plan/limits.model";
+import { arrayDepthOf, flattenPathValues } from "@/app/libs/helpers/json_path";
 import {
   ValidateRecipeInput,
+  expectedTypeAt,
   resolveRecipeType,
   uniformLeafTypeOf,
 } from "@/server/services/endpoint/variant/validate_types";
@@ -40,6 +43,38 @@ function checkCatalogRecipe(input: ValidateRecipeInput): boolean {
   return true;
 }
 
+// `count` measures the arrays a path names, the other ops read the values inside them, so the two
+// need opposite things of `of` and each has to be checked against the real body.
+function checkAggregateRecipe(input: ValidateRecipeInput): boolean {
+  const { path, recipe, baseBody, errors } = input;
+  if (recipe.kind !== "aggregate") return true;
+
+  if (recipe.op === "count") {
+    const arrays = flattenPathValues(baseBody, recipe.of, MAX_ARRAY_ITEMS);
+    // An empty array is fine here, unlike `array_length`: counting it answers zero, while
+    // resizing it has no element to build more from.
+    if (arrays === null || arrays.length === 0 || !arrays.every((value) => Array.isArray(value))) {
+      errors.push(`Field "${path}" counts "${recipe.of}", which is not an array`);
+      return false;
+    }
+    return true;
+  }
+
+  if (arrayDepthOf(recipe.of) === 0) {
+    errors.push(
+      `Field "${path}" aggregates "${recipe.of}", which is a single value rather than an array`
+    );
+    return false;
+  }
+
+  if (expectedTypeAt(baseBody, recipe.of) !== "number") {
+    errors.push(`Field "${path}" aggregates "${recipe.of}", which does not hold numbers`);
+    return false;
+  }
+
+  return true;
+}
+
 // Returns false when the recipe has already been reported and the type check must be skipped.
 function checkRecipeShape(input: ValidateRecipeInput): boolean {
   const { path, recipe, expected, entityById, errors } = input;
@@ -60,6 +95,8 @@ function checkRecipeShape(input: ValidateRecipeInput): boolean {
     case "catalog":
     case "catalog_range":
       return checkCatalogRecipe(input);
+    case "aggregate":
+      return checkAggregateRecipe(input);
     case "pick": {
       if (recipe.weights && recipe.weights.length !== recipe.values.length) {
         errors.push(`Field "${path}" has a weight list that does not match its values`);

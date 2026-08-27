@@ -76,6 +76,7 @@ export function recipeDependencies(recipe: RecipeDTO): string[] {
     case "after":
       return [recipe.of];
     case "sum":
+    case "aggregate":
       return [recipe.of];
     case "product":
       return [...recipe.of];
@@ -100,6 +101,7 @@ export function staticRecipeType(recipe: RecipeDTO): JsonLeafType | undefined {
     case "int":
     case "float":
     case "sum":
+    case "aggregate":
     case "product":
       return "number";
     case "bool":

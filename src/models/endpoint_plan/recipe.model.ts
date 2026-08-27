@@ -9,7 +9,12 @@ import {
   MAX_TEMPLATE_LENGTH,
   MAX_TEMPLATE_SLOTS,
 } from "@/models/endpoint_plan/limits.model";
-import { DATE_FORMATS, DELTA_UNITS, SEMANTIC_NAMES } from "@/models/endpoint_plan/catalog.model";
+import {
+  AGGREGATE_OPS,
+  DATE_FORMATS,
+  DELTA_UNITS,
+  SEMANTIC_NAMES,
+} from "@/models/endpoint_plan/catalog.model";
 
 export const LeafValue = z.union([
   z.string().max(MAX_STRING_VALUE_LENGTH),
@@ -144,6 +149,16 @@ const SumRecipe = z.object({
   fraction_digits: z.number().int().min(0).max(6).optional(),
 });
 
+// `of` is a value path for avg, min and max, and an array container path for count. Which one it
+// has to be is checked against the body by `validatePlan`.
+const AggregateRecipe = z.object({
+  kind: z.literal("aggregate"),
+  op: z.enum(AGGREGATE_OPS),
+  of: PathString,
+  multiplier: z.number().optional(),
+  fraction_digits: z.number().int().min(0).max(6).optional(),
+});
+
 const ProductRecipe = z.object({
   kind: z.literal("product"),
   of: z.tuple([PathString, PathString]),
@@ -168,6 +183,7 @@ const LEAF_RECIPES = [
   CopyRecipe,
   AfterRecipe,
   SumRecipe,
+  AggregateRecipe,
   ProductRecipe,
 ] as const;
 

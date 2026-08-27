@@ -114,3 +114,40 @@ describe("branch", () => {
     }
   });
 });
+
+describe("aggregate", () => {
+  const BASE = {
+    item_count: 0,
+    avg_price: 0,
+    min_price: 0,
+    max_price: 0,
+    items: [{ price: 1 }, { price: 1 }],
+  };
+
+  const PLAN = plan({
+    fields: [
+      { path: "items", recipe: { kind: "array_length", min: 1, max: 6 } },
+      { path: "items[].price", recipe: { kind: "int", min: 1000, max: 99_000 } },
+      { path: "item_count", recipe: { kind: "aggregate", op: "count", of: "items" } },
+      {
+        path: "avg_price",
+        recipe: { kind: "aggregate", op: "avg", of: "items[].price", fraction_digits: 2 },
+      },
+      { path: "min_price", recipe: { kind: "aggregate", op: "min", of: "items[].price" } },
+      { path: "max_price", recipe: { kind: "aggregate", op: "max", of: "items[].price" } },
+    ],
+  });
+
+  // The regression `sum` with a multiplier could never cover: the length changes per render, so
+  // anything computed from a fixed divisor drifts the moment array_length draws a new size.
+  it("follows the length array_length just drew, on every render", () => {
+    for (const out of render(PLAN, BASE, 200)) {
+      const prices = (out.items as { price: number }[]).map((item) => item.price);
+
+      expect(out.item_count).toBe(prices.length);
+      expect(out.min_price).toBe(Math.min(...prices));
+      expect(out.max_price).toBe(Math.max(...prices));
+      expect(out.avg_price).toBeCloseTo(prices.reduce((a, b) => a + b, 0) / prices.length, 2);
+    }
+  });
+});

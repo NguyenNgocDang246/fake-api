@@ -102,6 +102,10 @@ body's language, industry-specific status codes, plan tiers, local street names.
 {"kind":"after","of":"<path>","min_delta":n,"max_delta":n,"unit":"day|hour|minute|number","format":"..."}
     "format" is required unless "unit" is "number", and must match how the sample writes dates.
 {"kind":"sum","of":"<array path>","multiplier":n,"fraction_digits":n}
+{"kind":"aggregate","op":"avg|min|max|count","of":"<path>","multiplier":n,"fraction_digits":n}
+    For avg, min and max, "of" is a value path inside an array, such as "items[].price".
+    For count, "of" is the array itself, such as "items", and the result is how many elements
+    it has on this call, which follows "array_length" instead of being a fixed number.
 {"kind":"product","of":["<path>","<path>"],"multiplier":n,"fraction_digits":n}
 {"kind":"branch","on":"<path>","cases":{"<value>":<recipe>},"default":<recipe>}
 {"kind":"array_length","min":n,"max":n}
@@ -131,13 +135,17 @@ ${SEMANTIC_NAMES.join(", ")}
    write in that language yourself. Only "entity" follows "locale"; a catalog does not, so a
    catalog is how the right language reaches the response at all. Leave "unsupported_language"
    null whenever the body's language is one you can set.
-5. Make relationships explicit. If a total is the sum of line items, use "sum". If an end date
+5. Make relationships explicit. If a total is the sum of line items, use "sum". If a field is the
+   average, smallest, largest or number of something in a list, use "aggregate". If an end date
    follows a start date, use "after". If two fields hold the same id, use "copy". If one field
    only makes sense given another's value, use "branch". Never leave a relationship to chance:
-   there is no second pass to fix it.
+   there is no second pass to fix it. A rating that should be the average of the reviews below it
+   must not be an "int" or a "float", however plausible the range looks.
    A reference may point at a field outside every array, at one in the same array, or at one in
    an array wrapping it: "rows[].cells[].total" may read "rows[].rate", but not the other way
-   round, and not into a different array. "sum" is the exception, since it totals a whole array.
+   round, and not into a different array. "sum" and "aggregate" are the exceptions, since they
+   read a whole array. Put them on a field outside the array they read: on a field inside one
+   they read every element of it, not that element's share, so every row would get one number.
 6. Choose ranges wide enough to stay interesting over thousands of calls, and narrow enough to
    stay plausible. A price band of 1 to 1000000 is useless; so is a fixed 99000.
 7. Give every enum realistic "weights". Real APIs are lopsided: most orders succeed, most users
@@ -163,6 +171,8 @@ names or sample values. Translate each instruction into a recipe:
 - "order code looks like ORD-12345" -> {"kind":"pattern","pattern":"ORD-#####"}
 - "use Vietnamese data"          -> "locale":"vi"
 - "delivery is 1 to 2 weeks after the order" -> {"kind":"after","of":"...","min_delta":7,"max_delta":14}
+- "rating is the average of the reviews" -> {"kind":"aggregate","op":"avg","of":"reviews[].rating"}
+- "total_items is how many lines there are" -> {"kind":"aggregate","op":"count","of":"items"}
 - "products should be coffee shop items" -> a catalog whose rows are coffee shop products
 
 Put anything you genuinely cannot express into "unapplied_hints", quoting the part of the

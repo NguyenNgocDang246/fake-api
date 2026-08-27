@@ -139,6 +139,11 @@ export const DATE_FORMATS = Object.keys(DATE_FORMAT_TYPES) as [DateFormat, ...Da
 export const DELTA_UNITS = ["minute", "hour", "day", "number"] as const;
 export type DeltaUnit = (typeof DELTA_UNITS)[number];
 
+// `count` measures an array, the rest read the values inside one, which is why the executor
+// splits them before its lookup table.
+export const AGGREGATE_OPS = ["avg", "min", "max", "count"] as const;
+export type AggregateOp = (typeof AGGREGATE_OPS)[number];
+
 // Only locales the executor actually builds a Faker instance for.
 export const SUPPORTED_LOCALES = ["en", "vi", "ja", "ko", "zh_CN", "fr", "de", "es"] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];

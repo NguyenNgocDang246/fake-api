@@ -195,3 +195,58 @@ describe("validatePlan refuses a plan rather than letting it run", () => {
     ).toEqual([]);
   });
 });
+
+describe("validatePlan on aggregate", () => {
+  const BASE = {
+    total: 0,
+    tags: ["a", "b"],
+    items: [{ price: 1 }],
+    empty: [] as unknown[],
+    name: "a",
+  };
+  const ALLOWED = ["total", "tags", "tags[]", "items", "items[].price", "empty", "name"];
+
+  function errorsFor(fields: VariantPlanDTO["fields"]) {
+    return validatePlan(plan({ fields }), BASE, ALLOWED).errors;
+  }
+
+  // The point of `wholeArrayReads`: without it a field outside the array is a scope violation.
+  it("lets a field outside an array read the whole array", () => {
+    expect(
+      errorsFor([
+        { path: "total", recipe: { kind: "aggregate", op: "avg", of: "items[].price" } },
+      ])
+    ).toEqual([]);
+  });
+
+  it("blocks avg over a path that holds no numbers", () => {
+    expect(
+      errorsFor([{ path: "total", recipe: { kind: "aggregate", op: "avg", of: "tags[]" } }]).join(" ")
+    ).toContain("does not hold numbers");
+  });
+
+  it("blocks avg over a path that crosses no array", () => {
+    expect(
+      errorsFor([{ path: "total", recipe: { kind: "aggregate", op: "min", of: "name" } }]).join(" ")
+    ).toContain("single value rather than an array");
+  });
+
+  it("blocks count over something that is not an array", () => {
+    expect(
+      errorsFor([{ path: "total", recipe: { kind: "aggregate", op: "count", of: "name" } }]).join(" ")
+    ).toContain("not an array");
+  });
+
+  // Unlike array_length, which needs an element to clone: counting an empty array answers zero.
+  it("accepts count over an empty array", () => {
+    expect(
+      errorsFor([{ path: "total", recipe: { kind: "aggregate", op: "count", of: "empty" } }])
+    ).toEqual([]);
+  });
+
+  it("blocks an aggregate written into a field the body holds as a string", () => {
+    expect(
+      errorsFor([{ path: "name", recipe: { kind: "aggregate", op: "count", of: "items" } }]).join(" ")
+    ).toContain("produces number where the body holds string");
+  });
+});

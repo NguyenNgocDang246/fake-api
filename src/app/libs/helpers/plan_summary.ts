@@ -79,6 +79,17 @@ function describeRecipe(recipe: RecipeDTO, plan: VariantPlanDTO): string {
     }
     case "sum":
       return `the total of ${recipe.of}`;
+    case "aggregate": {
+      const scale = recipe.multiplier === undefined ? "" : `, times ${amount(recipe.multiplier)}`;
+      const of = recipe.of;
+      const phrase = {
+        avg: `the average of ${of}`,
+        min: `the smallest of ${of}`,
+        max: `the largest of ${of}`,
+        count: `how many ${of} there are`,
+      }[recipe.op];
+      return `${phrase}${scale}`;
+    }
     case "product":
       return `${recipe.of[0]} multiplied by ${recipe.of[1]}`;
     case "branch": {

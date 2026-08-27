@@ -8,13 +8,13 @@ export function scopeKeyOf(path: string): string {
   return scopePathOf(path);
 }
 
-// `sum` is the one recipe that reads a whole array at once rather than one element at the index
-// being drawn, so it is the one dependency allowed to cross a scope.
+// `sum` and `aggregate` are the recipes that read a whole array at once rather than one element
+// at the index being drawn, so they are the dependencies allowed to cross a scope.
 export function wholeArrayReads(recipe: RecipeDTO): Set<string> {
   const paths = new Set<string>();
 
   const walk = (current: RecipeDTO) => {
-    if (current.kind === "sum") paths.add(current.of);
+    if (current.kind === "sum" || current.kind === "aggregate") paths.add(current.of);
     if (current.kind === "branch") {
       for (const nested of [...Object.values(current.cases), current.default]) walk(nested);
     }

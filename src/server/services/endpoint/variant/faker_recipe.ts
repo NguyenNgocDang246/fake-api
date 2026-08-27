@@ -1,5 +1,5 @@
 import { MAX_ARRAY_ITEMS, MAX_UNIQUE_RETRIES } from "@/models/endpoint_plan/limits.model";
-import { JsonLeaf } from "@/models/endpoint_plan/catalog.model";
+import { AggregateOp, JsonLeaf } from "@/models/endpoint_plan/catalog.model";
 import { LeafRecipeDTO, RecipeDTO } from "@/models/endpoint_plan/recipe.model";
 import {
   catalogColumnIndex,
@@ -23,6 +23,15 @@ import {
   shapeNumber,
   toEpochMs,
 } from "@/server/services/endpoint/variant/faker_value";
+
+// A `Record` over the op names, so an op added to `AGGREGATE_OPS` fails to build until it is
+// handled. `reduce` rather than `Math.min(...values)`: a path three arrays deep can carry tens of
+// thousands of values, which is enough for a spread to overflow the stack.
+const VALUE_AGGREGATES: Record<Exclude<AggregateOp, "count">, (values: number[]) => number> = {
+  avg: (values) => values.reduce((acc, value) => acc + value, 0) / values.length,
+  min: (values) => values.reduce((acc, value) => (value < acc ? value : acc)),
+  max: (values) => values.reduce((acc, value) => (value > acc ? value : acc)),
+};
 
 function drawFromCatalog(ctx: RenderContext, recipe: LeafRecipeDTO): JsonLeaf | undefined {
   if (recipe.kind !== "catalog" && recipe.kind !== "catalog_range") return undefined;
@@ -76,6 +85,36 @@ function drawDerived(ctx: RenderContext, recipe: LeafRecipeDTO): JsonLeaf | unde
         0
       );
       return shapeNumber(total * (recipe.multiplier ?? 1), undefined, recipe.fraction_digits);
+    }
+    case "aggregate": {
+      if (recipe.op === "count") {
+        // Read uncapped like `resizeArrays`, and after it, so this is the new length. Summed
+        // across every array the path names, which for `rows[].cells` is every cell.
+        const arrays = flattenPathValues(ctx.draft, recipe.of);
+        if (arrays === null) return undefined;
+
+        const counted = arrays.reduce<number>(
+          (acc, value) => acc + (Array.isArray(value) ? value.length : 0),
+          0
+        );
+        return shapeNumber(counted * (recipe.multiplier ?? 1), undefined, recipe.fraction_digits);
+      }
+
+      const values = flattenPathValues(ctx.draft, recipe.of, MAX_ARRAY_ITEMS);
+      if (values === null) return undefined;
+
+      // Unlike `sum`, a non-number is dropped rather than counted as zero: it would move an
+      // average by sitting in the denominator, and there is no zero to fall back on for min.
+      const numbers = values.filter(
+        (value): value is number => typeof value === "number" && Number.isFinite(value)
+      );
+      if (numbers.length === 0) return undefined;
+
+      return shapeNumber(
+        VALUE_AGGREGATES[recipe.op](numbers) * (recipe.multiplier ?? 1),
+        undefined,
+        recipe.fraction_digits
+      );
     }
     case "product": {
       const [leftPath, rightPath] = recipe.of;

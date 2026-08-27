@@ -1,4 +1,5 @@
 import { MAX_ARRAY_ITEMS, MAX_AI_FIELDS } from "@/models/endpoint/endpoint.model";
+import { AGGREGATE_OPS } from "@/models/endpoint_plan/catalog.model";
 import {
   MAX_PLAN_FIELDS,
   MAX_TEMPLATE_SLOTS,
@@ -83,5 +84,33 @@ describe("template slots", () => {
   it("accepts a template at the slot ceiling and refuses one past it", () => {
     expect(VariantPlanSchema.safeParse(planWith(MAX_TEMPLATE_SLOTS)).success).toBe(true);
     expect(VariantPlanSchema.safeParse(planWith(MAX_TEMPLATE_SLOTS + 1)).success).toBe(false);
+  });
+});
+
+describe("aggregate", () => {
+  function planWith(recipe: unknown) {
+    return { version: PLAN_VERSION, fields: [{ path: "count", recipe }] };
+  }
+
+  it("accepts every op in the vocabulary", () => {
+    for (const op of AGGREGATE_OPS) {
+      expect(VariantPlanSchema.safeParse(planWith({ kind: "aggregate", op, of: "items" })).success).toBe(
+        true
+      );
+    }
+  });
+
+  it("refuses an op outside it", () => {
+    expect(
+      VariantPlanSchema.safeParse(planWith({ kind: "aggregate", op: "stddev", of: "items" })).success
+    ).toBe(false);
+  });
+
+  it("refuses fraction_digits outside the shared range", () => {
+    expect(
+      VariantPlanSchema.safeParse(
+        planWith({ kind: "aggregate", op: "avg", of: "items[].price", fraction_digits: 7 })
+      ).success
+    ).toBe(false);
   });
 });
