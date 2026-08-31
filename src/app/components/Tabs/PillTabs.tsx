@@ -15,11 +15,9 @@ interface PillTabsProps {
   onChange: (id: string) => void;
   ariaLabel: string;
   size?: "sm" | "md";
-  /**
-   * Set it when the panel below is a real `role="tabpanel"`, and give that panel
-   * `id={`${idPrefix}-panel-${value}`}` and `aria-labelledby={`${idPrefix}-tab-${value}`}`. A tab
-   * strip that only switches sections of one form does not need it.
-   */
+  // Set it when the panel below is a real `role="tabpanel"`, and give that panel
+  // `id={`${idPrefix}-panel-${value}`}` and `aria-labelledby={`${idPrefix}-tab-${value}`}`. A
+  // tab strip that only switches sections of one form does not need it.
   idPrefix?: string;
   className?: string;
 }

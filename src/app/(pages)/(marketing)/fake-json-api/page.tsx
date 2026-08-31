@@ -5,8 +5,10 @@ import { CodeBlock } from "@/app/components/Code/CodeBlock";
 import { CtaBanner } from "@/app/components/Marketing/CtaBanner";
 import { FeatureGrid, type Feature } from "@/app/components/Marketing/FeatureGrid";
 import { MarketingHero } from "@/app/components/Marketing/MarketingHero";
+import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
+import { TextLink } from "@/app/components/Link/TextLink";
 import { PAGE_ROUTES } from "@/app/libs/routes";
-import { SITE, absoluteUrl, buildMetadata } from "@/app/libs/seo";
+import { SITE, absoluteUrl, breadcrumbSchema, buildMetadata, type Crumb } from "@/app/libs/seo";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 import { MAX_AI_FIELDS, MAX_AI_VALUES } from "@/models/endpoint/ai_fields.model";
 import {
@@ -15,14 +17,21 @@ import {
   MAX_RESPONSE_BODY_DEPTH,
 } from "@/models/endpoint/primitives.model";
 
-const DESCRIPTION =
+const PATH = PAGE_ROUTES.MARKETING.FAKE_JSON_API;
+
+const META_DESCRIPTION =
+  "Serve fake JSON data over a real HTTP URL. Paste the exact response body you want, or let AI vary chosen fields on every call.";
+
+const HERO_DESCRIPTION =
   "Serve fake JSON data over a real HTTP URL. Paste the exact response body you want, or let AI vary chosen fields on every call so your UI is never tested against the same row twice.";
 
 export const metadata: Metadata = buildMetadata({
   title: "Fake JSON API",
-  description: DESCRIPTION,
-  path: PAGE_ROUTES.MARKETING.FAKE_JSON_API,
+  description: META_DESCRIPTION,
+  path: PATH,
 });
+
+const BREADCRUMB: Crumb[] = [{ label: "Home", href: PAGE_ROUTES.HOME }, { label: "Fake JSON API" }];
 
 const STRUCTURED_DATA = {
   "@context": "https://schema.org",
@@ -30,23 +39,12 @@ const STRUCTURED_DATA = {
     {
       "@type": "WebPage",
       name: "Fake JSON API",
-      description: DESCRIPTION,
-      url: absoluteUrl(PAGE_ROUTES.MARKETING.FAKE_JSON_API),
+      description: META_DESCRIPTION,
+      url: absoluteUrl(PATH),
       inLanguage: "en",
       isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.url },
     },
-    {
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl(PAGE_ROUTES.HOME) },
-        {
-          "@type": "ListItem",
-          position: 2,
-          name: "Fake JSON API",
-          item: absoluteUrl(PAGE_ROUTES.MARKETING.FAKE_JSON_API),
-        },
-      ],
-    },
+    breadcrumbSchema(BREADCRUMB, PATH),
   ],
 };
 
@@ -118,21 +116,25 @@ export default async function FakeJsonApiPage() {
   const ctaHref = user ? PAGE_ROUTES.PROJECT : PAGE_ROUTES.AUTH.LOGIN;
 
   return (
-    <div className="relative font-sans flex flex-col items-center py-12 overflow-hidden">
+    <div className="relative font-sans flex flex-col items-center py-12">
       <JsonLd data={STRUCTURED_DATA} />
+
+      <div className="w-full max-w-5xl px-4 sm:px-6 mb-4">
+        <Breadcrumb items={BREADCRUMB} />
+      </div>
 
       <MarketingHero
         badge="Fake JSON API"
         badgeIcon={Braces}
         heading={
           <>
-            Fake JSON, served over a{" "}
+            A fake JSON API, served over a{" "}
             <span className="bg-linear-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">
               real HTTP URL
             </span>
           </>
         }
-        description={DESCRIPTION}
+        description={HERO_DESCRIPTION}
         primaryHref={ctaHref}
         secondaryHref={PAGE_ROUTES.DOCS}
         secondaryLabel="Read the docs"
@@ -143,12 +145,19 @@ export default async function FakeJsonApiPage() {
         <p className="text-gray-600 leading-relaxed mb-4">
           Importing a JSON file into a component gets data on the screen, but it skips everything
           that makes a network call a network call. There is no loading state, because the data is
-          already there. There is no error branch, because an import cannot fail at runtime. There is
-          no race, no abort, no stale response arriving after the user has navigated away.
+          already there. There is no error branch, because an import cannot fail at runtime. There
+          is no race, no abort, no stale response arriving after the user has navigated away.
         </p>
         <p className="text-gray-600 leading-relaxed">
           Those are precisely the paths that break in production. Serving the same JSON over HTTP
-          costs nothing extra and puts every one of them back in play.
+          costs nothing extra and puts every one of them back in play, and the{" "}
+          <TextLink
+            href={PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR}
+            className="text-blue-600 hover:underline"
+          >
+            mock API generator
+          </TextLink>{" "}
+          is where you define the endpoint that serves it.
         </p>
       </section>
 
@@ -172,10 +181,28 @@ export default async function FakeJsonApiPage() {
         </p>
         <p className="text-gray-600 leading-relaxed mb-6">
           Turn on AI variants, tick the fields that should change, and the endpoint keeps its shape
-          while those values are regenerated on every call. The keys, the nesting, and the fields you
-          did not tick stay exactly as you wrote them.
+          while those values are regenerated on every call. The keys, the nesting, and the fields
+          you did not tick stay exactly as you wrote them.
         </p>
         <CodeBlock lang="responses">{VARIED_RESPONSE}</CodeBlock>
+      </section>
+
+      <section className="mt-16 w-full max-w-3xl px-4 sm:px-6">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+          Dummy JSON data for a full screen, not one row
+        </h2>
+        <p className="text-gray-600 leading-relaxed mb-4">
+          Most dummy JSON data you find lying around is a single object or a list of three. That is
+          enough to prove a fetch works, and not enough to find out what your table does at row
+          forty. A body here holds up to {MAX_ARRAY_ITEMS} items in one list and runs to{" "}
+          {MAX_RESPONSE_BODY_CHARS.toLocaleString("en-US")} characters, which is a screen of results
+          rather than a sample of one.
+        </p>
+        <p className="text-gray-600 leading-relaxed">
+          Size is also how you reach the states nobody tests. Give one endpoint the full list, a
+          second the same shape with an empty array, and a third a single item, and the empty state
+          and the one-result layout stop being things you find out about after release.
+        </p>
       </section>
 
       <FeatureGrid

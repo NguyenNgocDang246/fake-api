@@ -68,7 +68,9 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${baloo2.className} antialiased flex flex-col min-h-screen`}>
+      <body
+        className={`${baloo2.className} antialiased flex flex-col min-h-screen overflow-x-clip`}
+      >
         <MinWidthGuard>
           <div className="flex-1">
             <QueryWrapper>

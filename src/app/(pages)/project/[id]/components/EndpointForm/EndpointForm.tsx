@@ -68,6 +68,8 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
 
   const aiDot = aiHasError ? "error" : aiEnabled ? "accent" : undefined;
 
+  // Both panels stay mounted. `JsonEditor` measures its own height once on mount and holds the
+  // undo stack in a ref, so unmounting the Basics panel would lose a half-typed body.
   return (
     <div className="@container flex flex-col gap-4">
       <PillTabs
@@ -80,8 +82,6 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
         ]}
       />
 
-      {/* Both panels stay mounted. `JsonEditor` measures its own height once on mount and holds
-          the undo stack in a ref, so unmounting the Basics panel would lose a half-typed body. */}
       <div className={tab === "basics" ? "flex flex-col gap-4" : "hidden"}>
         <p className="text-xs text-gray-500">
           The address this endpoint answers on, and the response it sends back every time.

@@ -19,6 +19,8 @@ export const AiPlanSummary: React.FC<AiPlanSummaryProps> = ({
 }) => {
   if (rows.length === 0) return null;
 
+  // The rows below are measured against the AI card, not the viewport: the card is what decides
+  // whether a path and its description fit on one line.
   return (
     <div className="flex flex-col gap-2">
       <button
@@ -33,8 +35,6 @@ export const AiPlanSummary: React.FC<AiPlanSummaryProps> = ({
 
       {open && (
         <div className="flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-3">
-          {/* Measured against the AI card, not the viewport: the card is what decides whether a
-              path and its description fit on one line. */}
           {rows.map((row) => (
             <div
               key={row.path}

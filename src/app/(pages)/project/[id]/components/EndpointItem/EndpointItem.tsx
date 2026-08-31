@@ -54,6 +54,10 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
     endpoint_groups_id,
   );
   const { openUpdateEndpointModal } = useUpdateEndpointViewModel();
+
+  // The unsupported-language and dropped-hint badges below are the only place either is ever
+  // seen: only the blueprint knows them, so they land once the design finishes rather than on
+  // submit, and a blueprint built in the background is one nobody previewed.
   return (
     <div
       onClick={() => {
@@ -95,7 +99,6 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
             AI
           </span>
         )}
-        {/* Only the blueprint knows this, so it appears once the design finishes, not on submit. */}
         {ai_unsupported_language && (
           <span
             className="flex shrink-0 items-center gap-1 rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800"
@@ -105,8 +108,6 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
             {ai_unsupported_language}
           </span>
         )}
-        {/* Same reason: a blueprint built in the background is one nobody previewed, so this is
-            the only place a dropped hint is ever seen. */}
         {ai_unapplied_hints.length > 0 && (
           <span
             className="flex shrink-0 items-center gap-1 rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800"

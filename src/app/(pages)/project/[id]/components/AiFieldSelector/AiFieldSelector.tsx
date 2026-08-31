@@ -212,6 +212,8 @@ export const AiFieldSelector: React.FC<AiFieldSelectorProps> = ({
     );
   }
 
+  // The selected count itself lives in the section's legend pill. Only the cap is repeated
+  // below, and only once it is close enough to matter.
   return (
     <div className={twMerge("flex flex-col gap-2", className)}>
       <div className="flex items-center justify-between gap-2 text-sm">
@@ -219,8 +221,6 @@ export const AiFieldSelector: React.FC<AiFieldSelectorProps> = ({
           <span className="text-xs text-amber-600">None of these fields can be varied yet</span>
         ) : (
           <>
-            {/* The count itself lives in the section's legend pill. Only the cap is repeated here,
-                and only once it is close enough to matter. */}
             <span className="text-xs text-gray-500">
               {selected.size > MAX_AI_FIELDS / 2 && `At most ${MAX_AI_FIELDS} fields`}
             </span>

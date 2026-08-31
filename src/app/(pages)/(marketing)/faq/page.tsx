@@ -3,9 +3,10 @@ import { HelpCircle } from "lucide-react";
 import { JsonLd } from "@/app/components/JsonLd";
 import { CtaBanner } from "@/app/components/Marketing/CtaBanner";
 import { MarketingHero } from "@/app/components/Marketing/MarketingHero";
+import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
 import { TextLink } from "@/app/components/Link/TextLink";
 import { PAGE_ROUTES } from "@/app/libs/routes";
-import { SITE, absoluteUrl, buildMetadata } from "@/app/libs/seo";
+import { SITE, absoluteUrl, breadcrumbSchema, buildMetadata, type Crumb } from "@/app/libs/seo";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
 import {
@@ -16,14 +17,21 @@ import {
   MIN_STATUS_CODE,
 } from "@/models/endpoint/primitives.model";
 
-const DESCRIPTION =
+const PATH = PAGE_ROUTES.MARKETING.FAQ;
+
+const META_DESCRIPTION =
+  "Answers about Fake API: what it costs, how long mock endpoints live, which limits apply, and how AI generated responses work.";
+
+const HERO_DESCRIPTION =
   "Answers about Fake API: what it costs, how long your mock endpoints live, which limits apply, whether you can call them from CI, and how AI generated responses work.";
 
 export const metadata: Metadata = buildMetadata({
   title: "FAQ",
-  description: DESCRIPTION,
-  path: PAGE_ROUTES.MARKETING.FAQ,
+  description: META_DESCRIPTION,
+  path: PATH,
 });
+
+const BREADCRUMB: Crumb[] = [{ label: "Home", href: PAGE_ROUTES.HOME }, { label: "FAQ" }];
 
 const USER_LIMITS = ROLE_LIMITS.USER;
 
@@ -83,7 +91,7 @@ const STRUCTURED_DATA = {
   "@graph": [
     {
       "@type": "FAQPage",
-      url: absoluteUrl(PAGE_ROUTES.MARKETING.FAQ),
+      url: absoluteUrl(PATH),
       inLanguage: "en",
       mainEntity: FAQ.map(({ question, answer }) => ({
         "@type": "Question",
@@ -91,18 +99,7 @@ const STRUCTURED_DATA = {
         acceptedAnswer: { "@type": "Answer", text: answer },
       })),
     },
-    {
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl(PAGE_ROUTES.HOME) },
-        {
-          "@type": "ListItem",
-          position: 2,
-          name: "FAQ",
-          item: absoluteUrl(PAGE_ROUTES.MARKETING.FAQ),
-        },
-      ],
-    },
+    breadcrumbSchema(BREADCRUMB, PATH),
   ],
 };
 
@@ -111,8 +108,12 @@ export default async function FaqPage() {
   const ctaHref = user ? PAGE_ROUTES.PROJECT : PAGE_ROUTES.AUTH.LOGIN;
 
   return (
-    <div className="relative font-sans flex flex-col items-center py-12 overflow-hidden">
+    <div className="relative font-sans flex flex-col items-center py-12">
       <JsonLd data={STRUCTURED_DATA} />
+
+      <div className="w-full max-w-5xl px-4 sm:px-6 mb-4">
+        <Breadcrumb items={BREADCRUMB} />
+      </div>
 
       <MarketingHero
         badge="Frequently asked questions"
@@ -125,7 +126,7 @@ export default async function FaqPage() {
             </span>
           </>
         }
-        description={DESCRIPTION}
+        description={HERO_DESCRIPTION}
         primaryHref={ctaHref}
         secondaryHref={PAGE_ROUTES.DOCS}
         secondaryLabel="Read the docs"
@@ -146,7 +147,22 @@ export default async function FaqPage() {
           <TextLink href={PAGE_ROUTES.DOCS} className="text-blue-600 hover:underline">
             documentation
           </TextLink>{" "}
-          walks through creating a project, defining endpoints, and calling them from your app.
+          walks through creating a project, defining endpoints, and calling them from your app. For
+          the wider picture, the{" "}
+          <TextLink
+            href={PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR}
+            className="text-blue-600 hover:underline"
+          >
+            mock API generator
+          </TextLink>{" "}
+          page covers how endpoints are defined, and the{" "}
+          <TextLink
+            href={PAGE_ROUTES.MARKETING.FAKE_JSON_API}
+            className="text-blue-600 hover:underline"
+          >
+            fake JSON API
+          </TextLink>{" "}
+          page covers what they can return.
         </p>
       </section>
 

@@ -6,22 +6,34 @@ import { FeatureGrid, type Feature } from "@/app/components/Marketing/FeatureGri
 import { MarketingHero } from "@/app/components/Marketing/MarketingHero";
 import { StepsRow, type Step } from "@/app/components/Marketing/StepsRow";
 import { CodeBlock } from "@/app/components/Code/CodeBlock";
+import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
+import { TextLink } from "@/app/components/Link/TextLink";
 import { PAGE_ROUTES } from "@/app/libs/routes";
-import { SITE, absoluteUrl, buildMetadata } from "@/app/libs/seo";
+import { SITE, absoluteUrl, breadcrumbSchema, buildMetadata, type Crumb } from "@/app/libs/seo";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
 import { MAX_DELAY_MS, MAX_PATH_LENGTH } from "@/models/endpoint/primitives.model";
 
-const DESCRIPTION =
+const PATH = PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR;
+
+const META_DESCRIPTION =
+  "A mock API generator for frontend developers. Define REST endpoints in the browser and get a public URL back, with no server to run.";
+
+const HERO_DESCRIPTION =
   "A mock API generator for frontend developers. Define REST endpoints in the browser, get a public URL immediately, and skip writing an Express server just to unblock the UI.";
 
 export const metadata: Metadata = buildMetadata({
   title: "Mock API Generator",
-  description: DESCRIPTION,
-  path: PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR,
+  description: META_DESCRIPTION,
+  path: PATH,
 });
 
 const USER_LIMITS = ROLE_LIMITS.USER;
+
+const BREADCRUMB: Crumb[] = [
+  { label: "Home", href: PAGE_ROUTES.HOME },
+  { label: "Mock API generator" },
+];
 
 const STRUCTURED_DATA = {
   "@context": "https://schema.org",
@@ -29,23 +41,12 @@ const STRUCTURED_DATA = {
     {
       "@type": "WebPage",
       name: "Mock API Generator",
-      description: DESCRIPTION,
-      url: absoluteUrl(PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR),
+      description: META_DESCRIPTION,
+      url: absoluteUrl(PATH),
       inLanguage: "en",
       isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.url },
     },
-    {
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl(PAGE_ROUTES.HOME) },
-        {
-          "@type": "ListItem",
-          position: 2,
-          name: "Mock API Generator",
-          item: absoluteUrl(PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR),
-        },
-      ],
-    },
+    breadcrumbSchema(BREADCRUMB, PATH),
   ],
 };
 
@@ -128,21 +129,25 @@ export default async function MockApiGeneratorPage() {
   const ctaHref = user ? PAGE_ROUTES.PROJECT : PAGE_ROUTES.AUTH.LOGIN;
 
   return (
-    <div className="relative font-sans flex flex-col items-center py-12 overflow-hidden">
+    <div className="relative font-sans flex flex-col items-center py-12">
       <JsonLd data={STRUCTURED_DATA} />
+
+      <div className="w-full max-w-5xl px-4 sm:px-6 mb-4">
+        <Breadcrumb items={BREADCRUMB} />
+      </div>
 
       <MarketingHero
         badge="Mock API generator"
         badgeIcon={Rocket}
         heading={
           <>
-            Generate a REST API{" "}
+            A mock API generator for{" "}
             <span className="bg-linear-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">
-              before the backend exists
+              the backend that does not exist yet
             </span>
           </>
         }
-        description={DESCRIPTION}
+        description={HERO_DESCRIPTION}
         primaryHref={ctaHref}
         secondaryHref={PAGE_ROUTES.DOCS}
         secondaryLabel="Read the docs"
@@ -166,9 +171,9 @@ export default async function MockApiGeneratorPage() {
           up when someone trusts them.
         </p>
         <p className="text-gray-600 leading-relaxed">
-          A generated API moves the mock out of the codebase. The app only ever knows a base URL. The
-          response, the status code, and the delay are edited in a form and take effect on the next
-          request, with no rebuild and no redeploy on either side.
+          A generated API moves the mock out of the codebase. The app only ever knows a base URL.
+          The response, the status code, and the delay are edited in a form and take effect on the
+          next request, with no rebuild and no redeploy on either side.
         </p>
       </section>
 
@@ -184,7 +189,40 @@ export default async function MockApiGeneratorPage() {
           On a free account you can keep {USER_LIMITS.maxProjects} projects, each holding{" "}
           {USER_LIMITS.maxGroupsPerProject} endpoint groups of up to{" "}
           {USER_LIMITS.maxEndpointsPerGroup} endpoints, which is room for several features at once
-          without any of them colliding.
+          without any of them colliding. Every one of those responses is a body you write yourself,
+          covered in more detail on the{" "}
+          <TextLink
+            href={PAGE_ROUTES.MARKETING.FAKE_JSON_API}
+            className="text-blue-600 hover:underline"
+          >
+            fake JSON API
+          </TextLink>{" "}
+          page.
+        </p>
+      </section>
+
+      <section className="mt-16 w-full max-w-3xl px-4 sm:px-6">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+          An online mock server with nothing to install
+        </h2>
+        <p className="text-gray-600 leading-relaxed mb-4">
+          The generator runs in the browser, so there is no CLI to install, no SDK to add to your
+          package.json, and no process sitting on a port while you work. You fill in a form and the
+          endpoint answers over HTTPS before you have switched back to your editor.
+        </p>
+        <p className="text-gray-600 leading-relaxed mb-4">
+          That is also what makes it shareable. An online mock server has one address, so the same
+          URL works for the person building the screen, the designer checking a state, and the CI
+          job running the suite. Nobody clones anything, and nobody has to be told which port you
+          used.
+        </p>
+        <p className="text-gray-600 leading-relaxed">
+          What it deliberately does not do is keep state. A POST does not change what a later GET
+          returns, because the point is a predictable response, not a second database. The{" "}
+          <TextLink href={PAGE_ROUTES.MARKETING.FAQ} className="text-blue-600 hover:underline">
+            FAQ
+          </TextLink>{" "}
+          goes through the rest of the limits.
         </p>
       </section>
 

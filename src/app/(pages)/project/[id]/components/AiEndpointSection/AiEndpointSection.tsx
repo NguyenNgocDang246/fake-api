@@ -64,6 +64,12 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
 
   const active = vm.enabled && vm.configured;
 
+  // `min-w-40` on the title column is what makes the switch drop to its own line on a narrow
+  // card, instead of the title shrinking into a three-line column beside it. Below 600px of
+  // card width the preview buttons drop under the prompt input, each on an 8rem basis.
+
+  // Two preview buttons, not one, because they cost different things: new samples are rendered
+  // locally and free, designing spends one of the day's AI calls.
   return (
     // The `@container` sits outside the card rather than on it: an element that opens a query
     // context cannot be sized by its own query, so the card's own `@min-[600px]:` classes would
@@ -81,8 +87,6 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
             <Sparkles size={18} />
           </span>
 
-          {/* `min-w-40` is what makes the switch drop to its own line on a narrow screen, instead
-              of the title shrinking into a three-line column beside it. */}
           <div className="flex min-w-40 flex-1 flex-col">
             <span className="text-sm font-semibold text-gray-800">AI response variants</span>
             <span className="text-xs text-gray-500">Only the fields you tick get varied.</span>
@@ -158,9 +162,6 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
                 Hint for the AI (optional)
               </label>
 
-              {/* Below 600px of card width the buttons drop under the input, each on a 8rem basis,
-                  because three items side by side squeezed the input to nothing and wrapped the
-                  labels. From 600px they sit beside it. */}
               <div className="flex flex-col gap-2 @min-[600px]:flex-row @min-[600px]:items-center">
                 <input
                   id="ai_prompt"
@@ -172,8 +173,6 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
                 />
 
                 <div className="flex flex-wrap gap-2 @min-[600px]:shrink-0">
-                  {/* Two buttons, not one, because they cost different things: new samples are
-                      rendered locally and free, designing spends one of the day's AI calls. */}
                   {vm.reusable && (
                     <button
                       type="button"

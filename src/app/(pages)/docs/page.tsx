@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import {
   BookOpen,
-  ArrowLeft,
   ArrowRight,
   UserPlus,
   LogIn,
@@ -20,7 +19,6 @@ import {
   Check,
 } from "lucide-react";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
-import { TextLink } from "@/app/components/Link/TextLink";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
@@ -40,18 +38,24 @@ import {
   MIN_STATUS_CODE,
 } from "@/models/endpoint/primitives.model";
 import { JsonLd } from "@/app/components/JsonLd";
-import { SITE, absoluteUrl, buildMetadata } from "@/app/libs/seo";
+import { HeroGlow } from "@/app/components/Decor/HeroGlow";
+import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
+import { SITE, absoluteUrl, breadcrumbSchema, buildMetadata, type Crumb } from "@/app/libs/seo";
 import { CodeBlock } from "@/app/components/Code/CodeBlock";
 import { mockEndpointUrl } from "@/app/libs/helpers/mock_url";
 import { WarningCallout } from "@/app/(pages)/docs/components/WarningCallout";
 import { DocsToc } from "@/app/(pages)/docs/components/DocsToc";
 
+const DESCRIPTION =
+  "Learn how to create projects, define mock endpoints with fixed or AI generated responses, and call your Fake API URLs from your app.";
+
 export const metadata: Metadata = buildMetadata({
   title: "Docs",
-  description:
-    "Learn how to create projects, define mock endpoints with fixed or AI generated responses, and call your Fake API URLs from your app.",
+  description: DESCRIPTION,
   path: PAGE_ROUTES.DOCS,
 });
+
+const BREADCRUMB: Crumb[] = [{ label: "Home", href: PAGE_ROUTES.HOME }, { label: "Docs" }];
 
 const STRUCTURED_DATA = {
   "@context": "https://schema.org",
@@ -59,8 +63,7 @@ const STRUCTURED_DATA = {
     {
       "@type": "TechArticle",
       headline: "Fake API docs",
-      description:
-        "Learn how to create projects, define mock endpoints with fixed or AI generated responses, and call your Fake API URLs from your app.",
+      description: DESCRIPTION,
       url: absoluteUrl(PAGE_ROUTES.DOCS),
       inLanguage: "en",
       publisher: {
@@ -69,13 +72,7 @@ const STRUCTURED_DATA = {
         url: SITE.url,
       },
     },
-    {
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl(PAGE_ROUTES.HOME) },
-        { "@type": "ListItem", position: 2, name: "Docs", item: absoluteUrl(PAGE_ROUTES.DOCS) },
-      ],
-    },
+    breadcrumbSchema(BREADCRUMB, PAGE_ROUTES.DOCS),
   ],
 };
 
@@ -260,11 +257,16 @@ export default async function DocsPage() {
   const ctaHref = user ? PAGE_ROUTES.PROJECT : PAGE_ROUTES.AUTH.LOGIN;
 
   return (
-    <div className="flex flex-col items-center pb-20">
+    <div className="relative font-sans flex flex-col items-center pt-12 pb-20">
       <JsonLd data={STRUCTURED_DATA} />
 
-      {/* Hero */}
-      <section className="flex flex-col items-center px-4 sm:px-6 pt-8 pb-4 text-center">
+      <HeroGlow />
+
+      <div className="w-full max-w-5xl px-4 sm:px-6 mb-4">
+        <Breadcrumb items={BREADCRUMB} />
+      </div>
+
+      <section className="flex flex-col items-center px-4 sm:px-6 pb-4 text-center">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-100 ring-1 ring-blue-200 rounded-full px-3 py-1 mb-6">
           <BookOpen size={14} />
           Documentation
@@ -276,22 +278,12 @@ export default async function DocsPage() {
           Everything you need to create mock endpoints and call them from your app, no real backend
           required.
         </p>
-        <TextLink
-          href={PAGE_ROUTES.HOME}
-          variant="muted"
-          className="flex items-center gap-1 text-sm"
-        >
-          <ArrowLeft size={14} />
-          Back to home
-        </TextLink>
       </section>
 
       <div className="w-full max-w-5xl px-4 sm:px-6 mt-10 lg:grid lg:grid-cols-[220px_1fr] lg:gap-12">
         <DocsToc items={TOC} />
 
-        {/* Content */}
         <div className="max-w-3xl flex flex-col gap-16">
-          {/* Introduction */}
           <section id="introduction" className="scroll-mt-24">
             <h2 className="text-2xl font-bold mb-3">Introduction</h2>
             <p className="text-gray-600 leading-relaxed mb-3">
@@ -310,7 +302,6 @@ export default async function DocsPage() {
             <CodeBlock lang="url">{mockEndpointUrl("{projectId}", "{your_created_path}")}</CodeBlock>
           </section>
 
-          {/* Account & Login */}
           <section id="account" className="scroll-mt-24">
             <h2 className="text-2xl font-bold mb-3">Getting started: account & login</h2>
             <p className="text-gray-600 leading-relaxed mb-6">
@@ -332,7 +323,6 @@ export default async function DocsPage() {
             </p>
           </section>
 
-          {/* Create a Project */}
           <section id="projects" className="scroll-mt-24">
             <h2 className="text-2xl font-bold mb-3">Create a project</h2>
             <p className="text-gray-600 leading-relaxed mb-6">
@@ -362,7 +352,6 @@ export default async function DocsPage() {
             </WarningCallout>
           </section>
 
-          {/* Endpoint Groups */}
           <section id="endpoint-groups" className="scroll-mt-24">
             <h2 className="text-2xl font-bold mb-3">Endpoint groups</h2>
             <p className="text-gray-600 leading-relaxed mb-4">
@@ -389,7 +378,6 @@ export default async function DocsPage() {
             </ul>
           </section>
 
-          {/* Create Endpoints */}
           <section id="endpoints" className="scroll-mt-24">
             <h2 className="text-2xl font-bold mb-3">Create endpoints</h2>
             <p className="text-gray-600 leading-relaxed mb-4">
@@ -447,7 +435,6 @@ export default async function DocsPage() {
             </p>
           </section>
 
-          {/* Edit, Delete, Copy URL */}
           <section id="manage-endpoints" className="scroll-mt-24">
             <h2 className="text-2xl font-bold mb-3">Edit, delete, and copy URL</h2>
             <ul className="flex flex-col gap-2 text-gray-600 leading-relaxed">
@@ -478,7 +465,6 @@ export default async function DocsPage() {
             </ul>
           </section>
 
-          {/* AI Response Variants */}
           <section id="ai-variants" className="scroll-mt-24">
             <h2 className="text-2xl font-bold mb-3">AI response variants</h2>
             <p className="text-gray-600 leading-relaxed mb-4">
@@ -619,7 +605,6 @@ export default async function DocsPage() {
             </div>
           </section>
 
-          {/* Call the Mock API */}
           <section id="call-api" className="scroll-mt-24">
             <h2 className="text-2xl font-bold mb-3">Call the mock API</h2>
             <p className="text-gray-600 leading-relaxed mb-4">
@@ -657,7 +642,6 @@ export default async function DocsPage() {
             </div>
           </section>
 
-          {/* Tips */}
           <section id="tips" className="scroll-mt-24">
             <h2 className="text-2xl font-bold mb-3">Tips for using Fake API</h2>
             <ul className="flex flex-col gap-2.5">
@@ -672,7 +656,6 @@ export default async function DocsPage() {
         </div>
       </div>
 
-      {/* Closing CTA */}
       <section className="mt-20 w-full max-w-5xl px-4 sm:px-6">
         <div className="relative flex flex-col items-center text-center overflow-hidden bg-linear-to-r from-indigo-600 to-blue-500 rounded-2xl px-6 py-14 shadow-2xl shadow-blue-500/30">
           <div

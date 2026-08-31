@@ -71,3 +71,22 @@ export function buildMetadata({
     ...(noindex ? { robots: { index: false, follow: true } } : {}),
   };
 }
+
+// Same shape the `Breadcrumb` component takes, so one array feeds both the visible trail
+// and the schema and the two cannot drift.
+export interface Crumb {
+  label: string;
+  href?: string;
+}
+
+export function breadcrumbSchema(items: Crumb[], path: string) {
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement: items.map(({ label, href }, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: label,
+      item: absoluteUrl(href ?? path),
+    })),
+  };
+}
