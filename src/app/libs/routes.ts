@@ -69,4 +69,9 @@ export const PAGE_ROUTES = {
   DOCS: "/docs",
   HOME: "/",
   PROJECT: "/project",
+  MARKETING: {
+    MOCK_API_GENERATOR: "/mock-api-generator",
+    FAKE_JSON_API: "/fake-json-api",
+    FAQ: "/faq",
+  },
 };

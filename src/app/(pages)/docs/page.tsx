@@ -39,15 +39,44 @@ import {
   MAX_STATUS_CODE,
   MIN_STATUS_CODE,
 } from "@/models/endpoint/primitives.model";
-import { CodeBlock } from "@/app/(pages)/docs/components/CodeBlock";
+import { JsonLd } from "@/app/components/JsonLd";
+import { SITE, absoluteUrl, buildMetadata } from "@/app/libs/seo";
+import { CodeBlock } from "@/app/components/Code/CodeBlock";
 import { mockEndpointUrl } from "@/app/libs/helpers/mock_url";
 import { WarningCallout } from "@/app/(pages)/docs/components/WarningCallout";
 import { DocsToc } from "@/app/(pages)/docs/components/DocsToc";
 
-export const metadata: Metadata = {
-  title: "Fake API Docs",
+export const metadata: Metadata = buildMetadata({
+  title: "Docs",
   description:
     "Learn how to create projects, define mock endpoints with fixed or AI generated responses, and call your Fake API URLs from your app.",
+  path: PAGE_ROUTES.DOCS,
+});
+
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      headline: "Fake API docs",
+      description:
+        "Learn how to create projects, define mock endpoints with fixed or AI generated responses, and call your Fake API URLs from your app.",
+      url: absoluteUrl(PAGE_ROUTES.DOCS),
+      inLanguage: "en",
+      publisher: {
+        "@type": "Organization",
+        name: SITE.name,
+        url: SITE.url,
+      },
+    },
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl(PAGE_ROUTES.HOME) },
+        { "@type": "ListItem", position: 2, name: "Docs", item: absoluteUrl(PAGE_ROUTES.DOCS) },
+      ],
+    },
+  ],
 };
 
 const TOC = [
@@ -232,6 +261,8 @@ export default async function DocsPage() {
 
   return (
     <div className="flex flex-col items-center pb-20">
+      <JsonLd data={STRUCTURED_DATA} />
+
       {/* Hero */}
       <section className="flex flex-col items-center px-4 sm:px-6 pt-8 pb-4 text-center">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-100 ring-1 ring-blue-200 rounded-full px-3 py-1 mb-6">
