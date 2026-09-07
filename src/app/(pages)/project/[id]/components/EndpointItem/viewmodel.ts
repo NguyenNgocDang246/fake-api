@@ -4,11 +4,15 @@ import api from "@/app/libs/helpers/api_call.client";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import { ClientDeleteEndpointByIdDTO } from "@/models/endpoint/endpoint.model";
 import buildUrl from "@/app/libs/helpers/url_builder";
-import { API_ROUTES } from "@/app/libs/routes";
+import { API_ROUTES, EndpointRoutes } from "@/app/libs/routes";
 import Notify from "@/app/components/Notify";
 import { useModal } from "@/app/components/Wrapper/Modal/ModalWrapper";
 import { mockEndpointUrl } from "@/app/libs/helpers/mock_url";
-export const useEndpointViewmodel = (project_id: string, endpoint_groups_id: string) => {
+export const useEndpointViewmodel = (
+  project_id: string,
+  endpoint_groups_id: string,
+  endpointRoutes: EndpointRoutes = API_ROUTES.ENDPOINT,
+) => {
   const queryClient = useQueryClient();
   const modal = useModal();
   const deleteEndpointMutation = useMutation<
@@ -18,7 +22,7 @@ export const useEndpointViewmodel = (project_id: string, endpoint_groups_id: str
   >({
     mutationFn: (data) =>
       api.delete(
-        buildUrl(API_ROUTES.ENDPOINT.DELETE_BY_ID, {
+        buildUrl(endpointRoutes.DELETE_BY_ID, {
           projectId: project_id,
           endpointGroupId: endpoint_groups_id,
           endpointId: data.public_id,

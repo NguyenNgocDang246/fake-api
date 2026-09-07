@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
-import { HeroGlow } from "@/app/components/Decor/HeroGlow";
 
 interface MarketingHeroProps {
   badge: string;
@@ -26,8 +25,6 @@ export function MarketingHero({
 }: MarketingHeroProps) {
   return (
     <>
-      <HeroGlow />
-
       <section className="flex flex-col items-center px-4 sm:px-6 text-center">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-100 ring-1 ring-blue-200 rounded-full px-3 py-1 mb-6">
           <BadgeIcon size={14} />

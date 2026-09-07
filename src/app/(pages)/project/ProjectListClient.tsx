@@ -2,7 +2,7 @@
 import { Spinner } from "../../components/Loading/Spinner";
 import { useProjectViewModel } from "@/app/(pages)/project/viewmodel";
 import { ProjectItem } from "@/app/(pages)/project/components/ProjectItem/ProjectItem";
-import { NoContentText } from "@/app/components/Text/NoContentText";
+import { EmptyState } from "@/app/components/Text/EmptyState";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 
 export function ProjectListClient() {
@@ -45,7 +45,18 @@ export function ProjectListClient() {
               </div>
             ))
           ) : (
-            <NoContentText message="No project found" className="mt-24 text-center" />
+            <EmptyState
+              className="mt-12"
+              title="You don't have any projects yet"
+              description="A project holds your mock endpoints and gives them their own URL. Create one and you can start answering requests in about a minute."
+              action={
+                <ActionButton
+                  label="Create your first project"
+                  variant="create"
+                  onClick={() => openCreateProjectModal()}
+                />
+              }
+            />
           )}
         </div>
       )}

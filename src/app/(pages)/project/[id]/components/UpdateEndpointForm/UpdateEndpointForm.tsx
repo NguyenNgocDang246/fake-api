@@ -9,7 +9,7 @@ import {
   EndpointDesign,
   planEnvelopeOf,
 } from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
-import { API_ROUTES } from "@/app/libs/routes";
+import { API_ROUTES, EndpointRoutes } from "@/app/libs/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import api from "@/app/libs/helpers/api_call.client";
@@ -27,6 +27,11 @@ export interface UpdateEndpointFormProps {
   old_data: ClientUpdateEndpointByIdDTO;
   // Beside `old_data` rather than in it: that DTO is `.strict()` and feeds the form.
   hasStoredPlan: boolean;
+  // All three default to how the project page has always worked. The trial box on the home
+  // page has no project id in its URL and talks to the guest prefix instead.
+  projectId?: string | undefined;
+  endpointRoutes?: EndpointRoutes | undefined;
+  aiAvailable?: boolean | undefined;
 }
 
 export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEndpointFormProps>(
@@ -44,7 +49,8 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
     const queryClient = useQueryClient();
     const pathname = usePathname();
     const pathnameSplit = pathname.split("/");
-    const projectId = pathnameSplit[pathnameSplit.length - 1] ?? "";
+    const projectId = props.projectId ?? pathnameSplit[pathnameSplit.length - 1] ?? "";
+    const endpointRoutes = props.endpointRoutes ?? API_ROUTES.ENDPOINT;
 
     // Beside the form rather than in it: the blueprint carries `.default()`s, so its zod input and
     // output types differ and a `Resolver` cannot hold both.
@@ -57,7 +63,7 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
     >({
       mutationFn: (data) =>
         api.put(
-          buildUrl(API_ROUTES.ENDPOINT.UPDATE_BY_ID, {
+          buildUrl(endpointRoutes.UPDATE_BY_ID, {
             projectId,
             endpointGroupId: props.endpointGroupId,
             endpointId: props.endpointId,
@@ -109,6 +115,7 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
         endpointGroupId={props.endpointGroupId}
         endpointId={props.endpointId}
         hasStoredPlan={props.hasStoredPlan}
+        aiAvailable={props.aiAvailable ?? true}
         onDesign={(design) => {
           designRef.current = design;
         }}
