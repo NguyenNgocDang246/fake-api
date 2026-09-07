@@ -5,7 +5,7 @@ import { validateData } from "./validation";
 import { GetUserByIdSchema } from "@/models/user.model";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import { GetEndpointGroupByIdSchema } from "@/models/endpoint_group.model";
-import { GetEndpointByIdSchema } from "@/models/endpoint.model";
+import { GetEndpointByIdSchema } from "@/models/endpoint/endpoint.model";
 
 export type RouteParams = Record<string, string | undefined>;
 export type ChainHandler<C> = (
@@ -44,8 +44,9 @@ export function createStaticRouteHandler(chain: ChainHandler<Record<never, never
 
 export function withUserId<C>(next: ChainHandler<C & { userId: string }>): ChainHandler<C> {
   return async (req, params, ctx) => {
-    const userId = GetUserByIdSchema.parse({ public_id: req.headers.get("x-userId") }).public_id;
-    return next(req, params, { ...ctx, userId });
+    const validation = validateData({ public_id: req.headers.get("x-userId") }, GetUserByIdSchema);
+    if (!validation.success) return validation.response;
+    return next(req, params, { ...ctx, userId: validation.data.public_id });
   };
 }
 

@@ -32,7 +32,8 @@ import MailService from "@/server/services/mail/mail.service";
 import tokenService from "@/server/services/auth/token.service";
 import { hashPassword, verifyPassword } from "@/server/services/auth/hash.service";
 import { AppError } from "@/server/core/errors";
-import { AUTH_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { AUTH_MESSAGES } from "@/server/services/auth/auth.constants";
 
 describe("src/server/services/auth/auth.service.ts", () => {
   describe("register", () => {

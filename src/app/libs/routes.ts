@@ -20,6 +20,7 @@ export const API_ROUTES = {
   },
   USER: {
     GET: "/api/user",
+    USAGE: "/api/user/usage",
     CREATE: "/api/user",
     // UPDATE: "/api/users/:id",
     // DELETE: "/api/users/:id",
@@ -46,6 +47,10 @@ export const API_ROUTES = {
     UPDATE_BY_ID: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
     DELETE_BY_ID: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
     DELETE_ALL: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint",
+    AI_PREVIEW: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint/ai-preview",
+  },
+  AI: {
+    STATUS: "/api/ai/status",
   },
 };
 
@@ -64,4 +69,9 @@ export const PAGE_ROUTES = {
   DOCS: "/docs",
   HOME: "/",
   PROJECT: "/project",
+  MARKETING: {
+    MOCK_API_GENERATOR: "/mock-api-generator",
+    FAKE_JSON_API: "/fake-json-api",
+    FAQ: "/faq",
+  },
 };

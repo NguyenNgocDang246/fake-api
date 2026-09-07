@@ -5,7 +5,8 @@ jest.mock("@/app/api/auth/google/google.OAuth2", () => ({
 }));
 
 import { GET } from "@/app/api/auth/google/route";
-import { ERROR_MESSAGES, OAUTH_STATE_COOKIE, STATUS_CODE } from "@/server/core/constants";
+import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { OAUTH_STATE_COOKIE } from "@/server/services/auth/auth.constants";
 import { expectError, expectSuccess, readJson } from "../../helpers/http";
 
 describe("GET src/app/api/auth/google/route.ts", () => {

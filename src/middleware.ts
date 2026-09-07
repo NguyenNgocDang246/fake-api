@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import authMiddleware from "@/server/middlewares/auth.middleware";
 import fakeMiddleware, { FakeAPIPrefix } from "@/server/middlewares/fake.middleware";
 import { API_ROUTES } from "@/app/libs/routes";
-import { ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS } from "@/server/core/constants";
+import { ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS } from "@/server/services/auth/auth.constants";
 
 export interface MiddlewareContext {
   userId?: string;

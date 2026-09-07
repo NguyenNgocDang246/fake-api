@@ -1,16 +1,14 @@
-import { ClientCreateEndpointDTO, ClientCreateEndpointSchema } from "@/models/endpoint.model";
+import {
+  ClientCreateEndpointDTO,
+  ClientCreateEndpointSchema,
+  checkResponseBody,
+} from "@/models/endpoint/endpoint.model";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { validateAiFields } from "./validateAiFields";
 import { Resolver, FieldErrors } from "react-hook-form";
 
-function isValidJson(str: string): boolean {
-  try {
-    if (str == "null") return false;
-    JSON.parse(str);
-    return true;
-  } catch {
-    return false;
-  }
-}
+// One resolver for both forms: `ClientUpdateEndpointByIdSchema` is `ClientCreateEndpointSchema`,
+// so an update validates by exactly the same rules a create does.
 
 function isNumber(str: string): boolean {
   if (!str) return false;
@@ -28,11 +26,12 @@ const customResolver: Resolver<ClientCreateEndpointDTO> = async (values, context
     values.response_body = "{}";
   }
 
-  if (!isValidJson(values.response_body)) {
-    console.log(values);
+  // `?? ""` because react-hook-form can hand the resolver a field it has not registered yet.
+  const bodyCheck = checkResponseBody(values.response_body ?? "");
+  if (!bodyCheck.ok) {
     errors.response_body = {
       type: "manual",
-      message: "Invalid JSON",
+      message: bodyCheck.message,
     };
   }
 
@@ -49,6 +48,9 @@ const customResolver: Resolver<ClientCreateEndpointDTO> = async (values, context
       message: "Status code must be a number",
     };
   }
+
+  const aiFieldsError = validateAiFields(values);
+  if (aiFieldsError) errors.ai_fields = aiFieldsError;
 
   if (Object.keys(errors).length > 0) {
     return {

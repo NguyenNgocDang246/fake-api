@@ -25,7 +25,8 @@ import { google } from "googleapis";
 import UserService from "@/server/services/user.service";
 import AuthService from "@/server/services/auth/auth.service";
 import { GET } from "@/app/api/auth/google/callback/route";
-import { GOOGLE_AUTH_MESSAGES, OAUTH_STATE_COOKIE, STATUS_CODE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { GOOGLE_AUTH_MESSAGES, OAUTH_STATE_COOKIE } from "@/server/services/auth/auth.constants";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 import { expectError } from "../../helpers/http";
 

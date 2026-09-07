@@ -23,12 +23,7 @@ export function ProjectBreadcrumbBar() {
 
   if (!projectId) {
     return (
-      <Breadcrumb
-        items={[
-          { label: "Home", href: PAGE_ROUTES.HOME },
-          { label: "Project", href: PAGE_ROUTES.PROJECT },
-        ]}
-      />
+      <Breadcrumb items={[{ label: "Home", href: PAGE_ROUTES.HOME }, { label: "Project" }]} />
     );
   }
 
@@ -41,10 +36,7 @@ export function ProjectBreadcrumbBar() {
       items={[
         { label: "Home", href: PAGE_ROUTES.HOME },
         { label: "Project", href: PAGE_ROUTES.PROJECT },
-        {
-          label: projectInfoState.data?.name ?? "",
-          href: PAGE_ROUTES.PROJECT + "/" + projectInfoState.data?.public_id,
-        },
+        { label: projectInfoState.data?.name ?? "" },
       ]}
     />
   );

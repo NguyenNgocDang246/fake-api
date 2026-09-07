@@ -1,4 +1,5 @@
-import { AUTH_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { AUTH_MESSAGES } from "@/server/services/auth/auth.constants";
 import { AppError } from "@/server/core/errors";
 import {
   LoginDTO,

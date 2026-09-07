@@ -14,14 +14,14 @@ jest.mock("@/server/prisma/prisma_provider", () => ({
 }));
 
 import { prisma } from "@/server/prisma/prisma_provider";
-import endpointService, { matchPathTemplate } from "@/server/services/endpoint.service";
+import endpointService from "@/server/services/endpoint/endpoint.service";
 import { AppError } from "@/server/core/errors";
 
-describe("src/server/services/endpoint.service.ts", () => {
-  it("checkPermissions returns true when record exists", async () => {
+describe("src/server/services/endpoint/endpoint.service.ts", () => {
+  it("checkPermission returns true when record exists", async () => {
     (prisma.endpoints.findUnique as jest.Mock).mockResolvedValue({ public_id: "endpoint1" });
     await expect(
-      endpointService.checkPermissions({
+      endpointService.checkPermission({
         userProps: { public_id: "user1" },
         projectProps: { public_id: "proj1" },
         endpointGroupProps: { public_id: "group1" },
@@ -30,10 +30,10 @@ describe("src/server/services/endpoint.service.ts", () => {
     ).resolves.toBe(true);
   });
 
-  it("checkPermissions bubbles prisma error (current behavior)", async () => {
+  it("checkPermission bubbles prisma error (current behavior)", async () => {
     (prisma.endpoints.findUnique as jest.Mock).mockRejectedValue(new Error("boom"));
     await expect(
-      endpointService.checkPermissions({
+      endpointService.checkPermission({
         userProps: { public_id: "user1" },
         projectProps: { public_id: "proj1" },
         endpointGroupProps: { public_id: "group1" },
@@ -47,24 +47,6 @@ describe("src/server/services/endpoint.service.ts", () => {
     await expect(
       endpointService.getEndpointByPath({ project_public_id: "proj1", path: "/x", method: "GET" })
     ).rejects.toBeInstanceOf(AppError);
-  });
-
-  describe("matchPathTemplate", () => {
-    it("returns false when segment counts differ", () => {
-      expect(matchPathTemplate("/user/:id", "/user/1/orders")).toBe(false);
-    });
-
-    it("returns false when a static segment mismatches", () => {
-      expect(matchPathTemplate("/user/:id/orders", "/account/1/orders")).toBe(false);
-    });
-
-    it("matches a single :param segment", () => {
-      expect(matchPathTemplate("/user/:id", "/user/abc123")).toBe(true);
-    });
-
-    it("matches multiple :param segments", () => {
-      expect(matchPathTemplate("/user/:projectId/orders/:orderId", "/user/abc/orders/99")).toBe(true);
-    });
   });
 
   describe("getEndpointByDynamicPath", () => {
@@ -100,6 +82,27 @@ describe("src/server/services/endpoint.service.ts", () => {
       ).resolves.toEqual(match);
     });
 
+    // Two templates can both match one path, and the order the rows came back in used to decide.
+    // That made an unrelated write to either row reroute the request.
+    it("picks the template whose literal segment comes first, whatever the row order", async () => {
+      const specific = { public_id: "e2", path: "/shop/list/:name", method: "GET" };
+      const loose = { public_id: "e1", path: "/shop/:id/item", method: "GET" };
+
+      for (const rows of [
+        [loose, specific],
+        [specific, loose],
+      ]) {
+        (prisma.endpoints.findMany as jest.Mock).mockResolvedValue(rows);
+        await expect(
+          endpointService.getEndpointByDynamicPath({
+            project_public_id: "proj1",
+            path: "/shop/list/item",
+            method: "GET",
+          })
+        ).resolves.toEqual(specific);
+      }
+    });
+
     it("returns null when no candidate template matches", async () => {
       (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([
         { public_id: "e1", path: "/user/:id/orders/:orderId", method: "GET" },
@@ -122,6 +125,61 @@ describe("src/server/services/endpoint.service.ts", () => {
           method: "GET",
         })
       ).rejects.toBeInstanceOf(AppError);
+    });
+  });
+
+  describe("findMethodsForPath", () => {
+    const find = () =>
+      endpointService.findMethodsForPath({ project_public_id: "proj1", path: "/users" });
+
+    it("reports every method serving a literal path", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([
+        { path: "/users", method: "POST" },
+        { path: "/users", method: "PUT" },
+      ]);
+
+      await expect(find()).resolves.toEqual(["POST", "PUT"]);
+    });
+
+    it("matches through a :param template, not just a literal path", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([
+        { path: "/user/:id", method: "DELETE" },
+      ]);
+
+      await expect(
+        endpointService.findMethodsForPath({ project_public_id: "proj1", path: "/user/abc123" })
+      ).resolves.toEqual(["DELETE"]);
+    });
+
+    it("drops a template that does not actually match the path", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([
+        { path: "/order/:id/items", method: "GET" },
+      ]);
+
+      await expect(
+        endpointService.findMethodsForPath({ project_public_id: "proj1", path: "/user/abc123" })
+      ).resolves.toEqual([]);
+    });
+
+    it("reports a method once however many rows serve it", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([
+        { path: "/users", method: "POST" },
+        { path: "/users", method: "POST" },
+      ]);
+
+      await expect(find()).resolves.toEqual(["POST"]);
+    });
+
+    it("returns nothing when the project does not serve that path at all", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([]);
+
+      await expect(find()).resolves.toEqual([]);
+    });
+
+    it("wraps error into AppError", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockRejectedValue(new Error("db down"));
+
+      await expect(find()).rejects.toBeInstanceOf(AppError);
     });
   });
 });

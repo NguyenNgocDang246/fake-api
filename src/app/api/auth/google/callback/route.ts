@@ -2,13 +2,13 @@ import { google } from "googleapis";
 import { parse, serialize } from "cookie";
 import { getOauth2Client } from "@/app/api/auth/google/google.OAuth2";
 import { AppError } from "@/server/core/errors";
+import { STATUS_CODE } from "@/server/core/constants";
 import {
   GOOGLE_AUTH_MESSAGES,
-  STATUS_CODE,
   ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
   REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
   OAUTH_STATE_COOKIE,
-} from "@/server/core/constants";
+} from "@/server/services/auth/auth.constants";
 import ApiResponse from "@/server/core/api_response";
 import UserService from "@/server/services/user.service";
 import AuthService from "@/server/services/auth/auth.service";

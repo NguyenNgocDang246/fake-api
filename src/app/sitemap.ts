@@ -1,33 +1,26 @@
 import type { MetadataRoute } from "next";
 import { PAGE_ROUTES } from "@/app/libs/routes";
+import { SITE } from "@/app/libs/seo";
+
+type Entry = Pick<MetadataRoute.Sitemap[number], "changeFrequency" | "priority"> & {
+  path: string;
+};
+
+const ENTRIES: Entry[] = [
+  { path: PAGE_ROUTES.HOME, changeFrequency: "monthly", priority: 1 },
+  { path: PAGE_ROUTES.DOCS, changeFrequency: "monthly", priority: 0.8 },
+  { path: PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR, changeFrequency: "monthly", priority: 0.8 },
+  { path: PAGE_ROUTES.MARKETING.FAKE_JSON_API, changeFrequency: "monthly", priority: 0.8 },
+  { path: PAGE_ROUTES.MARKETING.FAQ, changeFrequency: "monthly", priority: 0.6 },
+];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env["NEXT_PUBLIC_DOMAIN"];
+  const lastModified = new Date();
 
-  return [
-    {
-      url: `${baseUrl}${PAGE_ROUTES.HOME}`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}${PAGE_ROUTES.AUTH.LOGIN}`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}${PAGE_ROUTES.AUTH.REGISTER}`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}${PAGE_ROUTES.DOCS}`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-  ];
+  return ENTRIES.map(({ path, changeFrequency, priority }) => ({
+    url: `${SITE.url}${path}`,
+    lastModified,
+    changeFrequency,
+    priority,
+  }));
 }

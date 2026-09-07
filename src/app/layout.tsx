@@ -9,6 +9,9 @@ import { QueryWrapper } from "@/app/components/Wrapper/QueryClient/QueryWrapper"
 import { MinWidthGuard } from "@/app/components/Wrapper/MinWidth/MinWidthGuard";
 import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/Constants";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
+import { TextLink } from "@/app/components/Link/TextLink";
+import { PAGE_ROUTES } from "@/app/libs/routes";
+import { SITE } from "@/app/libs/seo";
 import { ToastContainer, Slide } from "react-toastify";
 
 export const baloo2 = Baloo_2({
@@ -17,9 +20,13 @@ export const baloo2 = Baloo_2({
 });
 
 export const metadata: Metadata = {
-  title: "Fake API",
-  description:
-    "Create your own fake API instantly without a backend. Perfect for frontend developers who need mock data for testing and prototyping.",
+  metadataBase: new URL(SITE.url),
+  title: {
+    default: "Fake API, mock REST endpoints in seconds",
+    template: `%s | ${SITE.name}`,
+  },
+  description: SITE.description,
+  applicationName: SITE.name,
   keywords: [
     "fake API",
     "mock API",
@@ -30,6 +37,20 @@ export const metadata: Metadata = {
     "JSON API",
     "API prototyping",
   ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: SITE.name,
+    locale: SITE.locale,
+    url: SITE.url,
+    title: "Fake API, mock REST endpoints in seconds",
+    description: SITE.description,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Fake API, mock REST endpoints in seconds",
+    description: SITE.description,
+  },
   robots: {
     index: true,
     follow: true,
@@ -47,7 +68,9 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${baloo2.className} antialiased flex flex-col min-h-screen`}>
+      <body
+        className={`${baloo2.className} antialiased flex flex-col min-h-screen overflow-x-clip`}
+      >
         <MinWidthGuard>
           <div className="flex-1">
             <QueryWrapper>
@@ -71,7 +94,21 @@ export default async function RootLayout({
             />
           </div>
 
-          <footer className="flex mb-4 mt-4 justify-center text-sm text-gray-500">
+          <footer className="flex flex-col items-center gap-3 mb-4 mt-4 text-sm text-gray-500">
+            <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+              <TextLink href={PAGE_ROUTES.DOCS} variant="muted">
+                Docs
+              </TextLink>
+              <TextLink href={PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR} variant="muted">
+                Mock API generator
+              </TextLink>
+              <TextLink href={PAGE_ROUTES.MARKETING.FAKE_JSON_API} variant="muted">
+                Fake JSON API
+              </TextLink>
+              <TextLink href={PAGE_ROUTES.MARKETING.FAQ} variant="muted">
+                FAQ
+              </TextLink>
+            </nav>
             <p>© 2025 Fake API. All rights reserved.</p>
           </footer>
         </MinWidthGuard>

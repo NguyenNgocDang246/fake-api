@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test": "jest",
+    "test": "node test/backend/run-jest.cjs",
     "test:backend": "node test/backend/run-jest.cjs",
     "type-check": "tsc --noEmit",
     "dev": "next dev --turbopack",
@@ -17,6 +17,9 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.120.0",
+    "@faker-js/faker": "^10.6.0",
+    "@google/genai": "^2.18.0",
     "@hookform/resolvers": "^5.2.1",
     "@prisma/client": "^6.16.3",
     "@react-email/render": "^2.1.0",

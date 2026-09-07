@@ -9,11 +9,17 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
+import { JsonLd } from "@/app/components/JsonLd";
+import { HeroGlow } from "@/app/components/Decor/HeroGlow";
+import { CtaBanner } from "@/app/components/Marketing/CtaBanner";
+import { FeatureGrid, type Feature } from "@/app/components/Marketing/FeatureGrid";
+import { StepsRow, type Step } from "@/app/components/Marketing/StepsRow";
 import { PAGE_ROUTES } from "@/app/libs/routes";
+import { SITE, absoluteUrl } from "@/app/libs/seo";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 import { mockEndpointUrl } from "@/app/libs/helpers/mock_url";
 
-const FEATURES = [
+const FEATURES: Feature[] = [
   {
     icon: Code2,
     title: "Any HTTP method",
@@ -58,7 +64,7 @@ const FEATURES = [
   },
 ];
 
-const STEPS = [
+const STEPS: Step[] = [
   {
     step: "1",
     title: "Create a project",
@@ -76,20 +82,41 @@ const STEPS = [
   },
 ];
 
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      name: SITE.name,
+      url: SITE.url,
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web",
+      description: SITE.description,
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
+    },
+    {
+      "@type": "Organization",
+      name: SITE.name,
+      url: SITE.url,
+      logo: absoluteUrl("/assets/logo.png"),
+    },
+  ],
+};
+
 export default async function Home() {
   const user = await getCurrentUser();
   const ctaHref = user ? PAGE_ROUTES.PROJECT : PAGE_ROUTES.AUTH.LOGIN;
 
   return (
-    <div className="relative font-sans flex flex-col items-center py-12 overflow-hidden">
-      {/* Decorative background glow */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-[-160px] -z-10 flex justify-center">
-        <div className="size-[560px] rounded-full bg-blue-300/30 blur-3xl" />
-        <div className="absolute left-[calc(50%+220px)] top-[80px] size-[280px] rounded-full bg-indigo-300/30 blur-3xl" />
-        <div className="absolute right-[calc(50%+220px)] top-[40px] size-[240px] rounded-full bg-purple-200/30 blur-3xl" />
-      </div>
+    <div className="relative font-sans flex flex-col items-center py-12">
+      <JsonLd data={STRUCTURED_DATA} />
 
-      {/* Hero */}
+      <HeroGlow />
+
       <section className="flex flex-col items-center px-4 sm:px-6 text-center">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-100 ring-1 ring-blue-200 rounded-full px-3 py-1 mb-6">
           <Sparkles size={14} />
@@ -130,7 +157,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Live example */}
       <section className="mt-16 w-full max-w-xl px-4 sm:px-6">
         <div className="rounded-xl shadow-2xl shadow-blue-900/10 overflow-hidden ring-1 ring-black/5">
           <div className="h-1 bg-linear-to-r from-indigo-600 via-blue-500 to-purple-500" />
@@ -163,81 +189,19 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Features */}
-      <section className="mt-24 w-full max-w-5xl px-4 sm:px-6">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">
-          Everything you need to fake a backend
-        </h2>
-        <p className="text-gray-500 text-center mb-12">
-          Built for frontend developers who need realistic data, fast.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {FEATURES.map(({ icon: Icon, title, description, iconBg, iconColor }) => (
-            <div
-              key={title}
-              className="group bg-white/80 backdrop-blur border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all"
-            >
-              <div
-                className={`flex items-center justify-center size-11 rounded-lg mb-4 transition-transform group-hover:scale-110 ${iconBg} ${iconColor}`}
-              >
-                <Icon size={20} />
-              </div>
-              <h3 className="font-semibold mb-1.5">{title}</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <FeatureGrid
+        heading="Everything you need to fake a backend"
+        subheading="Built for frontend developers who need realistic data, fast."
+        items={FEATURES}
+      />
 
-      {/* How it works */}
-      <section className="mt-24 w-full max-w-5xl px-4 sm:px-6">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">How it works</h2>
-        <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-10">
-          <div
-            aria-hidden
-            className="hidden sm:block absolute top-6 left-[16.5%] right-[16.5%] h-0.5 bg-linear-to-r from-indigo-200 via-blue-300 to-indigo-200"
-          />
-          {STEPS.map(({ step, title, description }) => (
-            <div key={step} className="relative flex flex-col items-center text-center">
-              <div className="flex items-center justify-center size-12 rounded-full bg-linear-to-r from-indigo-600 to-blue-500 text-white font-bold mb-5 shadow-lg shadow-blue-500/30 ring-4 ring-white">
-                {step}
-              </div>
-              <h3 className="font-semibold mb-1.5">{title}</h3>
-              <p className="text-sm text-gray-600 max-w-xs leading-relaxed">{description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <StepsRow heading="How it works" items={STEPS} />
 
-      {/* Closing CTA */}
-      <section className="mt-24 w-full max-w-5xl px-4 sm:px-6">
-        <div className="relative flex flex-col items-center text-center overflow-hidden bg-linear-to-r from-indigo-600 to-blue-500 rounded-2xl px-6 py-14 shadow-2xl shadow-blue-500/30">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -right-16 -top-16 size-64 rounded-full bg-white/10"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -left-10 -bottom-16 size-48 rounded-full bg-white/10"
-          />
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
-            Ready to mock your first API?
-          </h2>
-          <p className="text-blue-100 mb-7 max-w-xl">
-            Create a project and get a working endpoint in under a minute.
-          </p>
-          <NavigationButton
-            variant="inverse"
-            className="text-lg transition-all hover:scale-[1.03] active:scale-[0.98]"
-            href={ctaHref}
-          >
-            <span className="flex items-center gap-1.5">
-              Get started
-              <ArrowRight size={18} />
-            </span>
-          </NavigationButton>
-        </div>
-      </section>
+      <CtaBanner
+        heading="Ready to mock your first API?"
+        description="Create a project and get a working endpoint in under a minute."
+        href={ctaHref}
+      />
     </div>
   );
 }

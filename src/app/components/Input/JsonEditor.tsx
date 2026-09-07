@@ -2,7 +2,15 @@
 
 import { UseFormRegisterReturn } from "react-hook-form";
 import { twMerge } from "tailwind-merge";
-import React, { useState, useRef, useEffect, ChangeEvent } from "react";
+import React, { useState, useRef, useEffect, useCallback, ChangeEvent } from "react";
+
+const HISTORY_LIMIT = 200;
+const TYPING_MERGE_MS = 500;
+
+interface HistoryEntry {
+  value: string;
+  caret: number;
+}
 
 interface JsonEditorInputProps {
   register: UseFormRegisterReturn;
@@ -57,9 +65,70 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
   const [height, setHeight] = useState("auto");
   const [caretColor, setCaretColor] = useState("black");
 
+  // Các nhánh Tab/Enter/{ [ gán thẳng textarea.value nên undo stack của trình duyệt không
+  // dùng được. Tự lưu lịch sử ở đây, mỗi phần tử là một trạng thái (nội dung + vị trí caret).
+  const historyRef = useRef<HistoryEntry[]>([]);
+  const historyIndexRef = useRef(0);
+  const lastPushAtRef = useRef(0);
+
+  const registerRef = useRef(register);
+  registerRef.current = register;
+
+  // Gọi tay register.onChange: component đã ghi đè onChange của register, và các nhánh gán
+  // thẳng textarea.value cũng không kích hoạt onChange của React, nên form chỉ cập nhật khi blur.
+  const syncFormValue = useCallback((textarea: HTMLTextAreaElement) => {
+    void registerRef.current.onChange({ target: textarea, type: "change" });
+  }, []);
+
+  const pushHistory = (value: string, caret: number, coalesce = false) => {
+    const history = historyRef.current;
+    const current = history[historyIndexRef.current];
+
+    if (current?.value === value) {
+      current.caret = caret;
+      return;
+    }
+
+    // gõ liên tục trong TYPING_MERGE_MS thì gộp chung vào một bước undo
+    const now = Date.now();
+    if (coalesce && historyIndexRef.current > 0 && now - lastPushAtRef.current < TYPING_MERGE_MS) {
+      history[historyIndexRef.current] = { value, caret };
+      lastPushAtRef.current = now;
+      return;
+    }
+
+    history.splice(historyIndexRef.current + 1);
+    history.push({ value, caret });
+    if (history.length > HISTORY_LIMIT) history.shift();
+
+    historyIndexRef.current = history.length - 1;
+    lastPushAtRef.current = now;
+  };
+
+  const applyHistory = (offset: number) => {
+    const textarea = textareaRef.current;
+    const entry = historyRef.current[historyIndexRef.current + offset];
+    if (!textarea || !entry) return;
+
+    historyIndexRef.current += offset;
+    lastPushAtRef.current = 0; // không gộp thao tác kế tiếp vào bước vừa khôi phục
+
+    textarea.value = entry.value;
+    setColoredJson(jsonToColoredSpans(entry.value));
+    syncFormValue(textarea);
+
+    textarea.selectionStart = textarea.selectionEnd = entry.caret;
+
+    textarea.style.height = "auto";
+    textarea.style.height = textarea.scrollHeight + "px";
+    setHeight(textarea.scrollHeight + "px");
+  };
+
   const onChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setColoredJson(jsonToColoredSpans(value));
+    void register.onChange(e);
+    pushHistory(value, e.target.selectionStart, true);
 
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -72,8 +141,21 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
     const textarea = textareaRef.current!;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
+    const modifier = e.ctrlKey || e.metaKey;
+    const key = e.key.toLowerCase();
 
-    // Tab
+    if (modifier && key === "z" && !e.shiftKey) {
+      e.preventDefault();
+      applyHistory(-1);
+      return;
+    }
+
+    if (modifier && ((key === "z" && e.shiftKey) || key === "y")) {
+      e.preventDefault();
+      applyHistory(1);
+      return;
+    }
+
     if (e.key === "Tab") {
       e.preventDefault();
       setCaretColor("transparent");
@@ -84,6 +166,8 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
         textarea.value = newValue;
         setColoredJson(jsonToColoredSpans(newValue));
+        syncFormValue(textarea);
+        pushHistory(newValue, start + 1);
 
         textarea.selectionStart = textarea.selectionEnd = start + 1;
         setCaretColor("black");
@@ -94,7 +178,6 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       }, 0);
     }
 
-    // Enter
     if (e.key === "Enter") {
       e.preventDefault();
       setCaretColor("transparent");
@@ -108,7 +191,6 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       const tabMatch = currentLine.match(/^\t*/);
       const tabPrefix = tabMatch ? tabMatch[0] : "";
 
-      // --- KIỂM TRA AUTO-INDENT --- //
       const charBefore = value[start - 1] || "";
       const charAfter = value[start] || "";
 
@@ -119,7 +201,8 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
         textarea.value = newValue;
         setColoredJson(jsonToColoredSpans(newValue));
 
-        const newPos = start + tabPrefix.length + 2; // vị trí con trỏ bên trong indent
+        const newPos = start + tabPrefix.length + 2;
+        pushHistory(newValue, newPos);
         setTimeout(() => {
           textarea.selectionStart = textarea.selectionEnd = newPos;
           setCaretColor("black");
@@ -132,12 +215,13 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
         return;
       }
 
-      // --- XỬ LÝ ENTER THÔNG THƯỜNG --- //
       const insertText = "\n" + tabPrefix;
       const newValue = beforeCursor + insertText + afterCursor;
 
       textarea.value = newValue;
       setColoredJson(jsonToColoredSpans(newValue));
+      syncFormValue(textarea);
+      pushHistory(newValue, start + insertText.length);
 
       textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
       setCaretColor("black");
@@ -147,7 +231,6 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       setHeight(textarea.scrollHeight + "px");
     }
 
-    // { or [
     if (e.key === "{" || e.key === "[") {
       e.preventDefault();
 
@@ -158,14 +241,15 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       const afterCursor = value.substring(end);
 
       const pair = e.key === "{" ? "{}" : "[]";
-      const insertText = e.key + pair[1]; // "{ }" hoặc "[ ]"
+      const insertText = e.key + pair[1];
 
       const newValue = beforeCursor + insertText + afterCursor;
 
       textarea.value = newValue;
       setColoredJson(jsonToColoredSpans(newValue));
+      syncFormValue(textarea);
+      pushHistory(newValue, start + 1);
 
-      // đặt caret và phục hồi màu ngay lập tức
       textarea.selectionStart = textarea.selectionEnd = start + 1;
       setCaretColor("black");
 
@@ -178,9 +262,9 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
   function formatJson(value: string) {
     try {
       const parsed = JSON.parse(value);
-      return JSON.stringify(parsed, null, "\t"); // indent 2 spaces
+      return JSON.stringify(parsed, null, "\t");
     } catch {
-      return value; // nếu không phải JSON thì giữ nguyên
+      return value;
     }
   }
 
@@ -191,15 +275,21 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
       textareaRef.current.value = formatted;
       setColoredJson(jsonToColoredSpans(formatted));
+      syncFormValue(textareaRef.current);
+
+      historyRef.current = [{ value: formatted, caret: formatted.length }];
+      historyIndexRef.current = 0;
+      lastPushAtRef.current = 0;
+
       requestAnimationFrame(() => {
         if (textareaRef.current) {
-          textareaRef.current.style.height = "auto"; // reset
-          textareaRef.current.style.height = textareaRef.current.scrollHeight + "px"; // set lại
-          setHeight(textareaRef.current.scrollHeight + "px"); // overlay dùng height này
+          textareaRef.current.style.height = "auto";
+          textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+          setHeight(textareaRef.current.scrollHeight + "px");
         }
       });
     }
-  }, [defaultValue]);
+  }, [defaultValue, syncFormValue]);
 
   return (
     <div className={twMerge("flex flex-col gap-1", className)}>

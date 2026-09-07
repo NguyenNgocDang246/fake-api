@@ -1,17 +1,20 @@
 "use client";
 import { ReactNode, useState } from "react";
+import { twMerge } from "tailwind-merge";
 import { SubmitButton } from "@/app/components/Button/SubmitButton";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { FileText } from "lucide-react";
+import { MODAL_PANEL_CLASSES, MODAL_SIZE_CLASSES, ModalSize } from "./Constants";
 
 export interface FormModalProps {
   title: string;
   children?: ReactNode;
   onSubmit: () => Promise<boolean>;
   onClose: () => void;
+  size?: ModalSize;
 }
 
-export function FormModal({ title, children, onSubmit, onClose }: FormModalProps) {
+export function FormModal({ title, children, onSubmit, onClose, size = "normal" }: FormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,7 +30,7 @@ export function FormModal({ title, children, onSubmit, onClose }: FormModalProps
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-      <div className="bg-white p-6 rounded-xl shadow-xl w-96">
+      <div className={twMerge(MODAL_PANEL_CLASSES, MODAL_SIZE_CLASSES[size])}>
         <div className="flex items-center mb-4">
           <FileText className="mr-4" size={28}></FileText>
           <h2 className="text-lg font-semibold">{title}</h2>

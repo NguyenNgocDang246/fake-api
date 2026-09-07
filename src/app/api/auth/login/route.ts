@@ -5,7 +5,7 @@ import { validateData } from "@/server/core/validation";
 import {
   ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
   REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
-} from "@/server/core/constants";
+} from "@/server/services/auth/auth.constants";
 import ApiResponse from "@/server/core/api_response";
 import { NextRequest } from "next/server";
 import authService from "@/server/services/auth/auth.service";

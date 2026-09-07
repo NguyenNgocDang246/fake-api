@@ -2,6 +2,9 @@ export const QUERY_KEY = {
   AUTH: {
     CHECK: "auth-check",
   },
+  USER: {
+    USAGE: "user-usage",
+  },
   PROJECT: {
     ALL: "projects",
     ONE: "project",
@@ -13,6 +16,9 @@ export const QUERY_KEY = {
   ENDPOINT_GROUP: {
     ALL: "endpoint-groups",
     ONE: "endpoint-group",
+  },
+  AI: {
+    STATUS: "ai-status",
   },
 };
 

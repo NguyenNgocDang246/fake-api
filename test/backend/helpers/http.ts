@@ -17,10 +17,15 @@ interface MockRequestInit {
 
 export function createJsonRequest<T>(body: T, init: MockRequestInit = {}): NextRequest {
   const { headers = {}, pathname } = init;
+  // Both readers, and agreeing with each other: a route may size the body with `text()` before
+  // parsing it, and a mock that only answers `json()` would make that route untestable.
   const req = {
     headers: createHeaders(headers),
     async json() {
       return body;
+    },
+    async text() {
+      return JSON.stringify(body);
     },
     ...(pathname ? { nextUrl: { pathname } } : {}),
   };
@@ -35,6 +40,9 @@ export function createThrowingJsonRequest(
   const req = {
     headers: createHeaders(headers),
     async json() {
+      throw error;
+    },
+    async text() {
       throw error;
     },
     ...(pathname ? { nextUrl: { pathname } } : {}),

@@ -26,7 +26,8 @@ jest.mock("jose", () => {
 });
 
 import tokenService from "@/server/services/auth/token.service";
-import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { TOKEN_MESSAGE } from "@/server/services/auth/auth.constants";
 import { jwtVerify } from "jose";
 
 const PUBLIC_ID = "abcdefghijkm";
