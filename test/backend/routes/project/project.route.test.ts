@@ -4,6 +4,7 @@ jest.mock("@/server/services/project.service", () => ({
     getAllProjectsByUserId: jest.fn(),
     createProject: jest.fn(),
     deleteAllProjectsByUserId: jest.fn(),
+    canCreateProject: jest.fn(),
   },
 }));
 
@@ -39,13 +40,17 @@ describe("src/app/api/project/route.ts", () => {
       expect(typeof body.data[0].public_id).toBe("string");
     });
 
-    it("returns 500 when x-userId missing (current behavior)", async () => {
+    it("returns 400 when x-userId is missing", async () => {
       const res = await GET(createJsonRequest({}, {}));
-      await expectError(res, STATUS_CODE.SERVER_ERROR, ERROR_MESSAGES.SERVER_ERROR);
+      await expectError(res, STATUS_CODE.BAD_REQUEST, ERROR_MESSAGES.VALIDATION_FAILED);
     });
   });
 
   describe("POST", () => {
+    beforeEach(() => {
+      (projectService.canCreateProject as jest.Mock).mockResolvedValue(true);
+    });
+
     it("creates project and returns info", async () => {
       (projectService.createProject as jest.Mock).mockResolvedValue({
         public_id: PROJECT_PUBLIC_ID,

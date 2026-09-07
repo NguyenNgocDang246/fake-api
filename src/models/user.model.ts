@@ -33,6 +33,30 @@ export const UserInfoSchema = UserSchema.pick({
   .strict();
 export type UserInfoDTO = z.infer<typeof UserInfoSchema>;
 
+// Where the account stands against its role's limits. `used` carries only the two counts a
+// client cannot work out on its own: groups and endpoints are scoped to one project or group,
+// and the page showing them already holds the list it would count.
+export const UserUsageSchema = z
+  .object({
+    role: UserSchema.shape.role,
+    limits: z
+      .object({
+        max_projects: z.number().int().nonnegative(),
+        max_groups_per_project: z.number().int().nonnegative(),
+        max_endpoints_per_group: z.number().int().nonnegative(),
+        max_ai_plans_per_day: z.number().int().nonnegative(),
+      })
+      .strict(),
+    used: z
+      .object({
+        projects: z.number().int().nonnegative(),
+        ai_plans_today: z.number().int().nonnegative(),
+      })
+      .strict(),
+  })
+  .strict();
+export type UserUsageDTO = z.infer<typeof UserUsageSchema>;
+
 export const CreateUserSchema = UserSchema.pick({
   name: true,
   email: true,

@@ -10,7 +10,8 @@ jest.mock("@/server/services/user.service", () => ({
 import tokenService from "@/server/services/auth/token.service";
 import userService from "@/server/services/user.service";
 import { GET } from "@/app/api/auth/refresh-token/route";
-import { ERROR_MESSAGES, STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
+import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { TOKEN_MESSAGE } from "@/server/services/auth/auth.constants";
 import { AppError } from "@/server/core/errors";
 import { expectError, expectSuccess } from "../../helpers/http";
 

@@ -34,8 +34,8 @@ describe("GET src/app/api/user/route.ts", () => {
     await expectError(res, STATUS_CODE.UNAUTHORIZED, ERROR_MESSAGES.UNAUTHORIZED);
   });
 
-  it("returns 500 when x-userId is missing/invalid (current behavior)", async () => {
+  it("returns 400 when x-userId is missing or invalid", async () => {
     const res = await GET(createJsonRequest({}, {}));
-    await expectError(res, STATUS_CODE.SERVER_ERROR, ERROR_MESSAGES.SERVER_ERROR);
+    await expectError(res, STATUS_CODE.BAD_REQUEST, ERROR_MESSAGES.VALIDATION_FAILED);
   });
 });

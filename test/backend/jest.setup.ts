@@ -75,19 +75,26 @@ jest.mock("next/server", () => {
       });
     }
 
-    static rewrite(url: URL) {
-      return new NextResponse(null, {
+    // `init.request.headers` is how middleware hands headers down to the route handler, so a
+    // spec asserting what a rewrite named has to be able to read them back.
+    static rewrite(url: URL, init: { request?: { headers?: Headers } } = {}) {
+      const res = new NextResponse(null, {
         status: 200,
         headers: { "x-middleware-rewrite": url.toString() },
       });
+      (res as NextResponse & { requestHeaders: Headers | undefined }).requestHeaders =
+        init.request?.headers;
+      return res;
     }
 
     static next() {
       return new NextResponse(null, { status: 200 });
     }
 
+    // A real Response parses a text body, so a route writing JSON text and one handing an object
+    // to `NextResponse.json` have to read back the same way here too.
     async json() {
-      return this.#body;
+      return typeof this.#body === "string" ? JSON.parse(this.#body) : this.#body;
     }
 
     async text() {
@@ -95,7 +102,45 @@ jest.mock("next/server", () => {
     }
   }
 
-  return { NextResponse };
+  // Route handlers schedule background work (AI variant refills) with `after`. Queue the
+  // callbacks instead of running them, so a suite only pays for that work when it asks:
+  // call `__flushAfter()` to run what is queued.
+  const afterCallbacks: (() => unknown)[] = [];
+
+  function after(callback: () => unknown) {
+    afterCallbacks.push(callback);
+  }
+
+  async function __flushAfter() {
+    for (const callback of afterCallbacks.splice(0)) await callback();
+  }
+
+  function __clearAfter() {
+    afterCallbacks.length = 0;
+  }
+
+  function __afterCount() {
+    return afterCallbacks.length;
+  }
+
+  return { NextResponse, after, __flushAfter, __clearAfter, __afterCount };
+});
+
+beforeEach(() => {
+  // `clearMocks` resets jest.fn()s but not the queue held inside the next/server mock.
+  const server = jest.requireMock("next/server") as { __clearAfter: () => void };
+  server.__clearAfter();
+
+  // The blueprint cache is module state, so one spec's blueprint would otherwise be visible to
+  // the next. Required lazily: most specs never load this module, and it pulls in Prisma.
+  try {
+    const cache = jest.requireActual<{
+      resetPlanCache: () => void;
+    }>("@/server/services/endpoint/variant/plan_cache");
+    cache.resetPlanCache();
+  } catch {
+    // Not every spec has the module resolvable; nothing to reset then.
+  }
 });
 
 jest.mock("next/headers", () => {

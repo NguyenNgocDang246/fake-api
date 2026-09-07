@@ -3,7 +3,8 @@ import { UpdatePasswordSchema } from "@/models/user.model";
 import { ResetPasswordTokenPayloadSchema } from "@/models/auth.model";
 import { validateData } from "@/server/core/validation";
 import ApiResponse from "@/server/core/api_response";
-import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { TOKEN_MESSAGE } from "@/server/services/auth/auth.constants";
 import TokenService from "@/server/services/auth/token.service";
 import UserService from "@/server/services/user.service";
 import AuthService from "@/server/services/auth/auth.service";
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
       serialize("access_token", "", {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: 0,
         path: "/",
       }),
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
       serialize("refresh_token", "", {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: 0,
         path: "/",
       }),

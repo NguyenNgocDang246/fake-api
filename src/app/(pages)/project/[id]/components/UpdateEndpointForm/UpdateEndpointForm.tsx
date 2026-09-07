@@ -1,14 +1,15 @@
 "use client";
-import { forwardRef, useImperativeHandle } from "react";
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import Notify from "@/app/components/Notify";
-import customResolver from "./customResolver";
+import customResolver from "@/app/(pages)/project/[id]/components/EndpointForm/customResolver";
 import { useForm } from "react-hook-form";
-import { ClientUpdateEndpointByIdDTO } from "@/models/endpoint.model";
-import { DefaultInput } from "@/app/components/Input/DefaultInput";
-import { ErrorText } from "@/app/components/Text/ErrorText";
-import { SelectInput } from "@/app/components/Input/SelectInput";
-import { JsonEditor } from "@/app/components/Input/JsonEditor";
-import { API_ROUTES } from "@/app/libs/routes";
+import { ClientUpdateEndpointByIdDTO } from "@/models/endpoint/endpoint.model";
+import { EndpointForm } from "@/app/(pages)/project/[id]/components/EndpointForm/EndpointForm";
+import {
+  EndpointDesign,
+  planEnvelopeOf,
+} from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
+import { API_ROUTES, EndpointRoutes } from "@/app/libs/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import api from "@/app/libs/helpers/api_call.client";
@@ -24,23 +25,22 @@ export interface UpdateEndpointFormProps {
   endpointGroupId: string;
   endpointId: string;
   old_data: ClientUpdateEndpointByIdDTO;
+  // Beside `old_data` rather than in it: that DTO is `.strict()` and feeds the form.
+  hasStoredPlan: boolean;
+  // All three default to how the project page has always worked. The trial box on the home
+  // page has no project id in its URL and talks to the guest prefix instead.
+  projectId?: string | undefined;
+  endpointRoutes?: EndpointRoutes | undefined;
+  aiAvailable?: boolean | undefined;
 }
-
-const httpMethods: { label: string; value: string }[] = [
-  { value: "GET", label: "GET" },
-  { value: "POST", label: "POST" },
-  { value: "PUT", label: "PUT" },
-  { value: "PATCH", label: "PATCH" },
-  { value: "DELETE", label: "DELETE" },
-];
 
 export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEndpointFormProps>(
   (props, ref) => {
     const {
       register,
       handleSubmit,
-      reset,
-      formState: { errors },
+      control,
+      formState: { errors, submitCount },
     } = useForm<ClientUpdateEndpointByIdDTO>({
       resolver: customResolver,
       defaultValues: props.old_data,
@@ -49,24 +49,28 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
     const queryClient = useQueryClient();
     const pathname = usePathname();
     const pathnameSplit = pathname.split("/");
-    const projectId = pathnameSplit[pathnameSplit.length - 1] ?? "";
+    const projectId = props.projectId ?? pathnameSplit[pathnameSplit.length - 1] ?? "";
+    const endpointRoutes = props.endpointRoutes ?? API_ROUTES.ENDPOINT;
 
-    const createEndpointMutation = useMutation<
+    // Beside the form rather than in it: the blueprint carries `.default()`s, so its zod input and
+    // output types differ and a `Resolver` cannot hold both.
+    const designRef = useRef<EndpointDesign | null>(null);
+
+    const updateEndpointMutation = useMutation<
       ApiSuccessResponse,
       ApiErrorResponse,
       ClientUpdateEndpointByIdDTO
     >({
       mutationFn: (data) =>
         api.put(
-          buildUrl(API_ROUTES.ENDPOINT.UPDATE_BY_ID, {
+          buildUrl(endpointRoutes.UPDATE_BY_ID, {
             projectId,
             endpointGroupId: props.endpointGroupId,
             endpointId: props.endpointId,
           }),
-          data,
+          { ...data, ...planEnvelopeOf(designRef.current) },
         ),
       onSuccess() {
-        reset();
         Notify.success("Updated endpoint");
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT.ALL] });
       },
@@ -77,11 +81,9 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
 
     const onSubmit = async (data: ClientUpdateEndpointByIdDTO): Promise<boolean> => {
       try {
-        await createEndpointMutation.mutateAsync(data);
+        await updateEndpointMutation.mutateAsync(data);
         return true;
-      } catch (error) {
-        const data = (error as { data: ApiErrorResponse }).data;
-        void data;
+      } catch {
         return false;
       }
     };
@@ -92,10 +94,9 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
 
         await handleSubmit(
           async (data) => {
-            isValid = await onSubmit(data); // onSubmit trả về true/false
+            isValid = await onSubmit(data);
           },
-          (errors) => {
-            void errors;
+          () => {
             isValid = false;
           },
         )();
@@ -105,67 +106,20 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
     }));
 
     return (
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
-          <div className="flex-1 flex flex-col gap-1">
-            <SelectInput
-              className="w-full"
-              label="Method"
-              id="method"
-              options={httpMethods}
-              register={register("method")}
-            />
-            {errors.method && <ErrorText message={errors.method.message} />}
-          </div>
-          <div className="flex-1 flex flex-col gap-1">
-            <DefaultInput
-              className="w-full"
-              label="Path"
-              register={register("path")}
-              type="text"
-              id="path"
-              placeholder="/api/user/:id"
-            />
-            {errors.path && <ErrorText message={errors.path.message} />}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <JsonEditor
-            label="Response body"
-            register={register("response_body")}
-            id="response_body"
-            placeholder={`{ "message": "Success" }`}
-          />
-          {errors.response_body && <ErrorText message={errors.response_body.message} />}
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
-          <div className="flex-1 flex flex-col gap-1">
-            <DefaultInput
-              className="w-full"
-              label="Delay (ms)"
-              register={register("delay_ms")}
-              type="text"
-              id="delay_ms"
-              placeholder="100"
-              defaultValue="0"
-            />
-            {errors.delay_ms && <ErrorText message={errors.delay_ms.message} />}
-          </div>
-          <div className="flex-1 flex flex-col gap-1">
-            <DefaultInput
-              className="w-full"
-              label="Status Code"
-              register={register("status_code")}
-              type="text"
-              id="status_code"
-              placeholder="200"
-            />
-            {errors.status_code && <ErrorText message={errors.status_code.message} />}
-          </div>
-        </div>
-      </div>
+      <EndpointForm
+        register={register}
+        control={control}
+        errors={errors}
+        submitCount={submitCount}
+        projectId={projectId}
+        endpointGroupId={props.endpointGroupId}
+        endpointId={props.endpointId}
+        hasStoredPlan={props.hasStoredPlan}
+        aiAvailable={props.aiAvailable ?? true}
+        onDesign={(design) => {
+          designRef.current = design;
+        }}
+      />
     );
   },
 );

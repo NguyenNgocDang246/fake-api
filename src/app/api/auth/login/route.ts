@@ -5,7 +5,7 @@ import { validateData } from "@/server/core/validation";
 import {
   ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
   REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
-} from "@/server/core/constants";
+} from "@/server/services/auth/auth.constants";
 import ApiResponse from "@/server/core/api_response";
 import { NextRequest } from "next/server";
 import authService from "@/server/services/auth/auth.service";
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       serialize("access_token", data.access_token, {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
         path: "/",
       }),
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       serialize("refresh_token", data.refresh_token, {
         httpOnly: true,
         secure: process.env["NODE_ENV"] === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: REFRESH_TOKEN_EXPIRATION_TIME_IN_SECONDS,
         path: "/",
       }),

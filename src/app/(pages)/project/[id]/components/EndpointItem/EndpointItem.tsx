@@ -1,4 +1,5 @@
-import { Trash2, Copy } from "lucide-react";
+import { Trash2, Copy, Sparkles, Languages, AlertTriangle } from "lucide-react";
+import { EndpointRoutes } from "@/app/libs/routes";
 import { useEndpointViewmodel } from "./viewmodel";
 import { useUpdateEndpointViewModel } from "@/app/(pages)/project/[id]/components/UpdateEndpointForm/viewmodel";
 interface EndpointItemProps {
@@ -10,6 +11,16 @@ interface EndpointItemProps {
   status_code: number;
   project_id: string;
   endpoint_groups_id: string;
+  ai_enabled: boolean;
+  ai_fields: string[];
+  ai_prompt: string | null;
+  ai_unsupported_language: string | null;
+  ai_unapplied_hints: string[];
+  ai_has_plan: boolean;
+  // Defaults to the project page's own routes. The trial box on the home page passes the guest
+  // prefix, and turns the AI panel off because its role has no AI.
+  endpointRoutes?: EndpointRoutes | undefined;
+  aiAvailable?: boolean | undefined;
 }
 
 export const EndpointItem: React.FC<EndpointItemProps> = ({
@@ -21,6 +32,14 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
   status_code,
   project_id,
   endpoint_groups_id,
+  ai_enabled,
+  ai_fields,
+  ai_prompt,
+  ai_unsupported_language,
+  ai_unapplied_hints,
+  ai_has_plan,
+  endpointRoutes,
+  aiAvailable = true,
 }) => {
   const methodColor: Record<string, string> = {
     GET: "bg-green-100 text-green-700",
@@ -40,8 +59,13 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
   const { openDeleteEndpointModal, copyPathToClipboard } = useEndpointViewmodel(
     project_id,
     endpoint_groups_id,
+    endpointRoutes,
   );
   const { openUpdateEndpointModal } = useUpdateEndpointViewModel();
+
+  // The unsupported-language and dropped-hint badges below are the only place either is ever
+  // seen: only the blueprint knows them, so they land once the design finishes rather than on
+  // submit, and a blueprint built in the background is one nobody previewed.
   return (
     <div
       onClick={() => {
@@ -54,7 +78,14 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
             method,
             response_body,
             status_code: String(status_code),
+            ai_enabled,
+            ai_fields,
+            ai_prompt,
           },
+          hasStoredPlan: ai_has_plan,
+          projectId: project_id,
+          endpointRoutes,
+          aiAvailable,
         });
       }}
       className="flex flex-wrap sm:flex-nowrap items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md cursor-pointer sm:flex-row sm:gap-4"
@@ -70,6 +101,33 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
         <h3 className="font-medium text-gray-800 truncate flex-1 min-w-0">
           {path}
         </h3>
+        {ai_enabled && ai_fields.length > 0 && (
+          <span
+            className="flex shrink-0 items-center gap-1 rounded bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700"
+            title={`AI varies ${ai_fields.length} field${ai_fields.length === 1 ? "" : "s"} on every call`}
+          >
+            <Sparkles size={12} />
+            AI
+          </span>
+        )}
+        {ai_unsupported_language && (
+          <span
+            className="flex shrink-0 items-center gap-1 rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800"
+            title={`${ai_unsupported_language} is not supported yet. Names and addresses come back in the closest language on the list.`}
+          >
+            <Languages size={12} />
+            {ai_unsupported_language}
+          </span>
+        )}
+        {ai_unapplied_hints.length > 0 && (
+          <span
+            className="flex shrink-0 items-center gap-1 rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800"
+            title={`Part of your hint could not be applied: ${ai_unapplied_hints.join("; ")}`}
+          >
+            <AlertTriangle size={12} />
+            {ai_unapplied_hints.length}
+          </span>
+        )}
         <span
           className={`px-2 py-1 text-xs font-semibold rounded ${statusColor} sm:hidden ml-auto`}
         >

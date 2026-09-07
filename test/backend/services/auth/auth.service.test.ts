@@ -32,10 +32,28 @@ import MailService from "@/server/services/mail/mail.service";
 import tokenService from "@/server/services/auth/token.service";
 import { hashPassword, verifyPassword } from "@/server/services/auth/hash.service";
 import { AppError } from "@/server/core/errors";
-import { AUTH_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import { AUTH_MESSAGES } from "@/server/services/auth/auth.constants";
+import { GUEST_MESSAGES } from "@/server/services/guest.constants";
 
 describe("src/server/services/auth/auth.service.ts", () => {
   describe("register", () => {
+    it("refuses the domain the shared guest account lives on", async () => {
+      await expect(
+        authService.register({ name: "A", email: "someone@guest.local", password: "123456" })
+      ).rejects.toMatchObject({
+        statusCode: STATUS_CODE.BAD_REQUEST,
+        message: GUEST_MESSAGES.GUEST_EMAIL_NOT_ALLOWED,
+      });
+      expect(userService.getUserByEmail).not.toHaveBeenCalled();
+    });
+
+    it("refuses that domain whatever the casing", async () => {
+      await expect(
+        authService.register({ name: "A", email: "Someone@Guest.Local", password: "123456" })
+      ).rejects.toMatchObject({ message: GUEST_MESSAGES.GUEST_EMAIL_NOT_ALLOWED });
+    });
+
     it("throws when email duplicated", async () => {
       (userService.getUserByEmail as jest.Mock).mockResolvedValue({ public_id: "user1" });
       await expect(

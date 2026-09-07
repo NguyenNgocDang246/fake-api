@@ -6,6 +6,7 @@ interface CheckboxProps {
   id: string;
   label: string;
   register: UseFormRegisterReturn;
+  checked?: boolean;
   disabled?: boolean;
   className?: string;
 }
@@ -14,6 +15,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   id,
   label,
   register,
+  checked,
   disabled = false,
   className,
 }) => {
@@ -24,6 +26,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         id={id}
         disabled={disabled}
         {...register}
+        {...(checked === undefined ? {} : { checked })}
         className={twMerge(
           "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50",
           className

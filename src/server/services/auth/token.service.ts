@@ -12,21 +12,19 @@ import {
   VerifyEmailTokenPayloadDTO,
 } from "@/models/auth.model";
 import { AppError } from "@/server/core/errors";
-import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
+import { requireEnv } from "@/server/core/env";
+import { STATUS_CODE } from "@/server/core/constants";
 import {
+  TOKEN_MESSAGE,
   ACCESS_TOKEN_EXPIRATION_TIME_IN_STRING,
   REFRESH_TOKEN_EXPIRATION_TIME_IN_STRING,
   RESET_PASSWORD_TOKEN_EXPIRATION_TIME_IN_STRING,
   VERIFY_EMAIL_TOKEN_EXPIRATION_TIME_IN_STRING,
-} from "@/server/core/constants";
-const ACCESS_SECRET = new TextEncoder().encode(process.env["ACCESS_SECRET"] || "access_secret");
-const REFRESH_SECRET = new TextEncoder().encode(process.env["REFRESH_SECRET"] || "refresh_secret");
-const RESET_PASSWORD_SECRET = new TextEncoder().encode(
-  process.env["RESET_PASSWORD_SECRET"] || "reset_password_secret"
-);
-const VERIFY_EMAIL_SECRET = new TextEncoder().encode(
-  process.env["VERIFY_EMAIL_SECRET"] || "verify_email_secret"
-);
+} from "@/server/services/auth/auth.constants";
+const ACCESS_SECRET = new TextEncoder().encode(requireEnv("ACCESS_SECRET"));
+const REFRESH_SECRET = new TextEncoder().encode(requireEnv("REFRESH_SECRET"));
+const RESET_PASSWORD_SECRET = new TextEncoder().encode(requireEnv("RESET_PASSWORD_SECRET"));
+const VERIFY_EMAIL_SECRET = new TextEncoder().encode(requireEnv("VERIFY_EMAIL_SECRET"));
 
 class TokenService {
   async createAccessToken({ public_id }: UserToAccessTokenDTO): Promise<string> {

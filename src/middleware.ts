@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import authMiddleware from "@/server/middlewares/auth.middleware";
 import fakeMiddleware, { FakeAPIPrefix } from "@/server/middlewares/fake.middleware";
+import guestMiddleware from "@/server/middlewares/guest.middleware";
+import { GUEST_SANDBOX_ROUTE } from "@/server/services/guest.constants";
 import { API_ROUTES } from "@/app/libs/routes";
-import { ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS } from "@/server/core/constants";
+import { ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS } from "@/server/services/auth/auth.constants";
 
 export interface MiddlewareContext {
   userId?: string;
@@ -16,6 +18,10 @@ export async function middleware(req: NextRequest) {
   const ctx: MiddlewareContext = {};
   // fake
   if (url.pathname.startsWith(FakeAPIPrefix)) return NextResponse.next();
+  // guest, both branches are for visitors with no session at all
+  if (url.pathname.startsWith(GUEST_SANDBOX_ROUTE)) return NextResponse.next();
+  const guestResult = await guestMiddleware(req);
+  if (guestResult) return guestResult;
   // server
   if (url.pathname.startsWith(API_ROUTES.AUTH.LOGIN)) return NextResponse.next();
   if (url.pathname.startsWith(API_ROUTES.AUTH.REGISTER)) return NextResponse.next();
@@ -46,7 +52,7 @@ export async function middleware(req: NextRequest) {
     res.cookies.set("access_token", ctx.refreshedAccessToken, {
       httpOnly: true,
       secure: process.env["NODE_ENV"] === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
       path: "/",
     });

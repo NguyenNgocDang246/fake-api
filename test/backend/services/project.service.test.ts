@@ -8,6 +8,7 @@ jest.mock("@/server/prisma/prisma_provider", () => ({
       delete: jest.fn(),
       update: jest.fn(),
       create: jest.fn(),
+      count: jest.fn(),
     },
   },
 }));
@@ -19,12 +20,48 @@ jest.mock("@/server/services/endpoint_group.service", () => ({
   },
 }));
 
+jest.mock("@/server/services/user.service", () => ({
+  __esModule: true,
+  default: { getUserById: jest.fn() },
+}));
+
 import { prisma } from "@/server/prisma/prisma_provider";
 import projectService from "@/server/services/project.service";
 import endpointGroupService from "@/server/services/endpoint_group.service";
+import userService from "@/server/services/user.service";
+import { ROLE_LIMITS } from "@/server/core/role_limits";
 import { AppError } from "@/server/core/errors";
 
 describe("src/server/services/project.service.ts", () => {
+  describe("canCreateProject", () => {
+    it("counts against the role's cap", async () => {
+      (userService.getUserById as jest.Mock).mockResolvedValue({ role: "USER" });
+      (prisma.projects.count as jest.Mock).mockResolvedValue(ROLE_LIMITS.USER.maxProjects);
+
+      await expect(projectService.canCreateProject("user1")).resolves.toBe(false);
+    });
+
+    it("caps GUEST too, on the count of trial sandboxes", async () => {
+      (userService.getUserById as jest.Mock).mockResolvedValue({ role: "GUEST" });
+      (prisma.projects.count as jest.Mock).mockResolvedValue(ROLE_LIMITS.GUEST.maxProjects);
+
+      await expect(projectService.canCreateProject("guest1")).resolves.toBe(false);
+    });
+
+    it("allows a role that is still under its cap", async () => {
+      (userService.getUserById as jest.Mock).mockResolvedValue({ role: "GUEST" });
+      (prisma.projects.count as jest.Mock).mockResolvedValue(ROLE_LIMITS.GUEST.maxProjects - 1);
+
+      await expect(projectService.canCreateProject("guest1")).resolves.toBe(true);
+    });
+
+    it("refuses when the user is gone", async () => {
+      (userService.getUserById as jest.Mock).mockResolvedValue(null);
+
+      await expect(projectService.canCreateProject("ghost")).resolves.toBe(false);
+    });
+  });
+
   it("checkPermission returns true when matching project exists", async () => {
     (prisma.projects.findUnique as jest.Mock).mockResolvedValue({ public_id: "proj1" });
     await expect(

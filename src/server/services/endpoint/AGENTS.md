@@ -1,0 +1,22 @@
+# src/server/services/endpoint — Agent Guide
+
+## Summary
+
+Everything about a stored endpoint: its CRUD, and how an incoming fake-API request is resolved to one. The blueprint that lets an endpoint answer with different data on every call lives one level down, in [variant/](variant/AGENTS.md), because it has its own lifecycle, its own prompt, its own executor and its own quota, none of which the CRUD layer needs to know about.
+
+`endpoint_group.service.ts` stays outside this folder: a group is its own domain, and it owns the endpoints rather than being part of one.
+
+## Content
+
+- `endpoint.service.ts` — CRUD scoped to a user/project, plus the role-limit check before create. `getEndpointById` addresses a row by `public_id` alone; `getEndpointInGroup` folds the owning group into the same lookup, for a caller that was cleared for one group and must not be able to read a row outside it. It also resolves incoming fake-API requests to a stored row: `getEndpointByPath` is an exact literal match (tried first, from `src/app/api/fake/[projectId]/route.ts`); `getEndpointByDynamicPath` is the fallback, matching `:paramName` segments in `path` (e.g. `/user/:id`). Static match always wins, dynamic is only attempted when the exact lookup returns nothing. `findMethodsForPath` is the third and last step, asked only when both have missed: it ignores the method and reports which verbs the project does serve at that path, which is what lets the fake API answer 405 instead of 404.
+- `endpoint_path_match.ts` — the two pure helpers behind that fallback. `matchPathTemplate(template, pathname)` decides whether one template matches, and `compareTemplateSpecificity` decides between two that both do. Pure and dependency free, so they are tested without a database.
+- `endpoint.constants.ts` — `ENDPOINT_MESSAGES`, `ENDPOINT_AI_MESSAGES` (what designing or serving a blueprint refuses with: an unusable selection, a body that is not an object, a preview payload too large, a blueprint that does not fit), plus the tuning `variant/` reads: the build lock `AI_PLAN_LOCK_MS`, the prompt context caps `AI_CONTEXT_*`, `AI_PREVIEW_MAX_REQUEST_BYTES` and `AI_PLAN_MAX_OUTPUT_TOKENS`. They keep the `AI_` subject but belong here, not in `../ai/`, because every one of them describes this feature rather than the LLM layer. `ENDPOINT_AI_MESSAGES` is here for exactly that reason: a message naming a response body or a field selection is domain knowledge, and `../ai/` may hold none.
+- `variant/` — the blueprint an LLM designs once so faker can render a different response body on every request. See [variant/AGENTS.md](variant/AGENTS.md).
+
+## Conventions
+
+- **Two path templates that match the same request are ranked by specificity, never by row order.** `compareTemplateSpecificity` reads both left to right and the first segment where one is literal and the other is a parameter decides, so `/shop/list/:name` beats `/shop/:id/item` for `/shop/list/item`. Before this the winner was whichever row `updated_at desc` happened to put first, which is not a routing rule anyone chose: it came from the repo-wide default list ordering being reused in a lookup. Any write to either row, including a background blueprint build, could silently reroute a live request.
+- **The stored `response_body` is the author's own text, byte for byte.** `JsonSchema` proves it parses to an object inside the limits and then hands the original string back, and the fake route writes that string out rather than passing an object to `NextResponse.json`. `JSON.stringify(JSON.parse(x))` reorders integer-like keys, rounds an integer past 2^53, turns `1e999` into `null` and `-0` into `0`, none of which a mock whose whole job is a fixed response may do to it. Whitespace is preserved too, so the wire bytes are the editor's bytes. Only an AI-rendered variant is rebuilt, since it is a fresh value either way.
+- **`MAX_ARRAY_ITEMS` is an invariant of the body, not a truncation point.** `JsonSchema` refuses a `response_body` holding a longer array, on every endpoint whether or not AI is on, so no field can be half varied and no length recipe can silently shorten a list. It only guards writes: `EndpointInfoSchema` reads without it, because rows stored before the rule must keep loading. That is also why every `getAtPath(…, MAX_ARRAY_ITEMS)` argument stays, since a grandfathered row is the one case where the cap still does real work.
+
+Error handling, list ordering, and other conventions shared with the sibling services are in [../AGENTS.md](../AGENTS.md).

@@ -2,8 +2,11 @@ import { cookies } from "next/headers";
 import { serialize } from "cookie";
 import ApiResponse from "@/server/core/api_response";
 import { AppError } from "@/server/core/errors";
-import { STATUS_CODE, TOKEN_MESSAGE } from "@/server/core/constants";
-import { ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS } from "@/server/core/constants";
+import { STATUS_CODE } from "@/server/core/constants";
+import {
+  ACCESS_TOKEN_EXPIRATION_TIME_IN_SECONDS,
+  TOKEN_MESSAGE,
+} from "@/server/services/auth/auth.constants";
 import tokenService from "@/server/services/auth/token.service";
 import userService from "@/server/services/user.service";
 

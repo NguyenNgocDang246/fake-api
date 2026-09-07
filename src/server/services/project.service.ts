@@ -15,13 +15,15 @@ import userService from "@/server/services/user.service";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
 
 class ProjectService {
+  async countForUser(user_public_id: string) {
+    return prisma.projects.count({ where: { users: { public_id: user_public_id } } });
+  }
+
   async canCreateProject(user_public_id: string) {
     const user = await userService.getUserById({ public_id: user_public_id });
     if (!user) return false;
     const role = UserSchema.shape.role.parse(user.role);
-    const projectCount = await prisma.projects.count({
-      where: { users: { public_id: user_public_id } },
-    });
+    const projectCount = await this.countForUser(user_public_id);
     return projectCount < ROLE_LIMITS[role].maxProjects;
   }
 

@@ -3,9 +3,11 @@ import { useEndpointGroupViewModel } from "@/app/(pages)/project/[id]/viewmodel"
 import { EndpointItem } from "@/app/(pages)/project/[id]/components/EndpointItem/EndpointItem";
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { Spinner } from "@/app/components/Loading/Spinner";
-import { NoContentText } from "@/app/components/Text/NoContentText";
+import { EmptyState } from "@/app/components/Text/EmptyState";
 import { useCreateEndpointViewModel } from "@/app/(pages)/project/[id]/components/CreateEndpointForm/viewmodel";
+import { useCreateEndpointGroupViewModel } from "@/app/(pages)/project/[id]/components/CreateEndpointGroupForm/viewmodel";
 import { EndpointGroupContainer } from "@/app/(pages)/project/[id]/components/EndpointGroupContainer/EndpointGroupContainer";
+import { mockBaseUrl } from "@/app/libs/helpers/mock_url";
 
 interface EndpointGroupClientProps {
   projectId: string;
@@ -16,7 +18,6 @@ export default function EndpointGroupClient({
   projectId,
   initialSelectedGroupId,
 }: EndpointGroupClientProps) {
-  const DOMAIN = process.env["NEXT_PUBLIC_DOMAIN"];
   const {
     projectInfoState,
     endpointGroupsState,
@@ -27,6 +28,7 @@ export default function EndpointGroupClient({
   } = useEndpointGroupViewModel(projectId, initialSelectedGroupId);
 
   const { openCreateEndpointModal } = useCreateEndpointViewModel();
+  const { openCreateEndpointGroupModal } = useCreateEndpointGroupViewModel();
 
   const hasEndpointGroups = endpointGroupsState.data && endpointGroupsState.data.length > 0;
   const hasEndpoints = endpointsState.data && endpointsState.data.length > 0;
@@ -45,7 +47,7 @@ export default function EndpointGroupClient({
             <div>
               <div className="font-semibold text-lg">API Endpoint: </div>
               <div className="text-blue-800 py-2 min-w-full flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto">
-                <span>{DOMAIN}/</span>
+                <span>{mockBaseUrl()}/</span>
                 <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">{projectId}</span>
                 <span>/</span>
                 <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">:path</span>
@@ -57,7 +59,7 @@ export default function EndpointGroupClient({
                 variant="create"
                 className="w-full sm:w-auto"
                 onClick={() => {
-                  openCreateEndpointModal(selectedGroupId);
+                  openCreateEndpointModal({ endpointGroupId: selectedGroupId });
                 }}
                 disabled={!hasEndpointGroups}
               />
@@ -92,15 +94,43 @@ export default function EndpointGroupClient({
                         response_body: JSON.stringify(endpoint.response_body),
                         endpoint_groups_id: endpoint.endpoint_groups_id,
                         project_id: projectInfoState.data?.public_id ?? "",
+                        ai_enabled: endpoint.ai_enabled,
+                        ai_fields: endpoint.ai_fields,
+                        ai_prompt: endpoint.ai_prompt,
+                        ai_unsupported_language: endpoint.ai_unsupported_language,
+                        ai_unapplied_hints: endpoint.ai_unapplied_hints,
+                        ai_has_plan: endpoint.ai_has_plan,
                       }}
                     />
                   </div>
                 ))
               ) : (
-                <NoContentText className="flex justify-center" message="No endpoints" />
+                <EmptyState
+                  className="mt-4"
+                  title="This group has no endpoints yet"
+                  description="An endpoint decides what one path answers: its method, status code, and response body. Add one and it is callable straight away, no deploy step."
+                  action={
+                    <ActionButton
+                      label="Create your first endpoint"
+                      variant="create"
+                      onClick={() => openCreateEndpointModal({ endpointGroupId: selectedGroupId })}
+                    />
+                  }
+                />
               )
             ) : (
-              <NoContentText className="flex justify-center" message="No endpoint groups" />
+              <EmptyState
+                className="mt-4"
+                title="This project has no endpoint groups yet"
+                description="A group keeps related endpoints together, so your mocks stay readable as they grow. Create one before you add endpoints."
+                action={
+                  <ActionButton
+                    label="Create your first group"
+                    variant="create"
+                    onClick={() => openCreateEndpointGroupModal()}
+                  />
+                }
+              />
             )}
           </div>
         </div>
