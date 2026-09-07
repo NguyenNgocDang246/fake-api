@@ -75,11 +75,16 @@ jest.mock("next/server", () => {
       });
     }
 
-    static rewrite(url: URL) {
-      return new NextResponse(null, {
+    // `init.request.headers` is how middleware hands headers down to the route handler, so a
+    // spec asserting what a rewrite named has to be able to read them back.
+    static rewrite(url: URL, init: { request?: { headers?: Headers } } = {}) {
+      const res = new NextResponse(null, {
         status: 200,
         headers: { "x-middleware-rewrite": url.toString() },
       });
+      (res as NextResponse & { requestHeaders: Headers | undefined }).requestHeaders =
+        init.request?.headers;
+      return res;
     }
 
     static next() {

@@ -10,7 +10,7 @@ export function ChangePasswordForm() {
 
   return (
     <div className="flex justify-center mt-16">
-      <div className="w-[20rem] h-fit p-4 rounded-md shadow-[0_0_10px_rgba(0,0,0,0.5)] shadow-gray-600">
+      <div className="w-[20rem] h-fit p-4 rounded-md bg-white shadow-[0_0_10px_rgba(0,0,0,0.5)] shadow-gray-600">
         <p className="text-3xl font-bold mb-4 text-center"> Change Password</p>
         <form onSubmit={handleSubmit}>
           <div>

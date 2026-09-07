@@ -1,4 +1,5 @@
 import { Trash2, Copy, Sparkles, Languages, AlertTriangle } from "lucide-react";
+import { EndpointRoutes } from "@/app/libs/routes";
 import { useEndpointViewmodel } from "./viewmodel";
 import { useUpdateEndpointViewModel } from "@/app/(pages)/project/[id]/components/UpdateEndpointForm/viewmodel";
 interface EndpointItemProps {
@@ -16,6 +17,10 @@ interface EndpointItemProps {
   ai_unsupported_language: string | null;
   ai_unapplied_hints: string[];
   ai_has_plan: boolean;
+  // Defaults to the project page's own routes. The trial box on the home page passes the guest
+  // prefix, and turns the AI panel off because its role has no AI.
+  endpointRoutes?: EndpointRoutes | undefined;
+  aiAvailable?: boolean | undefined;
 }
 
 export const EndpointItem: React.FC<EndpointItemProps> = ({
@@ -33,6 +38,8 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
   ai_unsupported_language,
   ai_unapplied_hints,
   ai_has_plan,
+  endpointRoutes,
+  aiAvailable = true,
 }) => {
   const methodColor: Record<string, string> = {
     GET: "bg-green-100 text-green-700",
@@ -52,6 +59,7 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
   const { openDeleteEndpointModal, copyPathToClipboard } = useEndpointViewmodel(
     project_id,
     endpoint_groups_id,
+    endpointRoutes,
   );
   const { openUpdateEndpointModal } = useUpdateEndpointViewModel();
 
@@ -75,6 +83,9 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
             ai_prompt,
           },
           hasStoredPlan: ai_has_plan,
+          projectId: project_id,
+          endpointRoutes,
+          aiAvailable,
         });
       }}
       className="flex flex-wrap sm:flex-nowrap items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md cursor-pointer sm:flex-row sm:gap-4"

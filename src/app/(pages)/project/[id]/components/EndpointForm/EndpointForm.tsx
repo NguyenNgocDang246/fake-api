@@ -30,6 +30,9 @@ interface EndpointFormProps {
   // Update only: the endpoint being edited, and whether it already stores a blueprint.
   endpointId?: string | undefined;
   hasStoredPlan?: boolean | undefined;
+  // The trial box on the home page runs as a role with no AI at all, and `/api/ai/status` only
+  // reports whether the server has AI configured, so the caller has to say.
+  aiAvailable?: boolean | undefined;
   onDesign: (design: EndpointDesign | null) => void;
 }
 
@@ -43,6 +46,7 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
   defaults,
   endpointId,
   hasStoredPlan,
+  aiAvailable = true,
   onDesign,
 }) => {
   const [tab, setTab] = useState<Tab>("basics");
@@ -72,15 +76,17 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
   // undo stack in a ref, so unmounting the Basics panel would lose a half-typed body.
   return (
     <div className="@container flex flex-col gap-4">
-      <PillTabs
-        ariaLabel="Form sections"
-        value={tab}
-        onChange={(id) => setTab(id as Tab)}
-        tabs={[
-          { id: "basics", label: "Basics", ...(basicsHasError ? { dot: "error" as const } : {}) },
-          { id: "ai", label: "AI variants", ...(aiDot ? { dot: aiDot } : {}) },
-        ]}
-      />
+      {aiAvailable && (
+        <PillTabs
+          ariaLabel="Form sections"
+          value={tab}
+          onChange={(id) => setTab(id as Tab)}
+          tabs={[
+            { id: "basics", label: "Basics", ...(basicsHasError ? { dot: "error" as const } : {}) },
+            { id: "ai", label: "AI variants", ...(aiDot ? { dot: aiDot } : {}) },
+          ]}
+        />
+      )}
 
       <div className={tab === "basics" ? "flex flex-col gap-4" : "hidden"}>
         <p className="text-xs text-gray-500">
@@ -149,25 +155,29 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
         </div>
       </div>
 
-      <div className={tab === "ai" ? "flex flex-col gap-4" : "hidden"}>
-        <p className="text-xs text-gray-500">
-          Turn this on and AI rewrites the fields you pick, so every call to this endpoint answers
-          with different data instead of the same body twice. Everything else stays exactly as you
-          wrote it.
-        </p>
+      {/* Unmounted rather than hidden when AI is off: the section fetches its own status and
+          quota, and a panel nobody can open must not spend requests on that. */}
+      {aiAvailable && (
+        <div className={tab === "ai" ? "flex flex-col gap-4" : "hidden"}>
+          <p className="text-xs text-gray-500">
+            Turn this on and AI rewrites the fields you pick, so every call to this endpoint answers
+            with different data instead of the same body twice. Everything else stays exactly as you
+            wrote it.
+          </p>
 
-        <AiEndpointSection
-          control={control}
-          register={register}
-          projectId={projectId}
-          endpointGroupId={endpointGroupId}
-          fieldsError={errors.ai_fields?.message}
-          promptError={errors.ai_prompt?.message}
-          endpointId={endpointId}
-          hasStoredPlan={hasStoredPlan}
-          onDesign={onDesign}
-        />
-      </div>
+          <AiEndpointSection
+            control={control}
+            register={register}
+            projectId={projectId}
+            endpointGroupId={endpointGroupId}
+            fieldsError={errors.ai_fields?.message}
+            promptError={errors.ai_prompt?.message}
+            endpointId={endpointId}
+            hasStoredPlan={hasStoredPlan}
+            onDesign={onDesign}
+          />
+        </div>
+      )}
     </div>
   );
 };

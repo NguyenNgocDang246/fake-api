@@ -1,3 +1,12 @@
+// The endpoint CRUD templates a component needs. `API_ROUTES.ENDPOINT` and
+// `API_ROUTES.GUEST.ENDPOINT` both satisfy it, which is what lets one component serve both.
+export interface EndpointRoutes {
+  GET_ALL: string;
+  CREATE: string;
+  UPDATE_BY_ID: string;
+  DELETE_BY_ID: string;
+}
+
 export const API_ROUTES = {
   AUTH: {
     LOGIN: "/api/auth/login",
@@ -51,6 +60,19 @@ export const API_ROUTES = {
   },
   AI: {
     STATUS: "/api/ai/status",
+  },
+  // Mirrors ENDPOINT above under a prefix that middleware rewrites onto it, attaching the
+  // shared guest account. Same route handlers, no session.
+  GUEST: {
+    SANDBOX: "/api/guest/sandbox",
+    ENDPOINT: {
+      GET_ALL: "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint",
+      CREATE: "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint",
+      UPDATE_BY_ID:
+        "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
+      DELETE_BY_ID:
+        "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
+    },
   },
 };
 

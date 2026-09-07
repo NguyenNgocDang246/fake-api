@@ -1,14 +1,11 @@
 "use client";
 import { SearchX, ArrowRight } from "lucide-react";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
-import { HeroGlow } from "@/app/components/Decor/HeroGlow";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 
 export default function NotFound() {
   return (
     <div className="relative font-sans flex flex-col items-center py-12">
-      <HeroGlow />
-
       <section className="flex flex-col items-center px-4 sm:px-6 text-center">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-100 ring-1 ring-blue-200 rounded-full px-3 py-1 mb-6">
           <SearchX size={14} />

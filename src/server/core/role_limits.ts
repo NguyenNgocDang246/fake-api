@@ -3,6 +3,9 @@ import { UserRole } from "@/models/user.model";
 export const ROLE_LIMITS: Record<
   UserRole,
   {
+    // For GUEST this counts trial sandboxes rather than one person's projects, since every
+    // visitor trying the product shares that account. It is still a real ceiling: once it is
+    // reached, and after expired sandboxes have been swept, new visitors are turned away.
     maxProjects: number;
     maxGroupsPerProject: number;
     maxEndpointsPerGroup: number;
@@ -11,7 +14,12 @@ export const ROLE_LIMITS: Record<
     maxAiPlansPerDay: number;
   }
 > = {
-  GUEST: { maxProjects: 1, maxGroupsPerProject: 1, maxEndpointsPerGroup: 5, maxAiPlansPerDay: 0 },
+  GUEST: {
+    maxProjects: 1000,
+    maxGroupsPerProject: 1,
+    maxEndpointsPerGroup: 5,
+    maxAiPlansPerDay: 0,
+  },
   USER: {
     maxProjects: 5,
     maxGroupsPerProject: 10,

@@ -3,6 +3,7 @@ import { Baloo_2 } from "next/font/google";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import "@/app/styles/globals.css";
 import { HeaderWrapper } from "@/app/components/Wrapper/Header/HeaderWrapper";
+import { HeroGlow } from "@/app/components/Decor/HeroGlow";
 import { AuthWrapper } from "@/app/components/Wrapper/Auth/AuthWrapper";
 import { ModalWrapper } from "@/app/components/Wrapper/Modal/ModalWrapper";
 import { QueryWrapper } from "@/app/components/Wrapper/QueryClient/QueryWrapper";
@@ -69,8 +70,10 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${baloo2.className} antialiased flex flex-col min-h-screen overflow-x-clip`}
+        className={`${baloo2.className} antialiased relative flex flex-col min-h-screen overflow-x-clip`}
       >
+        <HeroGlow />
+
         <MinWidthGuard>
           <div className="flex-1">
             <QueryWrapper>
@@ -109,7 +112,7 @@ export default async function RootLayout({
                 FAQ
               </TextLink>
             </nav>
-            <p>© 2025 Fake API. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Fake API. All rights reserved.</p>
           </footer>
         </MinWidthGuard>
       </body>

@@ -1,5 +1,6 @@
 import { STATUS_CODE } from "@/server/core/constants";
 import { AUTH_MESSAGES } from "@/server/services/auth/auth.constants";
+import { GUEST_EMAIL_SUFFIX, GUEST_MESSAGES } from "@/server/services/guest.constants";
 import { AppError } from "@/server/core/errors";
 import {
   LoginDTO,
@@ -19,6 +20,14 @@ import tokenService from "@/server/services/auth/token.service";
 class AuthService {
   async register(data: RegisterDTO): Promise<UserDTO> {
     try {
+      // The shared guest account lives on this domain, so nobody may register into it.
+      if (data.email.toLowerCase().endsWith(GUEST_EMAIL_SUFFIX)) {
+        throw new AppError({
+          statusCode: STATUS_CODE.BAD_REQUEST,
+          message: GUEST_MESSAGES.GUEST_EMAIL_NOT_ALLOWED,
+        });
+      }
+
       const user = await userService.getUserByEmail({ email: data.email });
       if (user)
         throw new AppError({

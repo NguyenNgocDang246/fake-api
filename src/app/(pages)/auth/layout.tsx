@@ -7,5 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  // These pages are short enough that the card ends up sitting right on top of the shared
+  // footer, so they carry their own bottom gap rather than every page paying for one.
+  return <div className="pb-16">{children}</div>;
 }

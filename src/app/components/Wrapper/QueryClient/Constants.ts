@@ -20,6 +20,13 @@ export const QUERY_KEY = {
   AI: {
     STATUS: "ai-status",
   },
+  GUEST: {
+    SANDBOX: "guest-sandbox",
+  },
 };
+
+// Where the home-page trial box remembers which sandbox belongs to this browser. It is the
+// only thing tying a visitor to their endpoints, since a visitor has no session.
+export const GUEST_SANDBOX_STORAGE_KEY = "fake-api.guest-sandbox";
 
 export const STALETIME = 5 * 60 * 1000;

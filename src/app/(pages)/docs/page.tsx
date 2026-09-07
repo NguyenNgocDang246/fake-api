@@ -22,6 +22,7 @@ import { NavigationButton } from "@/app/components/Button/NavigationButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
+import { GUEST_PROJECT_LIFETIME_IN_SECONDS } from "@/server/services/guest.constants";
 import { MAX_ARRAY_DEPTH } from "@/app/libs/helpers/json_path";
 import {
   MAX_AI_FIELDS,
@@ -38,7 +39,6 @@ import {
   MIN_STATUS_CODE,
 } from "@/models/endpoint/primitives.model";
 import { JsonLd } from "@/app/components/JsonLd";
-import { HeroGlow } from "@/app/components/Decor/HeroGlow";
 import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
 import { SITE, absoluteUrl, breadcrumbSchema, buildMetadata, type Crumb } from "@/app/libs/seo";
 import { CodeBlock } from "@/app/components/Code/CodeBlock";
@@ -259,8 +259,6 @@ export default async function DocsPage() {
   return (
     <div className="relative font-sans flex flex-col items-center pt-12 pb-20">
       <JsonLd data={STRUCTURED_DATA} />
-
-      <HeroGlow />
 
       <div className="w-full max-w-5xl px-4 sm:px-6 mb-4">
         <Breadcrumb items={BREADCRUMB} />
@@ -603,6 +601,17 @@ export default async function DocsPage() {
                 </tbody>
               </table>
             </div>
+
+            <h3 className="text-lg font-semibold mt-6 mb-2">Trying it without an account</h3>
+            <p className="text-gray-600 leading-relaxed">
+              The home page has a box where you can build up to{" "}
+              {ROLE_LIMITS.GUEST.maxEndpointsPerGroup} endpoints and call them straight away, with
+              no sign up. Those endpoints are for a quick look: they are deleted after{" "}
+              {Math.round(GUEST_PROJECT_LIFETIME_IN_SECONDS / (60 * 60))} hours, anyone holding
+              their URL can change them, and they stay behind when you create an account. Sign in
+              when you want mocks that are yours, organised into projects, with AI response
+              variants.
+            </p>
           </section>
 
           <section id="call-api" className="scroll-mt-24">

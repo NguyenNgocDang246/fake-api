@@ -9,7 +9,7 @@ import {
   EndpointDesign,
   planEnvelopeOf,
 } from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
-import { API_ROUTES } from "@/app/libs/routes";
+import { API_ROUTES, EndpointRoutes } from "@/app/libs/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import api from "@/app/libs/helpers/api_call.client";
@@ -23,6 +23,11 @@ export interface CreateEndpointFormHandles {
 
 export interface CreateEndpointFormProps {
   endpointGroupId: string;
+  // Both default to how the project page has always worked. The trial box on the home page
+  // has no project id in its URL and talks to the guest prefix instead.
+  projectId?: string | undefined;
+  endpointRoutes?: EndpointRoutes | undefined;
+  aiAvailable?: boolean | undefined;
 }
 
 export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEndpointFormProps>(
@@ -45,7 +50,8 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
     const queryClient = useQueryClient();
     const pathname = usePathname();
     const pathnameSplit = pathname.split("/");
-    const projectId = pathnameSplit[pathnameSplit.length - 1] ?? "";
+    const projectId = props.projectId ?? pathnameSplit[pathnameSplit.length - 1] ?? "";
+    const endpointRoutes = props.endpointRoutes ?? API_ROUTES.ENDPOINT;
 
     const createEndpointMutation = useMutation<
       ApiSuccessResponse,
@@ -54,7 +60,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
     >({
       mutationFn: (data) =>
         api.post(
-          buildUrl(API_ROUTES.ENDPOINT.CREATE, {
+          buildUrl(endpointRoutes.CREATE, {
             projectId,
             endpointGroupId: props.endpointGroupId,
           }),
@@ -104,6 +110,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
         submitCount={submitCount}
         projectId={projectId}
         endpointGroupId={props.endpointGroupId}
+        aiAvailable={props.aiAvailable ?? true}
         defaults={{ delay_ms: "0", status_code: "200" }}
         onDesign={(design) => {
           designRef.current = design;
