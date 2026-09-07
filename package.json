@@ -12,6 +12,7 @@
     "prisma:backfill-public-id": "tsx src/server/prisma/scripts/backfill-public-id.ts",
     "prisma:explain": "tsx src/server/prisma/scripts/explain-endpoint-lookup.ts",
     "build": "npm run prisma:generate && next build --turbopack",
+    "vercel-build": "if [ \"$VERCEL_ENV\" = \"production\" ]; then npm run prisma:deploy; else echo \"skipping prisma migrate deploy, VERCEL_ENV=[$VERCEL_ENV]\"; fi && npm run build",
     "start": "next start",
     "lint": "eslint",
     "prepare": "husky"
