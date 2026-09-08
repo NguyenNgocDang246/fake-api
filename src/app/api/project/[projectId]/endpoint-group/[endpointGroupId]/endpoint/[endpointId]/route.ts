@@ -112,6 +112,51 @@ export const PUT = createRouteHandler<EndpointRouteParams>(
             });
           }
 
+          // Read before the write: the row still holds the selection and hint the stored
+          // blueprint was designed under, and the update is about to overwrite them.
+          const storedBefore =
+            endpointInfo.ai_enabled && endpointInfo.ai_fields.length > 0
+              ? await endpointService.getEndpointById({ public_id: ctx.endpointId })
+              : null;
+          const planOrigin = storedBefore
+            ? { ai_fields: storedBefore.ai_fields, ai_prompt: storedBefore.ai_prompt }
+            : null;
+
+          // An edit that moves `ai_plan_hash` sends the save to a model, and on a spent quota the
+          // build below would clear the blueprint the endpoint is serving and store nothing in
+          // its place. Refused before the write, so the old blueprint and the old AI settings
+          // both survive. Switching AI off never reaches this and always saves.
+          if (storedBefore) {
+            const subject = {
+              response_body: endpointInfo.response_body,
+              ai_enabled: endpointInfo.ai_enabled,
+              ai_fields: endpointInfo.ai_fields,
+              ai_prompt: endpointInfo.ai_prompt,
+              ai_plan: storedBefore.ai_plan,
+              ai_plan_hash: storedBefore.ai_plan_hash,
+            };
+
+            if (
+              endpointVariantPlanService.wouldDesign(
+                subject,
+                planValidation.data.plan,
+                planValidation.data.plan_hash,
+                planOrigin
+              )
+            ) {
+              // A read, not a claim, the same way the badge's is: `trySpend` inside `ensurePlan`
+              // is still what decides, so a save that wins this check can still lose that one.
+              const quota = await aiUsageService.quotaFor({ public_id: ctx.userId });
+              if (quota.spent >= quota.limit) {
+                return ApiResponse.error({
+                  message: LIMIT_MESSAGES.AI_PLAN_LIMIT_REACHED_ON_SAVE,
+                  statusCode: STATUS_CODE.FORBIDDEN,
+                  errors: quota,
+                });
+              }
+            }
+          }
+
           const endpointExists = await endpointService.getEndpointByPath({
             project_public_id: ctx.projectId,
             path: endpointInfo.path,
@@ -142,11 +187,6 @@ export const PUT = createRouteHandler<EndpointRouteParams>(
           ) {
             after(async () => {
               try {
-                // Clearing first drops the build lock too, so an edit ends the retry cooldown:
-                // fixing a broken body must not leave the endpoint frozen for another
-                // AI_PLAN_LOCK_MS serving its base body.
-                await endpointVariantPlanService.clearPlan(endpointUpdated.id);
-
                 const { plan, plan_hash } = planValidation.data;
                 if (plan && plan_hash) {
                   const adopted = await endpointVariantPlanService.adoptPlan(
@@ -156,6 +196,17 @@ export const PUT = createRouteHandler<EndpointRouteParams>(
                   );
                   if (adopted) return;
                 }
+
+                // Before anything is cleared: the row still holds the previous blueprint, and an
+                // edit the blueprint survives must not cost a design. Both this and the adopt
+                // above store one, so neither leaves a build wanting the lock.
+                if (await endpointVariantPlanService.carryPlanForward(endpointUpdated, planOrigin))
+                  return;
+
+                // Clearing drops the build lock too, so an edit ends the retry cooldown: fixing a
+                // broken body must not leave the endpoint frozen for another AI_PLAN_LOCK_MS
+                // serving its base body.
+                await endpointVariantPlanService.clearPlan(endpointUpdated.id);
                 await endpointVariantPlanService.ensurePlan(endpointUpdated);
               } catch (error) {
                 console.error("[ai] blueprint invalidation failed", {

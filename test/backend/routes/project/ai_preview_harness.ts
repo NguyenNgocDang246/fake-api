@@ -10,7 +10,12 @@ jest.mock("@/server/services/endpoint/endpoint.service", () => ({
 
 jest.mock("@/server/services/ai_usage.service", () => ({
   __esModule: true,
-  default: { record: jest.fn(), trySpend: jest.fn(), isAiAllowed: jest.fn() },
+  default: {
+    record: jest.fn(),
+    trySpend: jest.fn(),
+    isAiAllowed: jest.fn(),
+    quotaFor: jest.fn(),
+  },
 }));
 
 jest.mock("@/server/services/user.service", () => ({
@@ -85,12 +90,16 @@ function post(body: object = VALID_BODY, headers: Record<string, string> = {}) {
 
 const ENDPOINT_PUBLIC_ID = "dddddddddddd";
 
+// What the route reports back so the card's badge needs no follow-up request.
+const QUOTA = { limit: 30, spent: 4 };
+
 function allowAll() {
   (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
   (endpointService.getEndpointInGroup as jest.Mock).mockResolvedValue(null);
   (isAiConfigured as jest.Mock).mockReturnValue(true);
   (aiUsageService.isAiAllowed as jest.Mock).mockResolvedValue(true);
   (aiUsageService.trySpend as jest.Mock).mockResolvedValue({ id: 5n, public_id: USER_PUBLIC_ID });
+  (aiUsageService.quotaFor as jest.Mock).mockResolvedValue(QUOTA);
   (userService.getUserById as jest.Mock).mockResolvedValue({ id: 5n, public_id: USER_PUBLIC_ID });
   (buildPlan as jest.Mock).mockResolvedValue(PLAN);
 }
@@ -113,9 +122,20 @@ function storedEndpoint(ai_plan_hash: string, plan: object = PLAN) {
 
 async function dataOf(res: Parameters<typeof readJson>[0]) {
   const json = (await readJson(res)) as {
-    data: { variants: string[]; plan: unknown; plan_hash: string; unapplied_hints: string[] };
+    data: {
+      variants: string[];
+      plan: unknown;
+      plan_hash: string;
+      unapplied_hints: string[];
+      quota: { limit: number; spent: number };
+    };
   };
   return json.data;
+}
+
+async function errorsOf(res: Parameters<typeof readJson>[0]) {
+  const json = (await readJson(res)) as { errors: unknown };
+  return json.errors;
 }
 
 export {
@@ -130,10 +150,12 @@ export {
   props,
   VALID_BODY,
   PLAN,
+  QUOTA,
   USER_PUBLIC_ID,
   ENDPOINT_PUBLIC_ID,
   post,
   allowAll,
   storedEndpoint,
   dataOf,
+  errorsOf,
 };

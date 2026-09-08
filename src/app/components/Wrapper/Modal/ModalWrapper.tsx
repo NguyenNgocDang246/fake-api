@@ -32,14 +32,11 @@ export const ModalWrapper = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (modals.length > 0) {
-      // Ngăn cuộn
       document.body.style.overflow = "hidden";
     } else {
-      // Cho phép cuộn lại
       document.body.style.overflow = "";
     }
 
-    // Đảm bảo dọn dẹp khi component unmount
     return () => {
       document.body.style.overflow = "";
     };

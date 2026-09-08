@@ -132,7 +132,7 @@ export default async function MockApiGeneratorPage() {
     <div className="relative font-sans flex flex-col items-center py-12">
       <JsonLd data={STRUCTURED_DATA} />
 
-      <div className="w-full max-w-5xl px-4 sm:px-6 mb-4">
+      <div className="w-full max-w-5xl px-4 sm:px-6 mb-4 mt-[-2rem]">
         <Breadcrumb items={BREADCRUMB} />
       </div>
 

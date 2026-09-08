@@ -16,12 +16,14 @@ jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
     clearPlan: jest.fn(),
     ensurePlan: jest.fn(),
     planInfoOf: jest.fn(),
+    wouldDesign: jest.fn(),
+    carryPlanForward: jest.fn(),
   },
 }));
 
 jest.mock("@/server/services/ai_usage.service", () => ({
   __esModule: true,
-  default: { isAiAllowed: jest.fn() },
+  default: { isAiAllowed: jest.fn(), quotaFor: jest.fn() },
 }));
 
 import EndpointService from "@/server/services/endpoint/endpoint.service";
@@ -47,6 +49,9 @@ const props = (projectId: string, endpointGroupId: string, endpointId: string) =
 // `undefined`, which the AI guard would read as "not allowed" on every test.
 beforeEach(() => {
   (aiUsageService.isAiAllowed as jest.Mock).mockResolvedValue(true);
+  (aiUsageService.quotaFor as jest.Mock).mockResolvedValue({ limit: 30, spent: 0 });
+  (endpointVariantPlanService.wouldDesign as jest.Mock).mockReturnValue(false);
+  (endpointVariantPlanService.carryPlanForward as jest.Mock).mockResolvedValue(false);
 });
 
 export {

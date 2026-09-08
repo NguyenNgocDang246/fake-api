@@ -11,9 +11,11 @@ import {
   isAiConfigured,
   VALID_BODY,
   PLAN,
+  QUOTA,
   post,
   allowAll,
   dataOf,
+  errorsOf,
 } from "./ai_preview_harness";
 
 describe("ai-preview route: refusals", () => {
@@ -52,6 +54,22 @@ describe("ai-preview route: refusals", () => {
 
     await expectError(await post(), STATUS_CODE.FORBIDDEN, LIMIT_MESSAGES.AI_PLAN_LIMIT_REACHED);
     expect(buildPlan).not.toHaveBeenCalled();
+  });
+
+  // The refusal carries the count that refused it, which is what lets the card raise its warning
+  // in the same tick instead of waiting on a refetch.
+  it("carries the quota back with a refusal", async () => {
+    allowAll();
+    (aiUsageService.trySpend as jest.Mock).mockResolvedValue(null);
+
+    expect(await errorsOf(await post())).toEqual(QUOTA);
+  });
+
+  it("carries the quota back when the role has no AI at all", async () => {
+    allowAll();
+    (aiUsageService.isAiAllowed as jest.Mock).mockResolvedValue(false);
+
+    expect(await errorsOf(await post())).toEqual(QUOTA);
   });
 
   it("rejects a response body that is not a JSON object", async () => {

@@ -42,6 +42,18 @@ export interface PlanEndpoint {
   ai_plan_hash?: string | null;
 }
 
+// Everything a blueprint is judged against. `PlanEndpoint` is this plus the row identity and the
+// two columns only the prompt reads, so a create can ask the same questions before it has a row,
+// and an update can ask them of values that have not been written yet.
+export type PlanSubject = Omit<PlanEndpoint, "id" | "method" | "path">;
+
+// The selection and hint a stored blueprint was designed under. The row holds them until an
+// update writes over them, so a write path reads it first to tell what the edit actually moved.
+export interface PlanOrigin {
+  ai_fields: string[];
+  ai_prompt: string | null;
+}
+
 class EndpointVariantPlanService {
   acquirePlanLock = acquirePlanLock;
   releasePlanLock = releasePlanLock;
@@ -50,14 +62,14 @@ class EndpointVariantPlanService {
   ownerOf = ownerOf;
 
   // `null` when there is no stored blueprint, or it no longer matches the body.
-  loadPlan(endpoint: PlanEndpoint): VariantPlanDTO | null {
+  loadPlan(endpoint: PlanSubject): VariantPlanDTO | null {
     return this.loadRenderable(endpoint)?.plan ?? null;
   }
 
   // The blueprint plus the derived data the executor needs, memoised on `ai_plan_hash`. A hit is
   // confirmed against the stored text too, because the hash covers the inputs a blueprint was
   // built for and not the blueprint they produced.
-  loadRenderable(endpoint: PlanEndpoint): CachedPlan | null {
+  loadRenderable(endpoint: PlanSubject): CachedPlan | null {
     if (!endpoint.ai_enabled || endpoint.ai_fields.length === 0) return null;
     if (!endpoint.ai_plan || !endpoint.ai_plan_hash) return null;
 
@@ -70,7 +82,7 @@ class EndpointVariantPlanService {
   // `loadRenderable`: the hash comes from the request rather than from the stored columns, so an
   // unsaved edit in the form is what decides. Judging it is the caller's job, as it is for a
   // blueprint that arrives in the request body.
-  planForHash(endpoint: PlanEndpoint, hash: string): VariantPlanDTO | null {
+  planForHash(endpoint: PlanSubject, hash: string): VariantPlanDTO | null {
     if (!endpoint.ai_plan || endpoint.ai_plan_hash !== hash) return null;
 
     return this.renderableOf(hash, endpoint.ai_plan)?.plan ?? null;
@@ -92,14 +104,14 @@ class EndpointVariantPlanService {
     return entry;
   }
 
-  isPlanStale(endpoint: PlanEndpoint): boolean {
+  isPlanStale(endpoint: PlanSubject): boolean {
     return this.loadPlan(endpoint) === null;
   }
 
   // Goes through `loadPlan` deliberately: a blueprint whose hash no longer matches does not
   // describe this body any more, so neither does its verdict, and the honest answer while a new
   // one is being built is "nothing known yet".
-  planInfoOf(endpoint: PlanEndpoint) {
+  planInfoOf(endpoint: PlanSubject) {
     const plan = this.loadPlan(endpoint);
     if (!plan) return undefined;
 
@@ -109,7 +121,7 @@ class EndpointVariantPlanService {
     };
   }
 
-  private hashInput(endpoint: PlanEndpoint) {
+  private hashInput(endpoint: PlanSubject) {
     return {
       responseBody: endpoint.response_body,
       aiFields: endpoint.ai_fields,
@@ -117,18 +129,100 @@ class EndpointVariantPlanService {
     };
   }
 
+  // Whether a blueprint agrees with the body and the selection it would be applied to. A throw is
+  // an answer too: a body that will not parse is one no blueprint fits.
+  private fitsInputs(subject: PlanSubject, plan: VariantPlanDTO): boolean {
+    try {
+      const base: unknown = JSON.parse(subject.response_body);
+      const { valueFields, arrayPaths } = splitSelection(base, subject.ai_fields);
+      const covered = [...valueFields.map((field) => field.path), ...arrayPaths];
+      return validatePlan(plan, base, covered).ok;
+    } catch {
+      return false;
+    }
+  }
+
+  // The pair `adoptPlan` applies, without the write, so a route can ask whether a blueprint would
+  // be taken before it decides anything. The hash says it was built for these inputs and
+  // `validatePlan` says it is safe to run; neither answers for the other.
+  canAdoptPlan(subject: PlanSubject, plan: VariantPlanDTO, hash: string): boolean {
+    if (hash !== planHash(this.hashInput(subject))) return false;
+
+    return this.fitsInputs(subject, plan);
+  }
+
+  // Normalized the way `planHash` normalizes them, so a reordered selection and a hint that
+  // gained whitespace both read as unchanged.
+  private sameSelection(subject: PlanSubject, origin: PlanOrigin): boolean {
+    if ((origin.ai_prompt?.trim() || null) !== (subject.ai_prompt?.trim() || null)) return false;
+    if (origin.ai_fields.length !== subject.ai_fields.length) return false;
+
+    const before = [...origin.ai_fields].sort();
+    const after = [...subject.ai_fields].sort();
+    return before.every((path, index) => path === after[index]);
+  }
+
+  // The stored blueprint judged against the inputs the row now holds rather than against the hash
+  // it was built under. An edit moves the hash whatever it touched, so a field nobody ticked or a
+  // value retyped in place would otherwise throw away a blueprint that still describes the body.
+  // `null` when there is none, it will not parse, or the edit really did break it.
+  private carriableFrom(subject: PlanSubject, origin: PlanOrigin | null): VariantPlanDTO | null {
+    if (!subject.ai_enabled || subject.ai_fields.length === 0) return null;
+    if (!subject.ai_plan || !origin) return null;
+
+    // Only the body may move. A blueprint varies the fields it was designed for and answers the
+    // hint it was designed under, and it records neither, so `validatePlan` cannot see a change
+    // to either: ticking a field passes it while nothing in the blueprint varies that field.
+    if (!this.sameSelection(subject, origin)) return null;
+
+    const plan = parsePlan(subject.ai_plan);
+    if (!plan) return null;
+
+    return this.fitsInputs(subject, plan) ? plan : null;
+  }
+
+  // Re-stores the stored blueprint under the hash of the inputs it survived, so the row stops
+  // reading as stale. `false` means the edit needs a real design.
+  async carryPlanForward(endpoint: PlanEndpoint, origin: PlanOrigin | null): Promise<boolean> {
+    const plan = this.carriableFrom(endpoint, origin);
+    if (!plan) return false;
+
+    try {
+      await this.storePlan(endpoint, plan);
+      return true;
+    } catch (error) {
+      console.error("[ai] could not carry the blueprint forward", {
+        endpoint_id: String(endpoint.id),
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      return false;
+    }
+  }
+
+  // Whether saving these inputs would have to reach a model, which is what the write routes ask
+  // before letting a save through on a spent quota. False when nothing is being varied, when the
+  // blueprint travelling with the request can be adopted, when the stored one still matches, and
+  // when the stored one survives the edit even though the hash moved.
+  wouldDesign(
+    subject: PlanSubject,
+    plan: VariantPlanDTO | null,
+    hash: string | null,
+    origin: PlanOrigin | null
+  ): boolean {
+    if (!subject.ai_enabled || subject.ai_fields.length === 0) return false;
+    if (plan && hash && this.canAdoptPlan(subject, plan, hash)) return false;
+    if (!this.isPlanStale(subject)) return false;
+
+    return this.carriableFrom(subject, origin) === null;
+  }
+
   // The third way to a stored blueprint and the only free one: the client hands back what a
   // preview designed. The hash says it was built for these inputs, `validatePlan` says it is safe
   // to run, and neither answer substitutes for the other. Never throws; `false` means design it.
   async adoptPlan(endpoint: PlanEndpoint, plan: VariantPlanDTO, hash: string): Promise<boolean> {
+    if (!this.canAdoptPlan(endpoint, plan, hash)) return false;
+
     try {
-      if (hash !== planHash(this.hashInput(endpoint))) return false;
-
-      const base: unknown = JSON.parse(endpoint.response_body);
-      const { valueFields, arrayPaths } = splitSelection(base, endpoint.ai_fields);
-      const covered = [...valueFields.map((field) => field.path), ...arrayPaths];
-      if (!validatePlan(plan, base, covered).ok) return false;
-
       await this.storePlan(endpoint, plan);
       return true;
     } catch (error) {

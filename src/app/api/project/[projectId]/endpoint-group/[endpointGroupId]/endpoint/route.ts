@@ -109,6 +109,27 @@ export const POST = createRouteHandler<EndpointCollectionRouteParams>(
           });
         }
 
+        // A create with no blueprint to adopt has to design one, and designing it in `after()`
+        // on a spent quota would save an AI endpoint that answers with the base body forever
+        // and says nothing. Refused here instead, while nothing has been written.
+        if (
+          endpointVariantPlanService.wouldDesign(
+            { ...endpointValidation.data, ai_plan: null, ai_plan_hash: null },
+            planValidation.data.plan,
+            planValidation.data.plan_hash,
+            null
+          )
+        ) {
+          const quota = await aiUsageService.quotaFor({ public_id: ctx.userId });
+          if (quota.spent >= quota.limit) {
+            return ApiResponse.error({
+              message: LIMIT_MESSAGES.AI_PLAN_LIMIT_REACHED_ON_SAVE,
+              statusCode: STATUS_CODE.FORBIDDEN,
+              errors: quota,
+            });
+          }
+        }
+
         const endpointExists = await endpointService.getEndpointByPath({
           project_public_id: ctx.projectId,
           path: endpointValidation.data.path,
