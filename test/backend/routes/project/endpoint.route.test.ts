@@ -11,7 +11,7 @@ jest.mock("@/server/services/endpoint/endpoint.service", () => ({
 
 jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
   __esModule: true,
-  default: { ensurePlan: jest.fn(), planInfoOf: jest.fn() },
+  default: { ensurePlan: jest.fn(), planInfoOf: jest.fn(), wouldDesign: jest.fn() },
 }));
 jest.mock("@/server/services/endpoint_group.service", () => ({
   __esModule: true,
@@ -19,12 +19,13 @@ jest.mock("@/server/services/endpoint_group.service", () => ({
 }));
 jest.mock("@/server/services/ai_usage.service", () => ({
   __esModule: true,
-  default: { isAiAllowed: jest.fn() },
+  default: { isAiAllowed: jest.fn(), quotaFor: jest.fn() },
 }));
 
 import EndpointService from "@/server/services/endpoint/endpoint.service";
 import endpointGroupService from "@/server/services/endpoint_group.service";
 import aiUsageService from "@/server/services/ai_usage.service";
+import endpointVariantPlanService from "@/server/services/endpoint/variant/plan.service";
 import { GET, POST, DELETE } from "@/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpoint/route";
 import { ERROR_MESSAGES, LIMIT_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { ENDPOINT_MESSAGES } from "@/server/services/endpoint/endpoint.constants";
@@ -40,9 +41,13 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
     params: Promise.resolve({ projectId, endpointGroupId }),
   });
 
+  // `clearMocks` wipes an implementation set in the factory, and an unset mock answers
+  // `undefined`, which the AI guards would read as a refusal on every test.
   beforeEach(() => {
     (EndpointService.canCreateEndpoint as jest.Mock).mockResolvedValue(true);
     (aiUsageService.isAiAllowed as jest.Mock).mockResolvedValue(true);
+    (aiUsageService.quotaFor as jest.Mock).mockResolvedValue({ limit: 30, spent: 0 });
+    (endpointVariantPlanService.wouldDesign as jest.Mock).mockReturnValue(false);
   });
 
   it("GET returns 204 when list empty", async () => {
@@ -135,6 +140,33 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
     );
 
     await expectError(res, STATUS_CODE.FORBIDDEN, LIMIT_MESSAGES.AI_NOT_AVAILABLE_FOR_ROLE);
+    expect(EndpointService.createEndpoint).not.toHaveBeenCalled();
+  });
+
+  // Creating one on a spent allowance would store an AI endpoint whose blueprint never gets
+  // built, so it answers with the base body forever and nothing anywhere says why.
+  it("POST refuses a create that needs a design when the allowance is spent", async () => {
+    (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
+    (endpointVariantPlanService.wouldDesign as jest.Mock).mockReturnValue(true);
+    (aiUsageService.quotaFor as jest.Mock).mockResolvedValue({ limit: 30, spent: 30 });
+
+    const res = await POST(
+      createJsonRequest(
+        {
+          method: "GET",
+          path: "/x",
+          status_code: 200,
+          response_body: '{"name":"An"}',
+          delay_ms: 0,
+          ai_enabled: true,
+          ai_fields: ["name"],
+        },
+        { headers: { "x-userId": USER_PUBLIC_ID } }
+      ),
+      props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
+    );
+
+    await expectError(res, STATUS_CODE.FORBIDDEN, LIMIT_MESSAGES.AI_PLAN_LIMIT_REACHED_ON_SAVE);
     expect(EndpointService.createEndpoint).not.toHaveBeenCalled();
   });
 

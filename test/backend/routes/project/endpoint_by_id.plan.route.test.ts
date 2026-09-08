@@ -32,6 +32,9 @@ describe("PUT invalidates the blueprint", () => {
   async function put(updated: object, body: object, stale: boolean) {
     (EndpointService.checkPermission as jest.Mock).mockResolvedValue(true);
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
+    // The row as it stands before the write, which is where the selection and hint the stored
+    // blueprint was designed under have to be read from.
+    (EndpointService.getEndpointById as jest.Mock).mockResolvedValue(AI_ROW);
     (EndpointService.updateEndpointById as jest.Mock).mockResolvedValue(updated);
     (endpointVariantPlanService.isPlanStale as jest.Mock).mockReturnValue(stale);
 
@@ -53,6 +56,23 @@ describe("PUT invalidates the blueprint", () => {
 
     expect(endpointVariantPlanService.clearPlan).toHaveBeenCalledWith(1n);
     expect(endpointVariantPlanService.ensurePlan).toHaveBeenCalledWith(updated);
+  });
+
+  // The hash moves on any body edit, including ones the blueprint survives, so it is offered the
+  // new body before anything is cleared. Clearing first would have destroyed it either way.
+  it("carries a surviving blueprint forward instead of paying for a new one", async () => {
+    (endpointVariantPlanService.carryPlanForward as jest.Mock).mockResolvedValue(true);
+
+    const updated = { ...AI_ROW, response_body: '{"name":"Binh"}' };
+    await put(updated, { response_body: '{"name":"Binh"}', ai_enabled: true, ai_fields: ["name"] }, true);
+
+    // The origin comes off the pre-update row, not off the values just written.
+    expect(endpointVariantPlanService.carryPlanForward).toHaveBeenCalledWith(updated, {
+      ai_fields: AI_ROW.ai_fields,
+      ai_prompt: AI_ROW.ai_prompt,
+    });
+    expect(endpointVariantPlanService.clearPlan).not.toHaveBeenCalled();
+    expect(endpointVariantPlanService.ensurePlan).not.toHaveBeenCalled();
   });
 
   it("does nothing when the stored blueprint still describes the endpoint", async () => {
@@ -145,6 +165,77 @@ describe("PUT invalidates the blueprint", () => {
     await put(updated, { response_body: '{"name":"An"}', ai_enabled: false, ai_fields: [] }, false);
 
     expect(EndpointService.updateEndpointById).toHaveBeenCalled();
+  });
+
+  // The hole this closes: at the limit the user could not preview, but editing the body still
+  // saved the new AI settings, and the build behind it cleared the working blueprint and then
+  // refused to replace it. The endpoint was left serving its base body with nothing to say why.
+  describe("a save that needs a design it cannot pay for", () => {
+    function refusedPut() {
+      (EndpointService.checkPermission as jest.Mock).mockResolvedValue(true);
+      (EndpointService.getEndpointById as jest.Mock).mockResolvedValue(AI_ROW);
+      (endpointVariantPlanService.wouldDesign as jest.Mock).mockReturnValue(true);
+      (aiUsageService.quotaFor as jest.Mock).mockResolvedValue({ limit: 30, spent: 30 });
+
+      return PUT(
+        createJsonRequest(
+          {
+            method: "GET",
+            path: "/x",
+            status_code: 200,
+            delay_ms: 0,
+            response_body: '{"name":"Binh"}',
+            ai_enabled: true,
+            ai_fields: ["name"],
+          },
+          { headers: { "x-userId": USER_PUBLIC_ID } }
+        ),
+        props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)
+      );
+    }
+
+    it("refuses it without writing the endpoint or touching the blueprint", async () => {
+      const res = await refusedPut();
+
+      await expectError(
+        res,
+        STATUS_CODE.FORBIDDEN,
+        LIMIT_MESSAGES.AI_PLAN_LIMIT_REACHED_ON_SAVE
+      );
+      expect(EndpointService.updateEndpointById).not.toHaveBeenCalled();
+      expect(endpointVariantPlanService.clearPlan).not.toHaveBeenCalled();
+      expect(endpointVariantPlanService.ensurePlan).not.toHaveBeenCalled();
+      expect(afterQueue.__afterCount()).toBe(0);
+    });
+
+    it("carries the quota back so the card can say why", async () => {
+      const json = (await readJson(await refusedPut())) as { errors: unknown };
+
+      expect(json.errors).toEqual({ limit: 30, spent: 30 });
+    });
+
+    it("lets the same save through while a design is still available", async () => {
+      (EndpointService.getEndpointById as jest.Mock).mockResolvedValue(AI_ROW);
+      (endpointVariantPlanService.wouldDesign as jest.Mock).mockReturnValue(true);
+      (aiUsageService.quotaFor as jest.Mock).mockResolvedValue({ limit: 30, spent: 29 });
+
+      const updated = { ...AI_ROW, response_body: '{"name":"Binh"}' };
+      await put(updated, { response_body: '{"name":"Binh"}', ai_enabled: true, ai_fields: ["name"] }, true);
+
+      expect(EndpointService.updateEndpointById).toHaveBeenCalled();
+      expect(endpointVariantPlanService.ensurePlan).toHaveBeenCalledWith(updated);
+    });
+
+    // Switching AI off is the way out of the refusal, so it must never be asked the question.
+    it("never asks about a design when the edit switches AI off", async () => {
+      (aiUsageService.quotaFor as jest.Mock).mockResolvedValue({ limit: 30, spent: 30 });
+      const updated = { ...AI_ROW, ai_enabled: false, ai_fields: [] };
+
+      await put(updated, { response_body: '{"name":"Binh"}', ai_enabled: false, ai_fields: [] }, true);
+
+      expect(endpointVariantPlanService.wouldDesign).not.toHaveBeenCalled();
+      expect(EndpointService.updateEndpointById).toHaveBeenCalled();
+    });
   });
 
   it("swallows a cleanup failure rather than rejecting after the response", async () => {

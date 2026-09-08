@@ -92,7 +92,7 @@ export default async function RootLayout({
               newestOnTop
               closeOnClick
               pauseOnHover
-              theme="light"
+              theme="dark"
               transition={Slide}
             />
           </div>

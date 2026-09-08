@@ -132,6 +132,7 @@ export const POST = createRouteHandler<AiPreviewRouteParams>(
             return ApiResponse.error({
               message: LIMIT_MESSAGES.AI_NOT_AVAILABLE_FOR_ROLE,
               statusCode: STATUS_CODE.FORBIDDEN,
+              errors: await aiUsageService.quotaFor({ public_id: ctx.userId }),
             });
           }
 
@@ -142,6 +143,7 @@ export const POST = createRouteHandler<AiPreviewRouteParams>(
             return ApiResponse.error({
               message: LIMIT_MESSAGES.AI_PLAN_LIMIT_REACHED,
               statusCode: STATUS_CODE.FORBIDDEN,
+              errors: await aiUsageService.quotaFor({ public_id: ctx.userId }),
             });
           }
 
@@ -170,12 +172,17 @@ export const POST = createRouteHandler<AiPreviewRouteParams>(
           });
         }
 
+        // Travels with every answer, a free reroll included, so the card's badge is never a
+        // request behind what was just spent.
+        const quota = await aiUsageService.quotaFor({ public_id: ctx.userId });
+
         return ApiResponse.success({
           data: {
             variants,
             plan,
             plan_hash: hash,
             unapplied_hints: plan.unapplied_hints,
+            quota,
           },
         });
       })

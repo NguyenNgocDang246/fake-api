@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Control, useWatch } from "react-hook-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Notify from "@/app/components/Notify";
 import api from "@/app/libs/helpers/api_call.client";
 import buildUrl from "@/app/libs/helpers/url_builder";
@@ -40,15 +40,39 @@ async function fetchUserUsage(): Promise<UserUsageDTO> {
 // Only a redesign is a real model call, so only a redesign waits.
 const DESIGN_COOLDOWN_SECONDS = 10;
 
-// Names and addresses come from the locale, so the author has to know the list before they write
-// a hint. Anything outside it comes back flagged instead of silently answering in English.
+// Only shown once a hint has asked for a language off the list, which is the moment the author
+// needs it. Anything outside it comes back flagged, not silently English.
 export const SUPPORTED_LANGUAGES = SUPPORTED_LOCALES.map((locale) => LOCALE_LABELS[locale]).join(", ");
+
+interface AiQuota {
+  limit: number;
+  spent: number;
+}
 
 interface PreviewResult {
   variants: string[];
   plan: VariantPlanDTO;
   plan_hash: string;
   unapplied_hints: string[];
+  quota: AiQuota;
+}
+
+function isAiQuota(value: unknown): value is AiQuota {
+  if (typeof value !== "object" || value === null) return false;
+
+  const { limit, spent } = value as Partial<AiQuota>;
+  return typeof limit === "number" && typeof spent === "number";
+}
+
+// Writes what the server just counted straight into the cache. Nothing is invented when the cache
+// is empty: the query's own fetch is what fills it. Both endpoint forms use this too, since a
+// save refused for want of a design carries the same shape back.
+export function applyAiQuota(queryClient: QueryClient, source: unknown) {
+  if (!isAiQuota(source)) return;
+
+  queryClient.setQueryData<UserUsageDTO>([QUERY_KEY.USER.USAGE], (old) =>
+    old ? { ...old, used: { ...old.used, ai_plans_today: source.spent } } : old
+  );
 }
 
 // What a blueprint was designed for, compared here only to label the buttons honestly. The body
@@ -63,6 +87,14 @@ function inputSignature(body: string, fields: string[], prompt: string | null): 
   }
 
   return JSON.stringify([normalizedBody, [...fields].sort(), prompt?.trim() || null]);
+}
+
+// The half of a blueprint's identity the client can reason about without holding the blueprint. A
+// blueprint varies the fields it was designed for and answers the hint it was designed under, so
+// a change to either needs a new design however the body reads. Normalized the way `planHash`
+// normalizes them, so reordering checkboxes is not a change.
+function selectionSignature(fields: string[], prompt: string | null): string {
+  return JSON.stringify([[...fields].sort(), prompt?.trim() || null]);
 }
 
 export function formatJson(raw: string): string {
@@ -124,10 +156,12 @@ export function useAiEndpointSection({
     staleTime: STALETIME,
   });
 
+  // Not aged by `STALETIME` like the rest: saving an endpoint spends a design in a background
+  // task the response cannot report, so opening the card is the moment to ask again.
   const usage = useQuery<UserUsageDTO, ApiErrorResponse>({
     queryKey: [QUERY_KEY.USER.USAGE],
     queryFn: fetchUserUsage,
-    staleTime: STALETIME,
+    staleTime: 0,
   });
 
   const enabled = useWatch({ control, name: "ai_enabled" });
@@ -150,6 +184,11 @@ export function useAiEndpointSection({
         }
       : null
   );
+
+  // Seeded beside `design`, and for the same reason: on the first render these are the values the
+  // endpoint was saved with, which is what the stored blueprint was designed for.
+  const [savedSelection] = useState(() => selectionSignature(aiFields, aiPrompt ?? null));
+  const selectionMoved = selectionSignature(aiFields, aiPrompt ?? null) !== savedSelection;
 
   const { state: fieldState, availablePaths } = useAiFieldTree(bodyJson);
   const hasFields = fieldState === "ready";
@@ -185,6 +224,7 @@ export function useAiEndpointSection({
       return res.data as PreviewResult;
     },
     onSuccess: (result) => {
+      applyAiQuota(queryClient, result.quota);
       setPreview(result.variants);
       setDesign({
         plan: result.plan,
@@ -194,12 +234,19 @@ export function useAiEndpointSection({
         unsupportedLanguage: result.plan.unsupported_language,
       });
     },
-    onError: (error) => Notify.error(error.message),
-    onSettled: (_data, _error, reuse) => {
-      // Only a redesign spends a call, which is the same condition the cooldown runs on. It is
-      // refetched even when the design failed, since the quota was claimed before the call.
-      if (!reuse) {
-        setCooldown(DESIGN_COOLDOWN_SECONDS);
+    onError: (error) => {
+      // A refusal carries the quota that refused it, which is what turns the card's warning on
+      // in the same tick rather than a refetch later.
+      applyAiQuota(queryClient, error.errors);
+      Notify.error(error.message);
+    },
+    onSettled: (data, error, reuse) => {
+      // Only a redesign spends a call, which is the same condition the cooldown runs on.
+      if (!reuse) setCooldown(DESIGN_COOLDOWN_SECONDS);
+
+      // Every answer carries the count, so this covers the one that never arrived. The quota was
+      // claimed before the model call, so a failed design still has to be reconciled.
+      if (!data && !isAiQuota(error?.errors)) {
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY.USER.USAGE] });
       }
     },
@@ -239,13 +286,28 @@ export function useAiEndpointSection({
 
   const spentOut = !!quota && quota.spent >= quota.limit;
 
+  // Only the metered button, never the free reroll: a blueprint that already exists still renders
+  // new samples once the day's designs are gone.
+  const designBlocked = blocked || spentOut;
+
+  // Mirrors the `wouldDesign` check the write routes refuse a save on, as far as the client can
+  // answer it. Two cases it can: there is no stored blueprint at all, or the selection or hint
+  // moved, which no blueprint survives since it varies the fields it was designed for and
+  // answers the hint it was designed under. A body edit alone is the case it cannot, since that
+  // needs the blueprint and `validatePlan`, so there the server answers.
+  const saveBlocked =
+    spentOut &&
+    !!enabled &&
+    aiFields.length > 0 &&
+    !reusable &&
+    (!hasStoredPlan || selectionMoved);
+
+  // Says nothing about the day being spent: that is a warning, and the card raises it as one.
   const previewNote = (() => {
     if (fieldState === "invalid") return "Enter a valid JSON object in Response body first.";
     if (!hasFields) return "This response body has no field AI can vary.";
     if (selectionMessage) return selectionMessage;
-    if (spentOut && reusable)
-      return "Today's designs are used up. New samples from the current one are still free.";
-    if (spentOut) return "Today's designs are used up. You can design again tomorrow.";
+    if (spentOut) return null;
     if (reusable) return "New samples are free. Redesign only if a field is read wrong.";
     if (cooldown > 0) return `Designing is a real AI call. You can run another in ${cooldown}s.`;
     return null;
@@ -264,6 +326,8 @@ export function useAiEndpointSection({
     reusable,
     cooldown,
     blocked,
+    designBlocked,
+    saveBlocked,
     previewNote,
     summary,
     catalogNote,

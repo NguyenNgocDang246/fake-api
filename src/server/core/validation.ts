@@ -19,10 +19,8 @@ export function validateData<T>(data: unknown, schema: z.ZodSchema<T> | [z.ZodSc
   let effectiveSchema: z.ZodTypeAny;
 
   if (Array.isArray(schema)) {
-    // Truyền [schema] -> coi như z.array(schema[0])
     effectiveSchema = z.array(schema[0]);
   } else {
-    // Truyền schema thường
     if (Array.isArray(data)) {
       effectiveSchema = z.array(schema);
     } else {
