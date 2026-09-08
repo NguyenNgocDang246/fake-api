@@ -40,8 +40,8 @@ async function fetchUserUsage(): Promise<UserUsageDTO> {
 // Only a redesign is a real model call, so only a redesign waits.
 const DESIGN_COOLDOWN_SECONDS = 10;
 
-// Names and addresses come from the locale, so the author has to know the list before they write
-// a hint. Anything outside it comes back flagged instead of silently answering in English.
+// Only shown once a hint has asked for a language off the list, which is the moment the author
+// needs it. Anything outside it comes back flagged, not silently English.
 export const SUPPORTED_LANGUAGES = SUPPORTED_LOCALES.map((locale) => LOCALE_LABELS[locale]).join(", ");
 
 interface AiQuota {

@@ -40,7 +40,6 @@ export function createApi() {
       }
 
       try {
-        // refresh token
         await plainApi.get(API_ROUTES.AUTH.REFRESH_TOKEN);
 
         return api(error.config!);

@@ -231,16 +231,12 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
                 </AiNotice>
               )}
 
-              <span className="text-xs text-gray-400">
-                Names and addresses can come back in: {SUPPORTED_LANGUAGES}.
-              </span>
-
               {vm.reusable?.unsupportedLanguage && (
                 <AiNotice>
                   <span>
                     <span className="font-medium">{vm.reusable.unsupportedLanguage}</span> is not
-                    supported yet. Names and addresses will come back in the closest language on the
-                    list above.
+                    supported yet. Names, addresses and company names will come back in the closest
+                    of: {SUPPORTED_LANGUAGES}.
                   </span>
                 </AiNotice>
               )}

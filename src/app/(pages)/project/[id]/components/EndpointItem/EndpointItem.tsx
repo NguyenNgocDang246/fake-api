@@ -113,7 +113,7 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
         {ai_unsupported_language && (
           <span
             className="flex shrink-0 items-center gap-1 rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800"
-            title={`${ai_unsupported_language} is not supported yet. Names and addresses come back in the closest language on the list.`}
+            title={`${ai_unsupported_language} is not supported yet. Names, addresses and company names come back in the closest language on the list.`}
           >
             <Languages size={12} />
             {ai_unsupported_language}

@@ -1,4 +1,3 @@
-// server/core/types/api_response.ts
 export interface ApiSuccessResponse<T = unknown> {
   status: "success";
   data: T | null;

@@ -27,7 +27,6 @@ export async function POST(req: NextRequest) {
       });
     }
     const registeredUser = await authService.register(user);
-    // send verify email
     const verifyEmailToken = await TokenService.createVerifyEmailToken({
       public_id: registeredUser.public_id,
       token_version: registeredUser.token_version,

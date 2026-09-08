@@ -16,13 +16,11 @@ export interface MiddlewareContext {
 export async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
   const ctx: MiddlewareContext = {};
-  // fake
   if (url.pathname.startsWith(FakeAPIPrefix)) return NextResponse.next();
   // guest, both branches are for visitors with no session at all
   if (url.pathname.startsWith(GUEST_SANDBOX_ROUTE)) return NextResponse.next();
   const guestResult = await guestMiddleware(req);
   if (guestResult) return guestResult;
-  // server
   if (url.pathname.startsWith(API_ROUTES.AUTH.LOGIN)) return NextResponse.next();
   if (url.pathname.startsWith(API_ROUTES.AUTH.REGISTER)) return NextResponse.next();
   if (url.pathname.startsWith(API_ROUTES.AUTH.LOGOUT)) return NextResponse.next();
@@ -37,7 +35,6 @@ export async function middleware(req: NextRequest) {
   const authResult = await authMiddleware({ req, ctx, isApiRoute });
   if (authResult) return authResult;
 
-  // check fake
   const segments = url.pathname.split("/").filter(Boolean);
   const publicId = segments[0] ?? "";
   const checkFake = fakeMiddleware(req, publicId);

@@ -10,12 +10,8 @@ export function mockBaseUrl(): string {
   return MOCK_BASE_URL;
 }
 
-/**
- * Build the public URL of one mock endpoint.
- *
- * `projectId` and `path` are inserted verbatim, so docs pages can pass placeholders
- * such as "{projectId}" instead of a real id.
- */
+// `projectId` and `path` are inserted verbatim, so docs pages can pass placeholders
+// such as "{projectId}" instead of a real id.
 export function mockEndpointUrl(projectId: string, path: string): string {
   return `${MOCK_BASE_URL}/${projectId}${path}`;
 }
