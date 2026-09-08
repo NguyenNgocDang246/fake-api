@@ -18,7 +18,10 @@ import {
 } from "@/app/(pages)/project/[id]/components/AiEndpointSection/viewmodel";
 
 // Both endpoint forms import these from here, so they stay re-exported after the move.
-export { planEnvelopeOf } from "@/app/(pages)/project/[id]/components/AiEndpointSection/viewmodel";
+export {
+  planEnvelopeOf,
+  applyAiQuota,
+} from "@/app/(pages)/project/[id]/components/AiEndpointSection/viewmodel";
 export type { EndpointDesign };
 
 interface AiEndpointSectionProps {
@@ -189,13 +192,15 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
                   <button
                     type="button"
                     title={
-                      vm.cooldown > 0
-                        ? `Wait ${vm.cooldown}s`
-                        : vm.reusable
-                          ? "Redesign, one AI call"
-                          : "Preview"
+                      vm.spentOut
+                        ? "Your AI usage is on limit"
+                        : vm.cooldown > 0
+                          ? `Wait ${vm.cooldown}s`
+                          : vm.reusable
+                            ? "Redesign, one AI call"
+                            : "Preview"
                     }
-                    disabled={vm.blocked || vm.cooldown > 0}
+                    disabled={vm.designBlocked || vm.cooldown > 0}
                     onClick={() => vm.runPreview(false)}
                     className={`flex h-10 grow basis-32 cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50 @min-[600px]:grow-0 @min-[600px]:basis-auto ${
                       vm.reusable
@@ -212,6 +217,19 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
               {promptError && <ErrorText message={promptError} />}
 
               {vm.previewNote && <span className="text-xs text-gray-400">{vm.previewNote}</span>}
+
+              {vm.spentOut && (
+                <AiNotice>
+                  <span>
+                    Your AI usage is on limit.
+                    {vm.saveBlocked
+                      ? " These settings need a new design, so switch Enable off to save."
+                      : vm.reusable
+                        ? " New samples are still free."
+                        : ""}
+                  </span>
+                </AiNotice>
+              )}
 
               <span className="text-xs text-gray-400">
                 Names and addresses can come back in: {SUPPORTED_LANGUAGES}.

@@ -7,6 +7,7 @@ import { ClientUpdateEndpointByIdDTO } from "@/models/endpoint/endpoint.model";
 import { EndpointForm } from "@/app/(pages)/project/[id]/components/EndpointForm/EndpointForm";
 import {
   EndpointDesign,
+  applyAiQuota,
   planEnvelopeOf,
 } from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
 import { API_ROUTES, EndpointRoutes } from "@/app/libs/routes";
@@ -73,8 +74,14 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
       onSuccess() {
         Notify.success("Updated endpoint");
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT.ALL] });
+        // An edit that leaves the blueprint stale has the server redesign it, which spends one
+        // of the day's calls.
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY.USER.USAGE] });
       },
       onError: (error) => {
+        // A save refused for want of a design carries the count that refused it, so the AI card
+        // shows why without waiting on a refetch.
+        applyAiQuota(queryClient, error.errors);
         Notify.error(error.message);
       },
     });

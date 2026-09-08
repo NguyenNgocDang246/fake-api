@@ -8,6 +8,7 @@ import {
   storedEndpoint,
   VALID_BODY,
   PLAN,
+  QUOTA,
   post,
   allowAll,
   dataOf,
@@ -36,6 +37,22 @@ describe("ai-preview route: designing and rerolling", () => {
 
     expect(buildPlan).toHaveBeenCalledTimes(1);
     expect(aiUsageService.trySpend).toHaveBeenCalledWith({ public_id: USER_PUBLIC_ID });
+  });
+
+  // What the card's badge reads, so spending a design never leaves it a request behind.
+  it("reports the quota the design left behind", async () => {
+    allowAll();
+
+    expect((await dataOf(await post())).quota).toEqual(QUOTA);
+  });
+
+  it("reports the quota on a free reroll too", async () => {
+    allowAll();
+    const hash = planHash({ responseBody: '{"name":"An"}', aiFields: ["name"], aiPrompt: null });
+
+    const res = await post({ ...VALID_BODY, plan: PLAN, plan_hash: hash });
+
+    expect((await dataOf(res)).quota).toEqual(QUOTA);
   });
 
   it("rerolls from a blueprint the caller already holds without a model call", async () => {

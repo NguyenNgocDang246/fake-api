@@ -24,7 +24,7 @@ export const ROLE_LIMITS: Record<
     maxProjects: 5,
     maxGroupsPerProject: 10,
     maxEndpointsPerGroup: 10,
-    maxAiPlansPerDay: 30,
+    maxAiPlansPerDay: 5,
   },
   USER_VIP: {
     maxProjects: 10,
