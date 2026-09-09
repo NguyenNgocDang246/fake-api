@@ -116,8 +116,17 @@ class ProjectService {
 
   async createProject(project: CreateProjectDTO) {
     try {
-      const { user_public_id, ...rest } = project;
-      const projectData = { ...rest, description: rest.description ?? null };
+      const { user_public_id, cors_enabled, cors_origins, cors_allow_credentials, ...rest } =
+        project;
+      // A CORS setting the caller left out is left out here too, rather than passed as
+      // `undefined`, so the column default decides instead of a second copy of it living here.
+      const projectData = {
+        ...rest,
+        description: rest.description ?? null,
+        ...(cors_enabled === undefined ? {} : { cors_enabled }),
+        ...(cors_origins === undefined ? {} : { cors_origins }),
+        ...(cors_allow_credentials === undefined ? {} : { cors_allow_credentials }),
+      };
       const newProject = await createWithUniquePublicId((public_id) =>
         prisma.projects.create({
           data: {

@@ -1,6 +1,7 @@
 import {
   ClientUpdateProjectSchema,
   CorsOriginListSchema,
+  CreateProjectSchema,
   MAX_CORS_ORIGINS,
   UpdateProjectByIdSchema,
 } from "@/models/project.model";
@@ -87,6 +88,46 @@ describe("credentials need somewhere to send them", () => {
         cors_origins: [],
         cors_allow_credentials: true,
       }).success
+    ).toBe(false);
+  });
+});
+
+// The sandbox and any plain create send none of these, and the columns decide instead.
+describe("creating a project", () => {
+  const CREATE_VALID = { user_public_id: "aaaaaaaaaaaa", name: "P", description: null };
+
+  it("takes a create that names no CORS setting at all", () => {
+    const result = CreateProjectSchema.safeParse(CREATE_VALID);
+
+    expect(result.success).toBe(true);
+    expect(result.data).not.toHaveProperty("cors_enabled");
+    expect(result.data).not.toHaveProperty("cors_origins");
+  });
+
+  it("carries the settings through when the form does send them", () => {
+    const result = CreateProjectSchema.safeParse({
+      ...CREATE_VALID,
+      cors_enabled: false,
+      cors_origins: ["http://localhost:3000"],
+      cors_allow_credentials: true,
+    });
+
+    expect(result.data).toMatchObject({
+      cors_enabled: false,
+      cors_origins: ["http://localhost:3000"],
+      cors_allow_credentials: true,
+    });
+  });
+
+  it("applies the credentials rule on create too", () => {
+    expect(
+      CreateProjectSchema.safeParse({ ...CREATE_VALID, cors_allow_credentials: true }).success
+    ).toBe(false);
+  });
+
+  it("refuses an origin that is not one", () => {
+    expect(
+      CreateProjectSchema.safeParse({ ...CREATE_VALID, cors_origins: ["nope"] }).success
     ).toBe(false);
   });
 });

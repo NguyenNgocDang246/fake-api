@@ -57,12 +57,18 @@ export const CREDENTIALS_NEEDS_ORIGIN =
 
 // The browser refuses `Allow-Origin: *` together with `Allow-Credentials: true`, so the pair is
 // caught here instead of leaving the author with a CORS error that names neither setting.
+// Both fields are optional here so one copy of the rule serves the client schemas, which always
+// carry them, and the create path, where a caller wanting the defaults sends neither.
 export function checkCorsCredentials(
-  values: { cors_allow_credentials: boolean; cors_origins: string[] },
+  values: { cors_allow_credentials?: boolean | undefined; cors_origins?: string[] | undefined },
   ctx: z.RefinementCtx
 ) {
-  if (values.cors_allow_credentials && values.cors_origins.length === 0) {
-    ctx.addIssue({ code: "custom", path: ["cors_allow_credentials"], message: CREDENTIALS_NEEDS_ORIGIN });
+  if (values.cors_allow_credentials && (values.cors_origins?.length ?? 0) === 0) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["cors_allow_credentials"],
+      message: CREDENTIALS_NEEDS_ORIGIN,
+    });
   }
 }
 
@@ -96,23 +102,23 @@ export const ProjectInfoSchema = ProjectSchema.pick({
   .extend({ public_id: z.string(), user_id: z.string() })
   .strict();
 export type ProjectInfoDTO = z.infer<typeof ProjectInfoSchema>;
+// The CORS settings are optional on the way in, not defaulted: a caller that sends none leaves
+// the columns to their own defaults, which is what the guest sandbox and any plain create want.
 export const CreateProjectSchema = ProjectSchema.pick({
   user_public_id: true,
   name: true,
   description: true,
-}).strict();
+})
+  .extend({
+    cors_enabled: z.boolean().optional(),
+    cors_origins: CorsOriginListSchema.optional(),
+    cors_allow_credentials: z.boolean().optional(),
+  })
+  .strict()
+  .superRefine(checkCorsCredentials);
 export type CreateProjectDTO = z.infer<typeof CreateProjectSchema>;
 
-export const ClientCreateProjectSchema = ProjectInfoSchema.pick({ name: true, description: true });
-export type ClientCreateProjectDTO = z.infer<typeof ClientCreateProjectSchema>;
-
-export const GetProjectByIdSchema = ProjectSchema.pick({ public_id: true }).strict();
-export type GetProjectByIdDTO = z.infer<typeof GetProjectByIdSchema>;
-
-export const GetProjectByUserIdSchema = ProjectSchema.pick({ user_public_id: true }).strict();
-export type GetProjectByUserIdDTO = z.infer<typeof GetProjectByUserIdSchema>;
-
-export const ClientUpdateProjectSchema = ProjectInfoSchema.pick({
+export const ClientCreateProjectSchema = ProjectInfoSchema.pick({
   name: true,
   description: true,
 })
@@ -125,6 +131,16 @@ export const ClientUpdateProjectSchema = ProjectInfoSchema.pick({
   })
   .strict()
   .superRefine(checkCorsCredentials);
+export type ClientCreateProjectDTO = z.infer<typeof ClientCreateProjectSchema>;
+
+export const GetProjectByIdSchema = ProjectSchema.pick({ public_id: true }).strict();
+export type GetProjectByIdDTO = z.infer<typeof GetProjectByIdSchema>;
+
+export const GetProjectByUserIdSchema = ProjectSchema.pick({ user_public_id: true }).strict();
+export type GetProjectByUserIdDTO = z.infer<typeof GetProjectByUserIdSchema>;
+
+// The two forms share one body, so they validate by exactly the same rules.
+export const ClientUpdateProjectSchema = ClientCreateProjectSchema;
 export type ClientUpdateProjectDTO = z.infer<typeof ClientUpdateProjectSchema>;
 
 export const UpdateProjectByIdSchema = ProjectSchema.pick({

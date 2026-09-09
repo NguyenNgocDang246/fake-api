@@ -682,13 +682,19 @@ const total = response.headers.get('X-Total-Count');`}</CodeBlock>
               belong to Fake API itself and are refused with a message saying so.
             </p>
 
-            <h3 className="text-lg font-semibold mb-2">Narrowing who can call</h3>
+            <h3 className="text-lg font-semibold mb-2">When you want a call blocked</h3>
             <p className="text-gray-600 leading-relaxed mb-4">
-              Edit a project and open its CORS tab to list the origins allowed to call it. An empty
-              list means everyone, which is where a project starts. Once you name at least one
-              origin you can also let the browser send cookies and auth headers along, and turning
-              the whole thing off is how you check what your app does when a browser blocks a call.
-              Tools like curl are unaffected either way.
+              Create or edit a project, open its <strong>Advanced</strong> tab, and the Browser
+              access group holds one switch. Turn it off and browsers stop being able to reach that
+              project&apos;s endpoints, which is how you check what your app does when that happens.
+              curl and anything server-side still get an answer, so the mock keeps working while you
+              test.
+            </p>
+            <p className="text-gray-600 leading-relaxed mb-4">
+              More options under it lets you limit which origins are allowed, and once you name at
+              least one you can let the browser send cookies along too. Most projects never need
+              either: naming origins only changes what a browser permits, so it keeps nothing
+              private.
             </p>
           </section>
 

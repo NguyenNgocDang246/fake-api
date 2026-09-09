@@ -81,7 +81,7 @@ export const ResponseHeadersEditor: React.FC<ResponseHeadersEditorProps> = ({
               type="button"
               onClick={() => remove(index)}
               aria-label={`Remove header ${index + 1}`}
-              className="h-[2.6rem] rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-600 transition hover:border-red-300 hover:text-red-600"
+              className="h-[2.6rem] cursor-pointer rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-600 transition hover:border-red-300 hover:text-red-600"
             >
               Remove
             </button>
@@ -99,7 +99,7 @@ export const ResponseHeadersEditor: React.FC<ResponseHeadersEditorProps> = ({
         <button
           type="button"
           onClick={() => append({ name: "", value: "" })}
-          className="self-start rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 transition hover:border-blue-400 hover:text-blue-600"
+          className="self-start cursor-pointer rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 transition hover:border-blue-400 hover:text-blue-600"
         >
           Add header
         </button>
