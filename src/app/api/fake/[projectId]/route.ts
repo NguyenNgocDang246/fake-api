@@ -17,6 +17,15 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Either a whole string literal, which is kept as it is, or a run of whitespace outside one.
+const JSON_TOKEN = /("(?:\\.|[^"\\])*")|[ \t\n\r]+/g;
+
+// The whitespace the editor wrote is dropped without a parse, so key order and number literals
+// reach the client exactly as the author stored them.
+function compactJson(text: string): string {
+  return text.replace(JSON_TOKEN, (_match, stringLiteral) => stringLiteral ?? "");
+}
+
 async function handle(req: NextRequest, method: EndpointMethod["method"]) {
   const rawPathname = req.nextUrl.pathname.split(/[?#]/)[0] ?? "";
   const segments = rawPathname.split("/").filter(Boolean);
@@ -83,10 +92,10 @@ async function handle(req: NextRequest, method: EndpointMethod["method"]) {
 
   const body = await resolveBody(endpoint, validEndpoint.response_body);
 
-  // The stored text is written out as it is, not handed to `NextResponse.json`, so the bytes the
-  // author typed are the bytes the client reads. Rebuilding them through a parse is what loses a
-  // large integer's precision and reorders integer-like keys.
-  return new NextResponse(body, {
+  // Only whitespace is stripped, never handed to `NextResponse.json`, so the bytes the author
+  // typed are the bytes the client reads. Rebuilding them through a parse is what loses a large
+  // integer's precision and reorders integer-like keys.
+  return new NextResponse(compactJson(body), {
     status: validEndpoint.status_code || STATUS_CODE.OK,
     headers: { "content-type": "application/json" },
   });
@@ -115,16 +124,22 @@ async function resolveBody(endpoint: PlanEndpoint, baseBody: unknown): Promise<s
       return endpoint.response_body;
     }
 
-    const { renderVariant } = await import(
-      "@/server/services/endpoint/variant/faker.service"
-    );
+    const [{ renderVariant }, { parseJsonSource, emitFromSource }] = await Promise.all([
+      import("@/server/services/endpoint/variant/faker.service"),
+      import("@/server/services/endpoint/variant/json_source"),
+    ]);
+
+    // Rendered against the source parse rather than the one Zod already did, so the tree the
+    // literals are read back from is the very tree the draft was cloned from.
+    const source = parseJsonSource(endpoint.response_body);
 
     // The unique-catalog set comes off the cached blueprint rather than being walked again:
     // it is a property of the blueprint, not of the request.
-    const rendered = renderVariant(renderable.plan, baseBody, {
+    const rendered = renderVariant(renderable.plan, source ? source.value : baseBody, {
       uniqueCatalogs: renderable.uniqueCatalogs,
     });
-    return rendered === null ? endpoint.response_body : JSON.stringify(rendered);
+    if (rendered === null) return endpoint.response_body;
+    return source ? emitFromSource(rendered, source) : JSON.stringify(rendered);
   } catch (error) {
     console.error("[ai] falling back to base body", { path: endpoint.path, error });
     return endpoint.response_body;

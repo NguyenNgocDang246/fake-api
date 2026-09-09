@@ -134,7 +134,7 @@ const ENDPOINT_FIELDS = [
   },
   {
     field: "Response body",
-    detail: `A valid JSON object returned to the client exactly as you wrote it, key order, spacing and long numbers included. Up to ${MAX_RESPONSE_BODY_CHARS} characters, nested at most ${MAX_RESPONSE_BODY_DEPTH} levels deep, with at most ${MAX_ARRAY_ITEMS} items in any one list`,
+    detail: `A valid JSON object returned to the client exactly as you wrote it, key order and long numbers included, on one compact line. Up to ${MAX_RESPONSE_BODY_CHARS} characters, nested at most ${MAX_RESPONSE_BODY_DEPTH} levels deep, with at most ${MAX_ARRAY_ITEMS} items in any one list`,
   },
   { field: "Delay (ms)", detail: `Simulated latency from 0 to ${MAX_DELAY_MS}, default 0` },
   {

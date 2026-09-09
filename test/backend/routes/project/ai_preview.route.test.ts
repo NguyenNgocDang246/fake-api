@@ -31,6 +31,24 @@ describe("ai-preview route: designing and rerolling", () => {
     }
   });
 
+  // A sample the card shows has to be a body the endpoint would really answer with, so the
+  // preview writes back against the author's text exactly as the fake route does.
+  it("renders samples that keep every untouched field byte for byte", async () => {
+    allowAll();
+
+    const res = await post({
+      ...VALID_BODY,
+      response_body: '{\n\t"name": "An",\n\t"price": 10.00,\n\t"id": 12345678901234567890\n}',
+    });
+    await expectSuccess(res, 200);
+
+    for (const variant of (await dataOf(res)).variants) {
+      expect(variant).toMatch(
+        /^\{"name":"[^"]+","price":10\.00,"id":12345678901234567890\}$/
+      );
+    }
+  });
+
   it("charges one usage for a design", async () => {
     allowAll();
     await post();

@@ -51,9 +51,9 @@ const STRUCTURED_DATA = {
 const JSON_FEATURES: Feature[] = [
   {
     icon: FileJson,
-    title: "Byte for byte what you wrote",
+    title: "What you wrote, on one line",
     description:
-      "Key order, spacing, and long numbers survive intact. The response is your own text, not a re-serialized copy of it, so a 19-digit id does not come back rounded.",
+      "Key order and long numbers survive intact, so a 19-digit id does not come back rounded. Only your spacing goes, which is what makes every endpoint answer in the same compact line. Turn on AI and the same holds: the fields you ticked change on each call, the rest stay exactly as you typed them.",
     iconBg: "bg-blue-100",
     iconColor: "text-blue-600",
   },

@@ -83,7 +83,7 @@ export function checkResponseBody(text: string): ResponseBodyCheck {
 
 // Hands back the author's own text once it is proven to be an object within the limits, never a
 // re-stringified parse: that reorders integer-like keys, drops precision past 2^53 and turns
-// 1e999 into null, so a mock could not answer with the bytes its author wrote.
+// 1e999 into null. The fake route only strips the whitespace outside its string literals.
 export const JsonSchema = z.string().transform((val, ctx) => {
   const check = checkResponseBody(val);
   if (!check.ok) {
