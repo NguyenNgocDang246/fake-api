@@ -1,6 +1,77 @@
 import { z } from "zod";
 import { PublicIdSchema } from "@/app/libs/helpers/publicId";
 
+export const MAX_CORS_ORIGINS = 20;
+export const MAX_CORS_ORIGIN_LENGTH = 255;
+
+// An origin is a scheme, a host and an optional port, nothing else. A trailing slash or a path
+// is the usual mistake, and it never matches the `Origin` a browser sends.
+const CORS_ORIGIN_REGEX = /^https?:\/\/[a-zA-Z0-9.-]+(?::\d{1,5})?$/;
+
+export const TOO_MANY_CORS_ORIGINS = `Chỉ khai được tối đa ${MAX_CORS_ORIGINS} origin`;
+
+// Reports against the index it was handed, so an error on the third box lands on the third box.
+// A row the author added and left empty is skipped here and dropped by the transform below.
+export function checkCorsOriginRows(origins: string[], ctx: z.RefinementCtx) {
+  const seen = new Set<string>();
+
+  origins.forEach((raw, index) => {
+    const origin = raw.trim();
+    if (origin === "") return;
+
+    if (origin.length > MAX_CORS_ORIGIN_LENGTH) {
+      ctx.addIssue({
+        code: "custom",
+        path: [index],
+        message: `Origin không được quá ${MAX_CORS_ORIGIN_LENGTH} ký tự`,
+      });
+      return;
+    }
+    if (!CORS_ORIGIN_REGEX.test(origin)) {
+      ctx.addIssue({
+        code: "custom",
+        path: [index],
+        message: "Origin phải có dạng http://localhost:3000, không kèm đường dẫn",
+      });
+      return;
+    }
+    if (seen.has(origin)) {
+      ctx.addIssue({ code: "custom", path: [index], message: `"${origin}" đã được khai ở trên` });
+      return;
+    }
+    seen.add(origin);
+  });
+}
+
+// The transform runs after the checks, so it never shifts an index an error already points at.
+export const CorsOriginListSchema = z
+  .array(z.string())
+  .max(MAX_CORS_ORIGINS, TOO_MANY_CORS_ORIGINS)
+  .superRefine(checkCorsOriginRows)
+  .transform((origins) => [
+    ...new Set(origins.map((origin) => origin.trim()).filter((origin) => origin !== "")),
+  ]);
+
+export const CREDENTIALS_NEEDS_ORIGIN =
+  "Bật credentials thì phải khai ít nhất một origin, vì trình duyệt không nhận credentials đi kèm origin mở";
+
+// The browser refuses `Allow-Origin: *` together with `Allow-Credentials: true`, so the pair is
+// caught here instead of leaving the author with a CORS error that names neither setting.
+export function checkCorsCredentials(
+  values: { cors_allow_credentials: boolean; cors_origins: string[] },
+  ctx: z.RefinementCtx
+) {
+  if (values.cors_allow_credentials && values.cors_origins.length === 0) {
+    ctx.addIssue({ code: "custom", path: ["cors_allow_credentials"], message: CREDENTIALS_NEEDS_ORIGIN });
+  }
+}
+
+const CORS_FIELDS = {
+  cors_enabled: true,
+  cors_origins: true,
+  cors_allow_credentials: true,
+} as const;
+
 export const ProjectSchema = z
   .object({
     public_id: PublicIdSchema,
@@ -10,10 +81,18 @@ export const ProjectSchema = z
       .nonempty("Tên project không được để trống")
       .max(255, "Tên project không được quá 255 ký tự"),
     description: z.string().max(255, "Mô tả không được quá 255 ký tự").optional().nullable(),
+    cors_enabled: z.boolean().default(true),
+    // Empty means any origin, which is what a project starts on and what most never change.
+    cors_origins: CorsOriginListSchema.default([]),
+    cors_allow_credentials: z.boolean().default(false),
   })
   .strict();
 export type ProjectDTO = z.infer<typeof ProjectSchema>;
-export const ProjectInfoSchema = ProjectSchema.pick({ name: true, description: true })
+export const ProjectInfoSchema = ProjectSchema.pick({
+  name: true,
+  description: true,
+  ...CORS_FIELDS,
+})
   .extend({ public_id: z.string(), user_id: z.string() })
   .strict();
 export type ProjectInfoDTO = z.infer<typeof ProjectInfoSchema>;
@@ -36,15 +115,51 @@ export type GetProjectByUserIdDTO = z.infer<typeof GetProjectByUserIdSchema>;
 export const ClientUpdateProjectSchema = ProjectInfoSchema.pick({
   name: true,
   description: true,
-}).strict();
+})
+  .extend({
+    // Spelled out rather than picked so these carry no `.default()`: a default makes the zod
+    // input type optional while the output stays required, and the Resolver needs one type.
+    cors_enabled: z.boolean(),
+    cors_origins: CorsOriginListSchema,
+    cors_allow_credentials: z.boolean(),
+  })
+  .strict()
+  .superRefine(checkCorsCredentials);
 export type ClientUpdateProjectDTO = z.infer<typeof ClientUpdateProjectSchema>;
 
 export const UpdateProjectByIdSchema = ProjectSchema.pick({
   public_id: true,
   name: true,
   description: true,
-}).strict();
+  ...CORS_FIELDS,
+})
+  .strict()
+  .superRefine(checkCorsCredentials);
 export type UpdateProjectByIdDTO = z.infer<typeof UpdateProjectByIdSchema>;
+
+// Listed one by one, not spread: `ProjectInfoSchema` is `.strict()` and the caller hands in a
+// whole prisma row, so a spread would leak `id`, `user_id` and the timestamps into it.
+export function toProjectInfoInput(
+  project: {
+    public_id: string;
+    name: string;
+    description: string | null;
+    cors_enabled: boolean;
+    cors_origins: string[];
+    cors_allow_credentials: boolean;
+  },
+  user_id: string
+) {
+  return {
+    public_id: project.public_id,
+    name: project.name,
+    description: project.description,
+    cors_enabled: project.cors_enabled,
+    cors_origins: project.cors_origins,
+    cors_allow_credentials: project.cors_allow_credentials,
+    user_id,
+  };
+}
 
 export const ClientDeleteProjectByIdSchema = ProjectInfoSchema.pick({ public_id: true }).strict();
 export type ClientDeleteProjectByIdDTO = z.infer<typeof ClientDeleteProjectByIdSchema>;

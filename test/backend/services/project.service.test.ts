@@ -84,10 +84,23 @@ describe("src/server/services/project.service.ts", () => {
 
   it("updateProjectById converts description undefined -> null", async () => {
     (prisma.projects.update as jest.Mock).mockResolvedValue({ public_id: "proj1" });
-    await projectService.updateProjectById({ public_id: "proj1", name: "P", description: undefined });
+    await projectService.updateProjectById({
+      public_id: "proj1",
+      name: "P",
+      description: undefined,
+      cors_enabled: true,
+      cors_origins: [],
+      cors_allow_credentials: false,
+    });
     expect(prisma.projects.update).toHaveBeenCalledWith({
       where: { public_id: "proj1" },
-      data: { name: "P", description: null },
+      data: {
+        name: "P",
+        description: null,
+        cors_enabled: true,
+        cors_origins: [],
+        cors_allow_credentials: false,
+      },
     });
   });
 

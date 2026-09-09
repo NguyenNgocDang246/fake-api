@@ -41,7 +41,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
       formState: { errors, submitCount },
     } = useForm<ClientCreateEndpointDTO>({
       resolver: customResolver,
-      defaultValues: { ai_enabled: false, ai_fields: [], ai_prompt: null },
+      defaultValues: { ai_enabled: false, ai_fields: [], ai_prompt: null, response_headers: [] },
     });
 
     // Beside the form rather than in it: the blueprint carries `.default()`s, so its zod input and

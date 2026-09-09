@@ -7,14 +7,15 @@ import { DefaultInput } from "@/app/components/Input/DefaultInput";
 import { SelectInput } from "@/app/components/Input/SelectInput";
 import { JsonEditor } from "@/app/components/Input/JsonEditor";
 import { ErrorText } from "@/app/components/Text/ErrorText";
-import { PillTabs } from "@/app/components/Tabs/PillTabs";
+import { PillTab, PillTabs } from "@/app/components/Tabs/PillTabs";
 import { httpMethods } from "@/app/(pages)/project/[id]/components/EndpointForm/httpMethods";
 import {
   AiEndpointSection,
   EndpointDesign,
 } from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
+import { ResponseHeadersEditor } from "@/app/(pages)/project/[id]/components/ResponseHeadersEditor/ResponseHeadersEditor";
 
-type Tab = "basics" | "ai";
+type Tab = "basics" | "headers" | "ai";
 
 interface EndpointFormProps {
   register: UseFormRegister<ClientCreateEndpointDTO>;
@@ -51,6 +52,7 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
 }) => {
   const [tab, setTab] = useState<Tab>("basics");
   const aiEnabled = useWatch({ control, name: "ai_enabled" });
+  const responseHeaders = useWatch({ control, name: "response_headers" });
 
   const basicsHasError = !!(
     errors.method ||
@@ -59,6 +61,7 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
     errors.delay_ms ||
     errors.status_code
   );
+  const headersHasError = !!errors.response_headers;
   const aiHasError = !!(errors.ai_fields || errors.ai_prompt);
 
   // A message under a control on the hidden panel is a message nobody reads, so a failed submit
@@ -67,26 +70,32 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
     if (submitCount === 0) return;
 
     if (basicsHasError) setTab("basics");
+    else if (headersHasError) setTab("headers");
     else if (aiHasError) setTab("ai");
-  }, [submitCount, basicsHasError, aiHasError]);
+  }, [submitCount, basicsHasError, headersHasError, aiHasError]);
 
+  const headerCount = responseHeaders?.filter((row) => row.name.trim() !== "").length ?? 0;
+  const headersDot = headersHasError ? "error" : headerCount > 0 ? "accent" : undefined;
   const aiDot = aiHasError ? "error" : aiEnabled ? "accent" : undefined;
 
   // Both panels stay mounted. `JsonEditor` measures its own height once on mount and holds the
   // undo stack in a ref, so unmounting the Basics panel would lose a half-typed body.
   return (
     <div className="@container flex flex-col gap-4">
-      {aiAvailable && (
-        <PillTabs
-          ariaLabel="Form sections"
-          value={tab}
-          onChange={(id) => setTab(id as Tab)}
-          tabs={[
-            { id: "basics", label: "Basics", ...(basicsHasError ? { dot: "error" as const } : {}) },
-            { id: "ai", label: "AI variants", ...(aiDot ? { dot: aiDot } : {}) },
-          ]}
-        />
-      )}
+      {/* Unlike the AI pills, the Headers tab is there for every role, so the strip is no longer
+          conditional on AI being available. */}
+      <PillTabs
+        ariaLabel="Form sections"
+        value={tab}
+        onChange={(id) => setTab(id as Tab)}
+        tabs={[
+          { id: "basics", label: "Basics", ...(basicsHasError ? { dot: "error" as const } : {}) },
+          { id: "headers", label: "Headers", ...(headersDot ? { dot: headersDot } : {}) },
+          ...(aiAvailable
+            ? [{ id: "ai", label: "AI variants", ...(aiDot ? { dot: aiDot } : {}) } as PillTab]
+            : []),
+        ]}
+      />
 
       <div className={tab === "basics" ? "flex flex-col gap-4" : "hidden"}>
         <p className="text-xs text-gray-500">
@@ -153,6 +162,16 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
           />
           {errors.response_body && <ErrorText message={errors.response_body.message} />}
         </div>
+      </div>
+
+      <div className={tab === "headers" ? "flex flex-col gap-4" : "hidden"}>
+        <p className="text-xs text-gray-500">
+          Extra headers this endpoint sends back. Every response already carries a JSON content
+          type and is never cached, so this is for the rest: a page count, an ETag, a redirect
+          target.
+        </p>
+
+        <ResponseHeadersEditor register={register} control={control} errors={errors} />
       </div>
 
       {/* Unmounted rather than hidden when AI is off: the section fetches its own status and

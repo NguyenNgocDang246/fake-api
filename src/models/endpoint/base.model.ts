@@ -2,6 +2,12 @@ import { z } from "zod";
 import { PublicIdSchema } from "@/app/libs/helpers/publicId";
 import { AiPromptSchema, MAX_AI_FIELDS } from "@/models/endpoint/ai_fields.model";
 import {
+  EMPTY_RESPONSE_HEADERS,
+  ResponseHeaderReadListSchema,
+  ResponseHeadersFromInput,
+  parseResponseHeaders,
+} from "@/models/endpoint/response_headers.model";
+import {
   IntegerFromInput,
   JsonSchema,
   JsonValue,
@@ -26,6 +32,7 @@ export const EndpointSchema = z
       message: `The status code must be a whole number between ${MIN_STATUS_CODE} and ${MAX_STATUS_CODE}`,
     }),
     response_body: JsonSchema,
+    response_headers: ResponseHeadersFromInput().default(EMPTY_RESPONSE_HEADERS),
     delay_ms: IntegerFromInput({
       min: 0,
       max: MAX_DELAY_MS,
@@ -62,6 +69,9 @@ export const EndpointInfoSchema = EndpointSchema.omit({
       }
       return val;
     }, z.record(z.string(), JsonValue)),
+    // The column holds text, every reader here wants the rows, and reading never enforces the
+    // write rules: a row that would fail them must not take the whole response down with it.
+    response_headers: z.preprocess(parseResponseHeaders, ResponseHeaderReadListSchema),
   })
   .extend({ public_id: z.string(), endpoint_groups_id: z.string() })
   // Read only, and deliberately absent from `EndpointSchema`: these come out of the stored
@@ -81,6 +91,7 @@ export const EndpointResponseSchema = EndpointInfoSchema.pick({
   path: true,
   status_code: true,
   response_body: true,
+  response_headers: true,
   delay_ms: true,
 }).strict();
 export type EndpointResponseDTO = z.infer<typeof EndpointResponseSchema>;

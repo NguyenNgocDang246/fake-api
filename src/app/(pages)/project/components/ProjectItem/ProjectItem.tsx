@@ -7,14 +7,24 @@ interface ProjectItemProps {
   public_id: string;
   name: string;
   description: string | null | undefined;
+  cors_enabled: boolean;
+  cors_origins: string[];
+  cors_allow_credentials: boolean;
 }
 
-export const ProjectItem: React.FC<ProjectItemProps> = ({ public_id, name, description }) => {
+export const ProjectItem: React.FC<ProjectItemProps> = ({
+  public_id,
+  name,
+  description,
+  cors_enabled,
+  cors_origins,
+  cors_allow_credentials,
+}) => {
   const { handleOnclickProject, openDeleteProjectModal, copyToClipboard } =
     useProjectItemViewModel();
   const { openUpdateProjectModal } = useUpdateProjectViewModel({
     public_id,
-    old_data: { name, description },
+    old_data: { name, description, cors_enabled, cors_origins, cors_allow_credentials },
   });
   return (
     <div

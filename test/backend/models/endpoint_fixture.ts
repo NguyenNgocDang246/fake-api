@@ -4,5 +4,6 @@ export const VALID = {
   path: "/users",
   status_code: 200,
   response_body: '{"name":"An"}',
+  response_headers: [],
   delay_ms: 0,
 };

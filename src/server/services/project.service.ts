@@ -80,6 +80,19 @@ class ProjectService {
     }
   }
 
+  // Read on the serving path for every browser call, so it selects the three columns it needs
+  // rather than the whole row. A project that does not exist has no CORS config, not an open one.
+  async getCorsConfig({ public_id }: GetProjectByIdDTO) {
+    try {
+      return await prisma.projects.findUnique({
+        where: { public_id },
+        select: { cors_enabled: true, cors_origins: true, cors_allow_credentials: true },
+      });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
   async deleteProjectById({ public_id }: DeleteProjectByIdDTO) {
     try {
       return await prisma.projects.delete({ where: { public_id } });
