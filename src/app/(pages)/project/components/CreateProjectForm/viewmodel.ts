@@ -9,6 +9,7 @@ export const useCreateProjectViewModel = () => {
       type: "form",
       props: {
         title: "Create new project",
+        size: "wide",
         onSubmit: async () => {
           const result = await formRef.current?.submit?.();
           return result ?? false;

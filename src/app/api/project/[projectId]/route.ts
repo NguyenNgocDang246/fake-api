@@ -2,7 +2,11 @@ import ApiResponse from "@/server/core/api_response";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { validateData } from "@/server/core/validation";
 import projectService from "@/server/services/project.service";
-import { ProjectInfoSchema, UpdateProjectByIdSchema } from "@/models/project.model";
+import {
+  ProjectInfoSchema,
+  UpdateProjectByIdSchema,
+  toProjectInfoInput,
+} from "@/models/project.model";
 import { createRouteHandler, withProjectId, withUserId } from "@/server/core/route_helpers";
 
 type ProjectRouteParams = { projectId: string };
@@ -29,12 +33,7 @@ export const GET = createRouteHandler<ProjectRouteParams>(
       }
 
       const projectInfoValidation = validateData(
-        {
-          public_id: project.public_id,
-          name: project.name,
-          description: project.description,
-          user_id: ctx.userId,
-        },
+        toProjectInfoInput(project, ctx.userId),
         ProjectInfoSchema
       );
       if (!projectInfoValidation.success) return projectInfoValidation.response;
@@ -73,12 +72,7 @@ export const PUT = createRouteHandler<ProjectRouteParams>(
 
       const projectUpdated = await projectService.updateProjectById(updateProjectValidation.data);
       const projectInfoValidation = validateData(
-        {
-          public_id: projectUpdated.public_id,
-          name: projectUpdated.name,
-          description: projectUpdated.description,
-          user_id: ctx.userId,
-        },
+        toProjectInfoInput(projectUpdated, ctx.userId),
         ProjectInfoSchema
       );
       if (!projectInfoValidation.success) return projectInfoValidation.response;

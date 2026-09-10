@@ -4,8 +4,7 @@ import Notify from "@/app/components/Notify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { ClientCreateProjectDTO, ClientCreateProjectSchema } from "@/models/project.model";
-import { FloatingInput } from "@/app/components/Input/FloatingInput";
-import { ErrorText } from "@/app/components/Text/ErrorText";
+import { ProjectForm } from "@/app/(pages)/project/components/ProjectForm/ProjectForm";
 import { API_ROUTES } from "@/app/libs/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
@@ -22,9 +21,13 @@ export const CreateProjectForm = forwardRef<CreateProjectFormHandles>((props, re
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    control,
+    setValue,
+    formState: { errors, submitCount },
   } = useForm<ClientCreateProjectDTO>({
     resolver: zodResolver(ClientCreateProjectSchema),
+    // A new project starts open to every origin, which is what the column defaults say too.
+    defaultValues: { cors_enabled: true, cors_origins: [], cors_allow_credentials: false },
   });
   const queryClient = useQueryClient();
   const createProjectMutation = useMutation<
@@ -70,22 +73,15 @@ export const CreateProjectForm = forwardRef<CreateProjectFormHandles>((props, re
       return isValid;
     },
   }));
+
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <FloatingInput label="Name" register={register("name")} type="text" id="name" />
-        {errors.name && <ErrorText message={errors.name.message} />}
-      </div>
-      <div>
-        <FloatingInput
-          label="Description"
-          register={register("description")}
-          type="text"
-          id="description"
-        />
-        {errors.description && <ErrorText message={errors.description.message} />}
-      </div>
-    </div>
+    <ProjectForm
+      register={register}
+      control={control}
+      errors={errors}
+      setValue={setValue}
+      submitCount={submitCount}
+    />
   );
 });
 

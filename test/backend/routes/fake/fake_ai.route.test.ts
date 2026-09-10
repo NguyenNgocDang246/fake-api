@@ -27,6 +27,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
     path: "/users",
     status_code: 200,
     response_body: '{"name":"An","id":1}',
+    response_headers: "[]",
     delay_ms: 0,
     ai_enabled: true,
     ai_fields: ["name"],
@@ -93,7 +94,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
     const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
 
     expect(await res.text()).toBe('{"b":1,"1":3,"n":12345678901234567890}');
-    expect(res.headers.get("content-type")).toBe("application/json");
+    expect(res.headers.get("content-type")).toBe("application/json; charset=utf-8");
   });
 
   it("keeps the indentation out of a body the editor formatted", async () => {

@@ -29,6 +29,7 @@ import {
   MAX_AI_PROMPT_LENGTH,
   MAX_AI_VALUES,
 } from "@/models/endpoint/ai_fields.model";
+import { MAX_RESPONSE_HEADERS } from "@/models/endpoint/response_headers.model";
 import {
   MAX_ARRAY_ITEMS,
   MAX_DELAY_MS,
@@ -85,6 +86,7 @@ const TOC = [
   { id: "manage-endpoints", label: "Edit, Delete & Copy URL" },
   { id: "ai-variants", label: "AI Response Variants" },
   { id: "call-api", label: "Call the Mock API" },
+  { id: "headers-cors", label: "Headers & CORS" },
   { id: "tips", label: "Tips" },
 ];
 
@@ -651,6 +653,49 @@ export default async function DocsPage() {
                 </div>
               ))}
             </div>
+          </section>
+
+          <section id="headers-cors" className="scroll-mt-24">
+            <h2 className="text-2xl font-bold mb-3">Headers and CORS</h2>
+            <p className="text-gray-600 leading-relaxed mb-4">
+              Your mock endpoints answer a browser from any origin, so a page on{" "}
+              <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">localhost</code> can call
+              them straight away with no setup. Responses come back as JSON and are never cached, so
+              an edit to a body shows up on the very next call.
+            </p>
+
+            <h3 className="text-lg font-semibold mb-2">Headers of your own</h3>
+            <p className="text-gray-600 leading-relaxed mb-4">
+              The Headers tab in the endpoint form is where you add anything else the response
+              should carry. A page count next to a list is the common one, and your app reads it
+              back the way it reads any header:
+            </p>
+            <div className="flex flex-col gap-4 mb-6">
+              <CodeBlock lang="fetch">{`const response = await fetch('${mockEndpointUrl("QGONEwKEqJg", "/api/users")}');
+const total = response.headers.get('X-Total-Count');`}</CodeBlock>
+            </div>
+            <p className="text-gray-600 leading-relaxed mb-6">
+              You can set up to {MAX_RESPONSE_HEADERS} of them per endpoint, and setting{" "}
+              <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">Content-Type</code> or{" "}
+              <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">Cache-Control</code>{" "}
+              replaces what the response would have used. A handful of names, cookies among them,
+              belong to Fake API itself and are refused with a message saying so.
+            </p>
+
+            <h3 className="text-lg font-semibold mb-2">When you want a call blocked</h3>
+            <p className="text-gray-600 leading-relaxed mb-4">
+              Create or edit a project, open its <strong>Advanced</strong> tab, and the Browser
+              access group holds one switch. Turn it off and browsers stop being able to reach that
+              project&apos;s endpoints, which is how you check what your app does when that happens.
+              curl and anything server-side still get an answer, so the mock keeps working while you
+              test.
+            </p>
+            <p className="text-gray-600 leading-relaxed mb-4">
+              More options under it lets you limit which origins are allowed, and once you name at
+              least one you can let the browser send cookies along too. Most projects never need
+              either: naming origins only changes what a browser permits, so it keeps nothing
+              private.
+            </p>
           </section>
 
           <section id="tips" className="scroll-mt-24">

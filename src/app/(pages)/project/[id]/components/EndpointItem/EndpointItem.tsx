@@ -8,6 +8,7 @@ interface EndpointItemProps {
   delay_ms: number;
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   response_body: string;
+  response_headers: { name: string; value: string }[];
   status_code: number;
   project_id: string;
   endpoint_groups_id: string;
@@ -29,6 +30,7 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
   delay_ms,
   method,
   response_body,
+  response_headers,
   status_code,
   project_id,
   endpoint_groups_id,
@@ -77,6 +79,7 @@ export const EndpointItem: React.FC<EndpointItemProps> = ({
             delay_ms: String(delay_ms),
             method,
             response_body,
+            response_headers,
             status_code: String(status_code),
             ai_enabled,
             ai_fields,

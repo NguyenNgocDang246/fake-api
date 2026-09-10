@@ -41,6 +41,7 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
       register,
       handleSubmit,
       control,
+      setValue,
       formState: { errors, submitCount },
     } = useForm<ClientUpdateEndpointByIdDTO>({
       resolver: customResolver,
@@ -117,6 +118,7 @@ export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEn
         register={register}
         control={control}
         errors={errors}
+        setValue={setValue}
         submitCount={submitCount}
         projectId={projectId}
         endpointGroupId={props.endpointGroupId}

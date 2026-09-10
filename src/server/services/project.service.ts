@@ -80,6 +80,19 @@ class ProjectService {
     }
   }
 
+  // Read on the serving path for every browser call, so it selects the three columns it needs
+  // rather than the whole row. A project that does not exist has no CORS config, not an open one.
+  async getCorsConfig({ public_id }: GetProjectByIdDTO) {
+    try {
+      return await prisma.projects.findUnique({
+        where: { public_id },
+        select: { cors_enabled: true, cors_origins: true, cors_allow_credentials: true },
+      });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
   async deleteProjectById({ public_id }: DeleteProjectByIdDTO) {
     try {
       return await prisma.projects.delete({ where: { public_id } });
@@ -103,8 +116,17 @@ class ProjectService {
 
   async createProject(project: CreateProjectDTO) {
     try {
-      const { user_public_id, ...rest } = project;
-      const projectData = { ...rest, description: rest.description ?? null };
+      const { user_public_id, cors_enabled, cors_origins, cors_allow_credentials, ...rest } =
+        project;
+      // A CORS setting the caller left out is left out here too, rather than passed as
+      // `undefined`, so the column default decides instead of a second copy of it living here.
+      const projectData = {
+        ...rest,
+        description: rest.description ?? null,
+        ...(cors_enabled === undefined ? {} : { cors_enabled }),
+        ...(cors_origins === undefined ? {} : { cors_origins }),
+        ...(cors_allow_credentials === undefined ? {} : { cors_allow_credentials }),
+      };
       const newProject = await createWithUniquePublicId((public_id) =>
         prisma.projects.create({
           data: {

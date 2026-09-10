@@ -123,7 +123,7 @@ export const JsonPreview: React.FC<JsonPreviewProps> = ({ json, label = "json" }
         )}
       </div>
 
-      <pre className="max-h-56 overflow-auto bg-gray-900 p-3 font-mono text-xs leading-relaxed whitespace-pre @min-[600px]:max-h-72">
+      <pre className="fa-json max-h-56 overflow-auto bg-gray-900 p-3 font-mono text-xs leading-relaxed whitespace-pre @min-[600px]:max-h-72">
         <code>{colorize(json)}</code>
       </pre>
     </div>
