@@ -8,10 +8,11 @@ import {
   UseFormSetValue,
   useWatch,
 } from "react-hook-form";
-import { ChevronDown, Globe, Plus, X } from "lucide-react";
+import { ChevronDown, Globe } from "lucide-react";
 import { ClientCreateProjectDTO, MAX_CORS_ORIGINS } from "@/models/project.model";
 import { FloatingInput } from "@/app/components/Input/FloatingInput";
 import { DefaultInput } from "@/app/components/Input/DefaultInput";
+import { RepeatableRowList } from "@/app/components/Input/RepeatableRowList";
 import { Switch } from "@/app/components/Input/Switch";
 import { FormTabs } from "@/app/components/Tabs/FormTabs";
 import { ErrorText } from "@/app/components/Text/ErrorText";
@@ -142,51 +143,31 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
                 Empty means any origin. Add one to let only those through.
               </p>
 
-              {origins.map((_, index) => (
-                <div key={index} className="flex flex-col gap-1">
-                  <div className="flex flex-row items-center gap-2">
-                    {/* `DefaultInput` puts its className on the input, and the wrapper is what
-                        this row lays out, so the growing happens here. */}
-                    <div className="min-w-0 flex-1">
-                      <DefaultInput
-                        className="w-full font-mono text-sm"
-                        label="Origin"
-                        hideLabel
-                        register={register(`cors_origins.${index}`)}
-                        type="text"
-                        id={`cors_origins.${index}`}
-                        placeholder="http://localhost:3000"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setOrigins(origins.filter((_, i) => i !== index))}
-                      aria-label={`Remove origin ${index + 1}`}
-                      className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-500 transition hover:border-red-300 hover:text-red-600"
-                    >
-                      <X size={15} />
-                    </button>
-                  </div>
-                  {errors.cors_origins?.[index] && (
-                    <ErrorText message={errors.cors_origins[index]?.message} />
-                  )}
-                </div>
-              ))}
-
-              {typeof errors.cors_origins?.message === "string" && (
-                <ErrorText message={errors.cors_origins.message} />
-              )}
-
-              {origins.length < MAX_CORS_ORIGINS && (
-                <button
-                  type="button"
-                  onClick={() => setOrigins([...origins, ""])}
-                  className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 transition hover:border-blue-400 hover:text-blue-600"
-                >
-                  <Plus size={14} />
-                  Add origin
-                </button>
-              )}
+              <RepeatableRowList
+                itemKeys={origins.map((_, index) => String(index))}
+                max={MAX_CORS_ORIGINS}
+                addLabel="Add origin"
+                onAdd={() => setOrigins([...origins, ""])}
+                onRemove={(index) => setOrigins(origins.filter((_, i) => i !== index))}
+                removeLabel={(index) => `Remove origin ${index + 1}`}
+                rowError={(index) => errors.cors_origins?.[index]?.message}
+                listError={
+                  typeof errors.cors_origins?.message === "string"
+                    ? errors.cors_origins.message
+                    : undefined
+                }
+                renderRow={(index) => (
+                  <DefaultInput
+                    className="w-full font-mono text-sm"
+                    label="Origin"
+                    hideLabel
+                    register={register(`cors_origins.${index}`)}
+                    type="text"
+                    id={`cors_origins.${index}`}
+                    placeholder="http://localhost:3000"
+                  />
+                )}
+              />
             </div>
 
             {/* `Switch` already dims itself when disabled, so the reason below stays at full

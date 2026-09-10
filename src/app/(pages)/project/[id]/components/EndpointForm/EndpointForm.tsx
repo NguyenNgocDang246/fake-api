@@ -1,14 +1,21 @@
 "use client";
 
 import React from "react";
-import { Control, FieldErrors, UseFormRegister, useWatch } from "react-hook-form";
+import {
+  Control,
+  FieldErrors,
+  UseFormRegister,
+  UseFormSetValue,
+  useWatch,
+} from "react-hook-form";
 import { ClientCreateEndpointDTO } from "@/models/endpoint/endpoint.model";
 import { DefaultInput } from "@/app/components/Input/DefaultInput";
-import { SelectInput } from "@/app/components/Input/SelectInput";
+import { ComboInput } from "@/app/components/Input/ComboInput";
 import { JsonEditor } from "@/app/components/Input/JsonEditor";
 import { ErrorText } from "@/app/components/Text/ErrorText";
 import { FormTabs } from "@/app/components/Tabs/FormTabs";
 import { httpMethods } from "@/app/(pages)/project/[id]/components/EndpointForm/httpMethods";
+import { statusCodeOptions } from "@/app/(pages)/project/[id]/components/EndpointForm/statusCodeOptions";
 import {
   AiEndpointSection,
   EndpointDesign,
@@ -19,13 +26,16 @@ interface EndpointFormProps {
   register: UseFormRegister<ClientCreateEndpointDTO>;
   control: Control<ClientCreateEndpointDTO>;
   errors: FieldErrors<ClientCreateEndpointDTO>;
+  // The method and status code pickers write through `setValue` rather than `register`, the way
+  // `ProjectForm` drives its origin list.
+  setValue: UseFormSetValue<ClientCreateEndpointDTO>;
   // `FormTabs` needs the attempts, not the errors alone: an error already on screen must not yank
   // the tab while the user types.
   submitCount: number;
   projectId: string;
   endpointGroupId: string;
   // Create only: the update form opens on the values it is editing.
-  defaults?: { delay_ms: string; status_code: string } | undefined;
+  defaults?: { delay_ms: string } | undefined;
   // Update only: the endpoint being edited, and whether it already stores a blueprint.
   endpointId?: string | undefined;
   hasStoredPlan?: boolean | undefined;
@@ -39,6 +49,7 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
   register,
   control,
   errors,
+  setValue,
   submitCount,
   projectId,
   endpointGroupId,
@@ -50,6 +61,21 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
 }) => {
   const aiEnabled = useWatch({ control, name: "ai_enabled" });
   const responseHeaders = useWatch({ control, name: "response_headers" });
+  const method = useWatch({ control, name: "method" });
+  const statusCode = useWatch({ control, name: "status_code" });
+
+  // The two pickers hand back a plain string; `method` is a string union in the DTO, so it is
+  // cast on the way in. The schema still rejects anything outside the set on submit.
+  const setMethod = (value: string) =>
+    setValue("method", value as ClientCreateEndpointDTO["method"], {
+      shouldDirty: true,
+      shouldValidate: submitCount > 0,
+    });
+  const setStatusCode = (value: string) =>
+    setValue("status_code", value, {
+      shouldDirty: true,
+      shouldValidate: submitCount > 0,
+    });
 
   const basicsHasError = !!(
     errors.method ||
@@ -67,12 +93,14 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
     <>
       <div className="grid grid-cols-1 gap-3 @min-[420px]:grid-cols-2 @min-[660px]:grid-cols-[minmax(6.5rem,0.8fr)_2fr_minmax(5.5rem,0.7fr)_minmax(5.5rem,0.7fr)]">
         <div className="flex min-w-0 flex-col gap-1">
-          <SelectInput
+          <ComboInput
             className="w-full"
-            label="Method"
             id="method"
+            label="Method"
             options={httpMethods}
-            register={register("method")}
+            value={method ?? ""}
+            onChange={setMethod}
+            placeholder="GET"
           />
           {errors.method && <ErrorText message={errors.method.message} />}
         </div>
@@ -103,14 +131,15 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
         </div>
 
         <div className="flex min-w-0 flex-col gap-1">
-          <DefaultInput
+          <ComboInput
             className="w-full"
-            label="Status Code"
-            register={register("status_code")}
-            type="text"
             id="status_code"
+            label="Status Code"
+            options={statusCodeOptions}
+            value={statusCode == null ? "" : String(statusCode)}
+            onChange={setStatusCode}
+            allowCreate
             placeholder="200"
-            {...(defaults ? { defaultValue: defaults.status_code } : {})}
           />
           {errors.status_code && <ErrorText message={errors.status_code.message} />}
         </div>
@@ -149,7 +178,15 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
           marked: headerCount > 0,
           description:
             "Extra headers this endpoint sends back. Every response already carries a JSON content type and is never cached, so this is for the rest: a page count, an ETag, a redirect target.",
-          content: <ResponseHeadersEditor register={register} control={control} errors={errors} />,
+          content: (
+            <ResponseHeadersEditor
+              register={register}
+              control={control}
+              errors={errors}
+              setValue={setValue}
+              submitCount={submitCount}
+            />
+          ),
         },
         // The AI tab is left out rather than hidden when AI is off: the section fetches its own
         // status and quota, and a panel nobody can open must not spend requests on that.

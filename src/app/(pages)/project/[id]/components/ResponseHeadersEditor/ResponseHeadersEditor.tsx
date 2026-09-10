@@ -1,15 +1,23 @@
 "use client";
 
 import React from "react";
-import { Control, FieldErrors, UseFormRegister, useFieldArray } from "react-hook-form";
+import {
+  Control,
+  FieldErrors,
+  UseFormRegister,
+  UseFormSetValue,
+  useFieldArray,
+  useWatch,
+} from "react-hook-form";
 import { ClientCreateEndpointDTO } from "@/models/endpoint/endpoint.model";
 import { MAX_RESPONSE_HEADERS } from "@/models/endpoint/response_headers.model";
 import { DefaultInput } from "@/app/components/Input/DefaultInput";
-import { ErrorText } from "@/app/components/Text/ErrorText";
+import { ComboInput } from "@/app/components/Input/ComboInput";
+import { RepeatableRowList } from "@/app/components/Input/RepeatableRowList";
 
-// Suggestions only, never a whitelist: the datalist is there so the common ones are one keystroke
-// away, and anything else a mock needs is still typed in by hand.
-const COMMON_HEADER_NAMES = [
+// Suggestions only, never a whitelist: the common ones are one keystroke away, and anything else
+// a mock needs is still typed in by hand.
+const COMMON_HEADER_OPTIONS = [
   "Cache-Control",
   "Content-Type",
   "ETag",
@@ -17,93 +25,76 @@ const COMMON_HEADER_NAMES = [
   "Retry-After",
   "X-Request-Id",
   "X-Total-Count",
-];
-
-const HEADER_NAME_LIST_ID = "response-header-names";
+].map((name) => ({ label: name, value: name }));
 
 interface ResponseHeadersEditorProps {
   register: UseFormRegister<ClientCreateEndpointDTO>;
   control: Control<ClientCreateEndpointDTO>;
   errors: FieldErrors<ClientCreateEndpointDTO>;
+  setValue: UseFormSetValue<ClientCreateEndpointDTO>;
+  submitCount: number;
 }
 
 export const ResponseHeadersEditor: React.FC<ResponseHeadersEditorProps> = ({
   register,
   control,
   errors,
+  setValue,
+  submitCount,
 }) => {
   const { fields, append, remove } = useFieldArray({ control, name: "response_headers" });
+  const rows = useWatch({ control, name: "response_headers" }) ?? [];
   const rowErrors = errors.response_headers;
 
   return (
-    <div className="flex flex-col gap-3">
-      <datalist id={HEADER_NAME_LIST_ID}>
-        {COMMON_HEADER_NAMES.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
-
-      {fields.length === 0 && (
-        <p className="text-xs text-gray-500">
-          No headers yet. This endpoint still answers with JSON, it just sends nothing extra.
-        </p>
-      )}
-
-      {fields.map((field, index) => (
-        <div key={field.id} className="flex flex-col gap-1">
-          <div className="grid grid-cols-1 gap-2 @min-[420px]:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_auto] @min-[420px]:items-end">
-            <div className="flex min-w-0 flex-col gap-1">
-              <DefaultInput
-                className="w-full"
-                label="Name"
-                hideLabel={index > 0}
-                register={register(`response_headers.${index}.name`)}
-                type="text"
-                id={`response_headers.${index}.name`}
-                placeholder="X-Total-Count"
-                list={HEADER_NAME_LIST_ID}
-              />
-            </div>
-
-            <div className="flex min-w-0 flex-col gap-1">
-              <DefaultInput
-                className="w-full"
-                label="Value"
-                hideLabel={index > 0}
-                register={register(`response_headers.${index}.value`)}
-                type="text"
-                id={`response_headers.${index}.value`}
-                placeholder="42"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => remove(index)}
-              aria-label={`Remove header ${index + 1}`}
-              className="h-[2.6rem] cursor-pointer rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-600 transition hover:border-red-300 hover:text-red-600"
-            >
-              Remove
-            </button>
+    <RepeatableRowList
+      itemKeys={fields.map((field) => field.id)}
+      max={MAX_RESPONSE_HEADERS}
+      addLabel="Add header"
+      emptyHint="No headers yet. This endpoint still answers with JSON, it just sends nothing extra."
+      onAdd={() => append({ name: "", value: "" })}
+      onRemove={remove}
+      removeLabel={(index) => `Remove header ${index + 1}`}
+      rowError={(index) =>
+        rowErrors?.[index]?.name?.message ?? rowErrors?.[index]?.value?.message
+      }
+      listError={
+        rowErrors?.root?.message ??
+        (typeof rowErrors?.message === "string" ? rowErrors.message : undefined)
+      }
+      renderRow={(index) => (
+        <div className="flex min-w-0 gap-2">
+          <div className="min-w-0 flex-1">
+            <ComboInput
+              className="w-full"
+              id={`response_headers.${index}.name`}
+              label="Name"
+              hideLabel
+              options={COMMON_HEADER_OPTIONS}
+              value={rows[index]?.name ?? ""}
+              onChange={(value) =>
+                setValue(`response_headers.${index}.name`, value, {
+                  shouldDirty: true,
+                  shouldValidate: submitCount > 0,
+                })
+              }
+              allowCreate
+              placeholder="X-Total-Count"
+            />
           </div>
-
-          {rowErrors?.[index]?.name && <ErrorText message={rowErrors[index].name.message} />}
-          {rowErrors?.[index]?.value && <ErrorText message={rowErrors[index].value.message} />}
+          <div className="min-w-0 flex-1">
+            <DefaultInput
+              className="w-full"
+              label="Value"
+              hideLabel
+              register={register(`response_headers.${index}.value`)}
+              type="text"
+              id={`response_headers.${index}.value`}
+              placeholder="42"
+            />
+          </div>
         </div>
-      ))}
-
-      {rowErrors?.root && <ErrorText message={rowErrors.root.message} />}
-      {typeof rowErrors?.message === "string" && <ErrorText message={rowErrors.message} />}
-
-      {fields.length < MAX_RESPONSE_HEADERS && (
-        <button
-          type="button"
-          onClick={() => append({ name: "", value: "" })}
-          className="self-start cursor-pointer rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 transition hover:border-blue-400 hover:text-blue-600"
-        >
-          Add header
-        </button>
       )}
-    </div>
+    />
   );
 };
