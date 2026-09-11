@@ -14,9 +14,12 @@ export const SITE = {
   name: "Fake API",
   url: domain ?? "http://localhost:3000",
   description:
-    "Create free mock REST API endpoints in your browser and call them over a real HTTPS URL. Set the JSON body, status code, headers and latency, no backend.",
+    "Fake API is a free mock REST API you build in the browser and call over a real HTTPS URL. Set the JSON body, status code, headers and latency, no backend.",
   locale: "en_US",
   themeColor: "#4f46e5",
+  // Not an env var: it is the same in every environment and is printed on a public page, so
+  // it is site identity like the name above.
+  contactEmail: "ngocdang.dev@gmail.com",
 } as const;
 
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 } as const;

@@ -89,6 +89,8 @@ export const PAGE_ROUTES = {
   DOCS: "/docs",
   HOME: "/",
   PROJECT: "/project",
+  PRIVACY: "/privacy",
+  TERMS: "/terms",
   MARKETING: {
     MOCK_DATA: "/mock-data",
     MOCK_API_TOOLS: "/mock-api-tools",

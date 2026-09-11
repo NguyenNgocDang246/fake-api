@@ -29,6 +29,9 @@ export interface CreateEndpointFormProps {
   projectId?: string | undefined;
   endpointRoutes?: EndpointRoutes | undefined;
   aiAvailable?: boolean | undefined;
+  // Runs once the endpoint exists. The home page's trial box uses it to report the one
+  // conversion it cares about, which the project page must not report as well.
+  onCreated?: (() => void) | undefined;
 }
 
 export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEndpointFormProps>(
@@ -78,6 +81,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
       onSuccess() {
         reset();
         Notify.success("Created endpoint");
+        props.onCreated?.();
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT.ALL] });
         // An AI endpoint saved without a preview designs its blueprint on the server, which
         // spends one of the day's calls.

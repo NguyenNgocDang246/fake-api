@@ -8,6 +8,7 @@ export interface OpenCreateEndpointOptions {
   projectId?: string | undefined;
   endpointRoutes?: EndpointRoutes | undefined;
   aiAvailable?: boolean | undefined;
+  onCreated?: (() => void) | undefined;
 }
 
 export const useCreateEndpointViewModel = () => {

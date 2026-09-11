@@ -29,4 +29,8 @@ export const QUERY_KEY = {
 // only thing tying a visitor to their endpoints, since a visitor has no session.
 export const GUEST_SANDBOX_STORAGE_KEY = "fake-api.guest-sandbox";
 
+// Whether this browser agreed to analytics cookies. Nothing is stored until the visitor
+// answers, so an absent key means the banner has not been shown yet.
+export const COOKIE_CONSENT_STORAGE_KEY = "fake-api.cookie-consent";
+
 export const STALETIME = 5 * 60 * 1000;
