@@ -20,13 +20,13 @@ import {
 const PATH = PAGE_ROUTES.MARKETING.FAQ;
 
 const META_DESCRIPTION =
-  "Answers about Fake API: what it costs, how long mock endpoints live, which limits apply, and how AI generated responses work.";
+  "Answers about Fake API: what it costs, how long your mock endpoints live, which limits apply, whether writes persist, and how AI generated responses work.";
 
 const HERO_DESCRIPTION =
   "Answers about Fake API: what it costs, how long your mock endpoints live, which limits apply, whether you can call them from CI, and how AI generated responses work.";
 
 export const metadata: Metadata = buildMetadata({
-  title: "FAQ",
+  title: "FAQ - Limits, Pricing and How Fake API Works",
   description: META_DESCRIPTION,
   path: PATH,
 });
@@ -83,6 +83,26 @@ const FAQ = [
     question: "Is this a replacement for a real backend?",
     answer:
       "No, and it is not meant to be. There is no persistence between calls, so a POST does not change what a later GET returns. It exists to unblock frontend work while the real API is being built.",
+  },
+  {
+    question: "Does it come with ready made products or users data?",
+    answer:
+      "No. Every response body is one you write. There is no built in products, users, or carts collection to call, so if you want a storefront or a user list you paste that shape yourself, optionally letting the AI variants fill the values in.",
+  },
+  {
+    question: "Should I use this instead of JSONPlaceholder?",
+    answer:
+      "For a first fetch or a tutorial, JSONPlaceholder is simpler and needs no account. Use this when you need your own response shape, a specific status code, or a deliberate delay, none of which a shared public dataset can give you.",
+  },
+  {
+    question: "What happened to myjson.com?",
+    answer:
+      "It shut down, which is why links to it in older tutorials and Stack Overflow answers no longer resolve. This site does the same job: paste a JSON body and get a public HTTPS URL that serves it back.",
+  },
+  {
+    question: "Can I return a JSON:API shaped response?",
+    answer:
+      "Yes, by pasting a JSON:API shaped body. An endpoint serves whatever valid JSON object you write, so the envelope is yours to choose. It does not implement the specification itself, so there is no content negotiation, sparse fieldset handling, or relationship traversal.",
   },
 ];
 
@@ -163,6 +183,28 @@ export default async function FaqPage() {
             fake JSON API
           </TextLink>{" "}
           page covers what they can return.
+        </p>
+
+        <p className="text-gray-600 leading-relaxed mt-4">
+          There are also three guides that stand on their own, whichever tool you end up using:{" "}
+          <TextLink
+            href={PAGE_ROUTES.MARKETING.FREE_API_FOR_TESTING}
+            className="text-blue-600 hover:underline"
+          >
+            free APIs for testing
+          </TextLink>{" "}
+          compares the public services,{" "}
+          <TextLink
+            href={PAGE_ROUTES.MARKETING.DUMMY_JSON_DATA}
+            className="text-blue-600 hover:underline"
+          >
+            dummy JSON data
+          </TextLink>{" "}
+          covers the values that actually break a UI, and{" "}
+          <TextLink href={PAGE_ROUTES.MARKETING.JSON_TO_API} className="text-blue-600 hover:underline">
+            JSON to API
+          </TextLink>{" "}
+          walks through the ways to put a JSON file behind a URL.
         </p>
       </section>
 

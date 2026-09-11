@@ -47,6 +47,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
         ai_fields: [],
         ai_prompt: null,
         response_headers: [],
+        method: "GET",
         status_code: "200",
       },
     });

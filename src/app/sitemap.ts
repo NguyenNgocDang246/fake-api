@@ -11,6 +11,9 @@ const ENTRIES: Entry[] = [
   { path: PAGE_ROUTES.DOCS, changeFrequency: "monthly", priority: 0.8 },
   { path: PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR, changeFrequency: "monthly", priority: 0.8 },
   { path: PAGE_ROUTES.MARKETING.FAKE_JSON_API, changeFrequency: "monthly", priority: 0.8 },
+  { path: PAGE_ROUTES.MARKETING.FREE_API_FOR_TESTING, changeFrequency: "monthly", priority: 0.8 },
+  { path: PAGE_ROUTES.MARKETING.DUMMY_JSON_DATA, changeFrequency: "monthly", priority: 0.8 },
+  { path: PAGE_ROUTES.MARKETING.JSON_TO_API, changeFrequency: "monthly", priority: 0.8 },
   { path: PAGE_ROUTES.MARKETING.FAQ, changeFrequency: "monthly", priority: 0.6 },
 ];
 

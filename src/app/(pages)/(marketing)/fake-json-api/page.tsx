@@ -20,13 +20,13 @@ import {
 const PATH = PAGE_ROUTES.MARKETING.FAKE_JSON_API;
 
 const META_DESCRIPTION =
-  "Serve fake JSON data over a real HTTP URL. Paste the exact response body you want, or let AI vary chosen fields on every call.";
+  "Serve fake JSON data over a real HTTP URL. Paste the exact response body you want back, byte for byte, or let AI vary the fields you choose on each call.";
 
 const HERO_DESCRIPTION =
   "Serve fake JSON data over a real HTTP URL. Paste the exact response body you want, or let AI vary chosen fields on every call so your UI is never tested against the same row twice.";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Fake JSON API",
+  title: "Fake JSON API - Serve Dummy JSON Over a Real URL",
   description: META_DESCRIPTION,
   path: PATH,
 });
@@ -54,45 +54,33 @@ const JSON_FEATURES: Feature[] = [
     title: "What you wrote, on one line",
     description:
       "Key order and long numbers survive intact, so a 19-digit id does not come back rounded. Only your spacing goes, which is what makes every endpoint answer in the same compact line. Turn on AI and the same holds: the fields you ticked change on each call, the rest stay exactly as you typed them.",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-600",
   },
   {
     icon: Layers,
     title: "Nested objects and lists",
     description: `Nest up to ${MAX_RESPONSE_BODY_DEPTH} levels deep with up to ${MAX_ARRAY_ITEMS} items in any one list, which covers the shape of most real payloads.`,
-    iconBg: "bg-purple-100",
-    iconColor: "text-purple-600",
   },
   {
     icon: Sparkles,
     title: "AI generated field values",
     description: `Tick the fields that should change and each call regenerates them, up to ${MAX_AI_FIELDS} fields and ${MAX_AI_VALUES} values at a time. Everything else stays exactly as written.`,
-    iconBg: "bg-amber-100",
-    iconColor: "text-amber-600",
   },
   {
     icon: Shuffle,
     title: "Data that is not all John Doe",
     description:
       "Names of different lengths, emails that are not all the same domain, prices that are not all round. Layout bugs show up under varied data, not under placeholder data.",
-    iconBg: "bg-emerald-100",
-    iconColor: "text-emerald-600",
   },
   {
     icon: Ruler,
     title: "Sized for a real screen",
     description: `A body can run to ${MAX_RESPONSE_BODY_CHARS.toLocaleString("en-US")} characters, enough for a full page of results rather than a single token row.`,
-    iconBg: "bg-pink-100",
-    iconColor: "text-pink-600",
   },
   {
     icon: Repeat,
     title: "Stable when you need it",
     description:
       "AI variation is off by default. Leave it off and the endpoint answers identically every time, which is what a snapshot test wants.",
-    iconBg: "bg-cyan-100",
-    iconColor: "text-cyan-600",
   },
 ];
 
@@ -102,6 +90,22 @@ const FIXED_BODY = `{
   "email": "john@example.com",
   "orders": [
     { "id": "A-1001", "total": 42.5, "status": "shipped" }
+  ]
+}`;
+
+const MAX_SAFE_INTEGER_LABEL = Number.MAX_SAFE_INTEGER.toLocaleString("en-US");
+
+const ECOMMERCE_BODY = `{
+  "id": 9007199254740993,
+  "sku": "TS-BLK-M",
+  "name": "Heavyweight cotton t-shirt",
+  "price": 24.9,
+  "discount_percent": null,
+  "in_stock": true,
+  "tags": [],
+  "variants": [
+    { "size": "M", "color": "black", "stock": 12 },
+    { "size": "L", "color": "black", "stock": 0 }
   ]
 }`;
 
@@ -189,19 +193,68 @@ export default async function FakeJsonApiPage() {
 
       <section className="mt-16 w-full max-w-3xl px-4 sm:px-6">
         <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-          Dummy JSON data for a full screen, not one row
+          The JSON pitfalls nobody warns you about
         </h2>
         <p className="text-gray-600 leading-relaxed mb-4">
-          Most dummy JSON data you find lying around is a single object or a list of three. That is
-          enough to prove a fetch works, and not enough to find out what your table does at row
-          forty. A body here holds up to {MAX_ARRAY_ITEMS} items in one list and runs to{" "}
-          {MAX_RESPONSE_BODY_CHARS.toLocaleString("en-US")} characters, which is a screen of results
-          rather than a sample of one.
+          Four things go wrong when JSON travels over HTTP, and all four are invisible until they are
+          expensive. The first is the number problem above. JavaScript holds numbers as doubles, so
+          any integer past {MAX_SAFE_INTEGER_LABEL} loses precision the moment it passes through{" "}
+          <TextLink
+            href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse"
+            className="text-blue-600 hover:underline"
+            external
+          >
+            JSON.parse
+          </TextLink>
+          . Snowflake ids and database bigints land squarely in that range, and the symptom is not an
+          error, it is two different records comparing as equal.
+        </p>
+        <p className="text-gray-600 leading-relaxed mb-4">
+          The second is key order. It carries no meaning in the JSON spec, but a JavaScript object
+          reorders integer-like keys ahead of the rest, so a body keyed by id can come back in an
+          order you did not write. If anything downstream hashes or diffs the raw response, that
+          reordering is a silent mismatch.
+        </p>
+        <p className="text-gray-600 leading-relaxed mb-4">
+          The third is null against absent. A key holding null and a key that is not there at all are
+          different states, and they reach your component differently: one overwrites a default, the
+          other lets it stand. Mock data that never sends an explicit null cannot tell you which
+          branch you wrote.
         </p>
         <p className="text-gray-600 leading-relaxed">
-          Size is also how you reach the states nobody tests. Give one endpoint the full list, a
-          second the same shape with an empty array, and a third a single item, and the empty state
-          and the one-result layout stop being things you find out about after release.
+          The fourth is the charset. A response served without a utf-8 charset can mangle accented
+          characters and emoji on the way to a client that guesses wrong. Responses here go out as
+          application/json with utf-8 declared, and both the content type and the cache header can be
+          replaced with a custom response header when you want to test what a client does with
+          something else. The full picture is on the{" "}
+          <TextLink href={PAGE_ROUTES.MARKETING.JSON_TO_API} className="text-blue-600 hover:underline">
+            JSON to API
+          </TextLink>{" "}
+          page.
+        </p>
+      </section>
+
+      <section className="mt-16 w-full max-w-3xl px-4 sm:px-6">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4">A worked example</h2>
+        <p className="text-gray-600 leading-relaxed mb-6">
+          Product listings are the shape most people are mocking, and they carry every one of the
+          pitfalls above at once: long ids, prices that must not be rounded, an optional discount
+          that is genuinely null sometimes, and a nested list that can be empty. A body like this one
+          exercises all of it, and comes back exactly as written.
+        </p>
+        <CodeBlock lang="json">{ECOMMERCE_BODY}</CodeBlock>
+        <p className="text-gray-600 leading-relaxed mt-6">
+          A body runs to {MAX_RESPONSE_BODY_CHARS.toLocaleString("en-US")} characters with up to{" "}
+          {MAX_ARRAY_ITEMS} items in any one list, which is a screen of results rather than a sample
+          of one. Choosing values that are actually worth testing against is its own subject, covered
+          on{" "}
+          <TextLink
+            href={PAGE_ROUTES.MARKETING.DUMMY_JSON_DATA}
+            className="text-blue-600 hover:underline"
+          >
+            dummy JSON data
+          </TextLink>
+          .
         </p>
       </section>
 

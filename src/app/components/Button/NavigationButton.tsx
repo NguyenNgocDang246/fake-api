@@ -5,7 +5,7 @@ import { twMerge } from "tailwind-merge";
 const variantClasses: Record<string, string> = {
   primary:
     "bg-linear-to-r from-indigo-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-800",
-  outline: "border-2 border-gray-300 text-gray-700 hover:bg-gray-100",
+  outline: "border-2 border-gray-400 text-gray-700 hover:bg-gray-100",
   ghost:
     "bg-inherit text-gray-600 hover:bg-inherit hover:text-gray-900 hover:underline underline-offset-4",
   inverse: "bg-white text-blue-700 hover:bg-blue-50 shadow-lg",

@@ -17,11 +17,15 @@ import {
   MIN_STATUS_CODE,
 } from "@/models/endpoint/primitives.model";
 
+const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
+
 export const EndpointSchema = z
   .object({
     public_id: PublicIdSchema,
     endpoint_groups_public_id: PublicIdSchema,
-    method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
+    method: z.enum(HTTP_METHODS, {
+      error: `The method must be one of ${HTTP_METHODS.join(", ")}`,
+    }),
     path: z
       .string()
       .regex(/^\/(?:[a-zA-Z0-9_.~:@-]+(?:\/[a-zA-Z0-9_.~:@-]+)*)?$/, "The path is not valid")

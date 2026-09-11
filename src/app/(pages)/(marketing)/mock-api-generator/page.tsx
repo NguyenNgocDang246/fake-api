@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Rocket, Terminal, GitBranch, Users, Timer, Wrench, ServerCog } from "lucide-react";
 import { JsonLd } from "@/app/components/JsonLd";
+import { ComparisonTable } from "@/app/components/Marketing/ComparisonTable";
 import { CtaBanner } from "@/app/components/Marketing/CtaBanner";
 import { FeatureGrid, type Feature } from "@/app/components/Marketing/FeatureGrid";
 import { MarketingHero } from "@/app/components/Marketing/MarketingHero";
@@ -17,13 +18,13 @@ import { MAX_DELAY_MS, MAX_PATH_LENGTH } from "@/models/endpoint/primitives.mode
 const PATH = PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR;
 
 const META_DESCRIPTION =
-  "A mock API generator for frontend developers. Define REST endpoints in the browser and get a public URL back, with no server to run.";
+  "A mock API generator for frontend developers. Define REST endpoints in the browser, set the status code and delay, and get a public HTTPS URL straight back.";
 
 const HERO_DESCRIPTION =
   "A mock API generator for frontend developers. Define REST endpoints in the browser, get a public URL immediately, and skip writing an Express server just to unblock the UI.";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Mock API Generator",
+  title: "Mock API Generator - Create Free REST API Endpoints",
   description: META_DESCRIPTION,
   path: PATH,
 });
@@ -56,47 +57,35 @@ const AGAINST_A_REAL_SERVER: Feature[] = [
     title: "No project to scaffold",
     description:
       "No npm init, no framework choice, no dependency tree to keep patched. The generator is a form, and the endpoint exists the moment you save it.",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-600",
   },
   {
     icon: ServerCog,
     title: "No host to pay for",
     description:
       "A throwaway mock server still needs somewhere to run. Endpoints here answer from the same URL whether you are on your laptop or in CI.",
-    iconBg: "bg-purple-100",
-    iconColor: "text-purple-600",
   },
   {
     icon: GitBranch,
     title: "Nothing to merge",
     description:
       "Mock handlers committed into the app tend to outlive the sprint and drift from the real contract. Nothing here touches your repository.",
-    iconBg: "bg-emerald-100",
-    iconColor: "text-emerald-600",
   },
   {
     icon: Users,
     title: "Shareable with the team",
     description:
       "A local server on port 3001 helps one person. A generated URL can be pasted into a ticket, a Postman collection, or a designer's browser.",
-    iconBg: "bg-pink-100",
-    iconColor: "text-pink-600",
   },
   {
     icon: Timer,
     title: "Latency you can dial in",
     description: `Set a delay per endpoint, anywhere from 0 to ${MAX_DELAY_MS.toLocaleString("en-US")} ms, and your spinners and timeout branches finally get exercised.`,
-    iconBg: "bg-amber-100",
-    iconColor: "text-amber-600",
   },
   {
     icon: Wrench,
     title: "Failure states on demand",
     description:
       "Give an endpoint a 401, a 429, or a 500 and leave it that way. Reproducing an error path stops being a code change.",
-    iconBg: "bg-cyan-100",
-    iconColor: "text-cyan-600",
   },
 ];
 
@@ -115,6 +104,46 @@ const GENERATOR_STEPS: Step[] = [
     step: "3",
     title: "Copy the URL",
     description: "Every endpoint carries a public URL. Point fetch, axios, or your test suite at it.",
+  },
+];
+
+// Ordered so the two in-repo approaches sit together, then the two hosted ones.
+const STRATEGIES = [
+  {
+    name: "MSW",
+    cells: [
+      "In your repo, as code",
+      "Whoever runs the project",
+      "No, it intercepts in the app",
+      "Mocks versioned with the code, and per test overrides",
+    ],
+  },
+  {
+    name: "json-server",
+    cells: [
+      "In your repo, as a JSON file",
+      "Your machine only",
+      "Yes, a local process",
+      "A full REST shape with writes that stick for the session",
+    ],
+  },
+  {
+    name: "Postman mock server",
+    cells: [
+      "In a Postman collection",
+      "Your Postman team",
+      "No, it is hosted",
+      "Teams already running their contracts through Postman",
+    ],
+  },
+  {
+    name: "A generated endpoint",
+    cells: [
+      "Outside the repo, behind a URL",
+      "Anyone holding the URL",
+      "No, it is hosted",
+      "Sharing a state with a designer, a tester or a CI job",
+    ],
   },
 ];
 
@@ -223,6 +252,46 @@ export default async function MockApiGeneratorPage() {
             FAQ
           </TextLink>{" "}
           goes through the rest of the limits.
+        </p>
+      </section>
+
+      <section className="mt-16 w-full max-w-5xl px-4 sm:px-6">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+          MSW, json-server, Postman, or a hosted URL
+        </h2>
+        <p className="text-gray-600 leading-relaxed mb-4">
+          These are the four options most teams weigh, and a generated endpoint is not the right
+          answer to all of them.{" "}
+          <TextLink href="https://mswjs.io" className="text-blue-600 hover:underline" external>
+            Mock Service Worker
+          </TextLink>{" "}
+          is the strongest choice when the mock belongs to the test suite. It intercepts at the
+          network layer, so your app code is untouched, and because the handlers are code you can
+          override one response inside a single test, run the whole thing offline, and review changes
+          to the mock in the same pull request as the feature. Nothing hosted can match that.
+        </p>
+        <p className="text-gray-600 leading-relaxed mb-6">
+          The trade is that the mock is now code in your repository, with everything that implies:
+          it has to be written, reviewed, merged, kept in step with the real contract, and eventually
+          deleted. And it only exists where the project runs, so a designer checking a state or a
+          product manager reproducing a bug is out of reach.
+        </p>
+        <ComparisonTable
+          caption="Four mocking approaches compared by where the mock lives, who can call it, whether a process must run, and what each is best at"
+          columns={["Approach", "Where the mock lives", "Who can call it", "Needs a process", "Best at"]}
+          rows={STRATEGIES.map(({ name, cells }) => [name, ...cells])}
+        />
+        <p className="text-gray-600 leading-relaxed mt-6">
+          They are also not exclusive. A common split is MSW for unit and component tests, where
+          determinism and per test control matter most, and a hosted endpoint for the shared states
+          everyone else needs to look at. If you are still deciding whether you need a mock at all,{" "}
+          <TextLink
+            href={PAGE_ROUTES.MARKETING.FREE_API_FOR_TESTING}
+            className="text-blue-600 hover:underline"
+          >
+            free APIs for testing
+          </TextLink>{" "}
+          compares the public services that need no setup whatsoever.
         </p>
       </section>
 

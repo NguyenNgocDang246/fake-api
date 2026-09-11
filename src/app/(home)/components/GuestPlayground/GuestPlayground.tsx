@@ -2,6 +2,7 @@
 
 import { ActionButton } from "@/app/components/Button/ActionButton";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
+import { TextLink } from "@/app/components/Link/TextLink";
 import { Spinner } from "@/app/components/Loading/Spinner";
 import { EndpointItem } from "@/app/(pages)/project/[id]/components/EndpointItem/EndpointItem";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
@@ -22,10 +23,10 @@ export function GuestPlayground() {
   return (
     <section className="mx-auto w-full max-w-3xl px-4 mt-24">
       <div className="mb-6 text-center">
-        <h2 className="text-3xl font-extrabold text-gray-900">Try it right here</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold">Try it right here, no account needed</h2>
         <p className="mt-2 text-gray-600">
-          Build a mock endpoint without an account and call it for real. Up to {MAX_ENDPOINTS}{" "}
-          endpoints, no sign up needed.
+          Build a mock endpoint in the browser and call it for real, from curl, Postman, or the app
+          you are building.
         </p>
       </div>
 
@@ -103,9 +104,12 @@ export function GuestPlayground() {
         This is a place to try the product, not to build on. Endpoints here are deleted after{" "}
         {LIFETIME_IN_HOURS} hours, anyone holding the URL above can edit or delete them, and they do
         not move to a new account.{" "}
-        <a href={PAGE_ROUTES.AUTH.REGISTER} className="font-medium text-blue-700 hover:underline">
-          Sign in
-        </a>{" "}
+        <TextLink
+          href={PAGE_ROUTES.AUTH.REGISTER}
+          className="font-medium text-blue-700 hover:underline"
+        >
+          Sign up
+        </TextLink>{" "}
         to get your own projects, AI response variants, and mocks nobody else can touch.
       </p>
     </section>

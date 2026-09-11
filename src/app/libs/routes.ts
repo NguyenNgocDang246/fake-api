@@ -92,6 +92,9 @@ export const PAGE_ROUTES = {
   MARKETING: {
     MOCK_API_GENERATOR: "/mock-api-generator",
     FAKE_JSON_API: "/fake-json-api",
+    FREE_API_FOR_TESTING: "/free-api-for-testing",
+    DUMMY_JSON_DATA: "/dummy-json-data",
+    JSON_TO_API: "/json-to-api",
     FAQ: "/faq",
   },
 };
