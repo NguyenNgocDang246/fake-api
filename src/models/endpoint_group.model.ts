@@ -7,8 +7,8 @@ export const EndpointGroupSchema = z
     project_public_id: PublicIdSchema,
     name: z
       .string()
-      .nonempty("Tên nhóm endpoint không được để trống")
-      .max(255, "Tên nhóm endpoint không được quá 255 ký tự"),
+      .nonempty("The endpoint group name cannot be empty")
+      .max(255, "The endpoint group name cannot be longer than 255 characters"),
   })
   .strict();
 export type EndpointGroupDTO = z.infer<typeof EndpointGroupSchema>;

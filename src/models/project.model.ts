@@ -8,7 +8,7 @@ export const MAX_CORS_ORIGIN_LENGTH = 255;
 // is the usual mistake, and it never matches the `Origin` a browser sends.
 const CORS_ORIGIN_REGEX = /^https?:\/\/[a-zA-Z0-9.-]+(?::\d{1,5})?$/;
 
-export const TOO_MANY_CORS_ORIGINS = `Chỉ khai được tối đa ${MAX_CORS_ORIGINS} origin`;
+export const TOO_MANY_CORS_ORIGINS = `You can list at most ${MAX_CORS_ORIGINS} origins`;
 
 // Reports against the index it was handed, so an error on the third box lands on the third box.
 // A row the author added and left empty is skipped here and dropped by the transform below.
@@ -23,7 +23,7 @@ export function checkCorsOriginRows(origins: string[], ctx: z.RefinementCtx) {
       ctx.addIssue({
         code: "custom",
         path: [index],
-        message: `Origin không được quá ${MAX_CORS_ORIGIN_LENGTH} ký tự`,
+        message: `The origin cannot be longer than ${MAX_CORS_ORIGIN_LENGTH} characters`,
       });
       return;
     }
@@ -31,12 +31,12 @@ export function checkCorsOriginRows(origins: string[], ctx: z.RefinementCtx) {
       ctx.addIssue({
         code: "custom",
         path: [index],
-        message: "Origin phải có dạng http://localhost:3000, không kèm đường dẫn",
+        message: "An origin looks like http://localhost:3000, with no path after it",
       });
       return;
     }
     if (seen.has(origin)) {
-      ctx.addIssue({ code: "custom", path: [index], message: `"${origin}" đã được khai ở trên` });
+      ctx.addIssue({ code: "custom", path: [index], message: `"${origin}" is already listed above` });
       return;
     }
     seen.add(origin);
@@ -53,7 +53,7 @@ export const CorsOriginListSchema = z
   ]);
 
 export const CREDENTIALS_NEEDS_ORIGIN =
-  "Bật credentials thì phải khai ít nhất một origin, vì trình duyệt không nhận credentials đi kèm origin mở";
+  "Allowing credentials requires at least one origin, because a browser refuses credentials sent to an open origin";
 
 // The browser refuses `Allow-Origin: *` together with `Allow-Credentials: true`, so the pair is
 // caught here instead of leaving the author with a CORS error that names neither setting.
@@ -84,9 +84,13 @@ export const ProjectSchema = z
     user_public_id: PublicIdSchema,
     name: z
       .string()
-      .nonempty("Tên project không được để trống")
-      .max(255, "Tên project không được quá 255 ký tự"),
-    description: z.string().max(255, "Mô tả không được quá 255 ký tự").optional().nullable(),
+      .nonempty("The project name cannot be empty")
+      .max(255, "The project name cannot be longer than 255 characters"),
+    description: z
+      .string()
+      .max(255, "The description cannot be longer than 255 characters")
+      .optional()
+      .nullable(),
     cors_enabled: z.boolean().default(true),
     // Empty means any origin, which is what a project starts on and what most never change.
     cors_origins: CorsOriginListSchema.default([]),

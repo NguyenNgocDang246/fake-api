@@ -84,7 +84,7 @@ const PUBLIC_APIS: { name: string; href: string; cells: string[] }[] = [
     cells: [
       "Users, plus login and register routes",
       "Simulated, nothing persists",
-      "None documented",
+      "250 a day, per IP",
       "Auth flows and paged lists",
     ],
   },
@@ -202,9 +202,6 @@ export default async function FreeApiForTestingPage() {
           </>
         }
         description={HERO_DESCRIPTION}
-        primaryHref={ctaHref}
-        secondaryHref={PAGE_ROUTES.DOCS}
-        secondaryLabel="Read the docs"
       />
 
       <section className="mt-20 w-full max-w-3xl px-4 sm:px-6">
@@ -235,9 +232,8 @@ export default async function FreeApiForTestingPage() {
         <h2 className="text-2xl sm:text-3xl font-bold mb-4">Seven free REST APIs to test against</h2>
         <p className="text-gray-600 leading-relaxed mb-6">
           All seven are free, need no API key for the routes described, and answer a browser
-          directly. Nothing here persists a write, which is worth reading carefully if you were
-          planning to test a create flow. Details change, so treat this as a starting point and check
-          the service before you depend on it.
+          directly. Details change, so treat this as a starting point and check the service before
+          you depend on it.
         </p>
         <ComparisonTable
           caption="Free public APIs for testing, compared by data served, write support and documented rate limits"
@@ -275,6 +271,34 @@ export default async function FreeApiForTestingPage() {
         </p>
       </section>
 
+      <section className="mt-16 w-full max-w-3xl px-4 sm:px-6">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4">The one that serves your own JSON</h2>
+        <p className="text-gray-600 leading-relaxed mb-4">
+          A second entry does something the others do not.{" "}
+          <TextLink
+            href="https://dummyjson.com/custom-response"
+            className="text-blue-600 hover:underline"
+            external
+          >
+            DummyJSON
+          </TextLink>{" "}
+          has a custom response tool. You paste a JSON body, pick a method, and it hands back a
+          hosted URL that serves it, with no account and no signup. If a fixed shape behind a URL is
+          the whole of what you need, that is the shortest path there is and you should take it.
+        </p>
+        <p className="text-gray-600 leading-relaxed mb-4">
+          Knowing where it stops matters before you build on it. The URL expires after 90 days. The
+          body is fixed to the URL it was created with, so changing a response means generating a new
+          one and updating your app. The payload caps at 300 KB. And the tool takes a body and a
+          method and nothing else, so the status code and the delay are not yours to choose.
+        </p>
+        <p className="text-gray-600 leading-relaxed">
+          That last limit is the same wall httpbin hits from the opposite side. httpbin gives you the
+          status code and the delay but not your data. A pasted body gives you your data but not the
+          status code or the delay. A screen needs both at once, on the same endpoint.
+        </p>
+      </section>
+
       <FeatureGrid
         heading="Where a shared public API runs out"
         subheading="None of these are flaws. They are the cost of a dataset that belongs to everybody."
@@ -300,22 +324,20 @@ export default async function FreeApiForTestingPage() {
         <p className="text-gray-600 leading-relaxed">
           It has its own limit, and it is the same one the services above have: nothing persists
           between calls, so a POST does not change what a later GET returns. If your test needs a
-          write to stick, you need a real backend, and no mock on this page is going to substitute
-          for one. For everything short of that, the{" "}
+          write to stick, you need a real backend or one of the stateful services compared on{" "}
           <TextLink
-            href={PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR}
+            href={PAGE_ROUTES.MARKETING.MOCK_API_TOOLS}
             className="text-blue-600 hover:underline"
           >
-            mock API generator
+            mock API tools
+          </TextLink>
+          , and no public dataset on this page is going to substitute for one. For everything short
+          of that,{" "}
+          <TextLink href={PAGE_ROUTES.MARKETING.MOCK_DATA} className="text-blue-600 hover:underline">
+            mock data
           </TextLink>{" "}
-          page covers how endpoints are defined, and{" "}
-          <TextLink
-            href={PAGE_ROUTES.MARKETING.DUMMY_JSON_DATA}
-            className="text-blue-600 hover:underline"
-          >
-            dummy JSON data
-          </TextLink>{" "}
-          covers making the values realistic enough to be worth testing against.
+          covers where a mock belongs and how to make the values realistic enough to be worth testing
+          against.
         </p>
       </section>
 

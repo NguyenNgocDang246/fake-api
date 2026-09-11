@@ -12,4 +12,4 @@ export function generatePublicId(): string {
 
 export const PUBLIC_ID_REGEX = new RegExp(`^[${PUBLIC_ID_ALPHABET}]{${PUBLIC_ID_LENGTH}}$`);
 
-export const PublicIdSchema = z.string().regex(PUBLIC_ID_REGEX, "ID không hợp lệ");
+export const PublicIdSchema = z.string().regex(PUBLIC_ID_REGEX, "The ID is not valid");

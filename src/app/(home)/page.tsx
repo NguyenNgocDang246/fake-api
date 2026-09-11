@@ -183,7 +183,7 @@ export default async function Home() {
             href={PAGE_ROUTES.DOCS}
             target="_blank"
           >
-            View docs
+            Read the docs
           </NavigationButton>
         </div>
 

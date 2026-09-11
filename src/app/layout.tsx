@@ -36,14 +36,11 @@ const OG_IMAGES = [
   },
 ];
 
+// The landing pages live in the header's Guides menu instead, so the footer holds only the two
+// pages a reader looks for by name.
 const FOOTER_LINKS = [
   { href: PAGE_ROUTES.DOCS, label: "Docs" },
   { href: PAGE_ROUTES.MARKETING.FAQ, label: "FAQ" },
-  { href: PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR, label: "Mock API generator" },
-  { href: PAGE_ROUTES.MARKETING.FAKE_JSON_API, label: "Fake JSON API" },
-  { href: PAGE_ROUTES.MARKETING.FREE_API_FOR_TESTING, label: "Free APIs for testing" },
-  { href: PAGE_ROUTES.MARKETING.DUMMY_JSON_DATA, label: "Dummy JSON data" },
-  { href: PAGE_ROUTES.MARKETING.JSON_TO_API, label: "JSON to API" },
 ];
 
 export const metadata: Metadata = {
@@ -125,7 +122,8 @@ export default async function RootLayout({
             />
           </div>
 
-          <footer className="flex flex-col items-center gap-6 mb-4 mt-4 text-sm text-gray-500">
+          <footer className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 mt-4 lg:px-24 md:px-16 sm:px-8 px-4 text-sm text-gray-500">
+            <p>© {new Date().getFullYear()} Fake API. All rights reserved.</p>
             <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
               {FOOTER_LINKS.map(({ href, label }) => (
                 <TextLink key={href} href={href} variant="muted">
@@ -133,7 +131,6 @@ export default async function RootLayout({
                 </TextLink>
               ))}
             </nav>
-            <p>© {new Date().getFullYear()} Fake API. All rights reserved.</p>
           </footer>
         </MinWidthGuard>
       </body>

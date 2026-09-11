@@ -9,6 +9,7 @@ import { PAGE_ROUTES } from "@/app/libs/routes";
 import { SITE, absoluteUrl, breadcrumbSchema, buildMetadata, type Crumb } from "@/app/libs/seo";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
+import { GUEST_PROJECT_LIFETIME_IN_SECONDS } from "@/server/services/guest.constants";
 import {
   MAX_ARRAY_ITEMS,
   MAX_DELAY_MS,
@@ -34,6 +35,8 @@ export const metadata: Metadata = buildMetadata({
 const BREADCRUMB: Crumb[] = [{ label: "Home", href: PAGE_ROUTES.HOME }, { label: "FAQ" }];
 
 const USER_LIMITS = ROLE_LIMITS.USER;
+const GUEST_LIMITS = ROLE_LIMITS.GUEST;
+const GUEST_LIFETIME_IN_HOURS = Math.round(GUEST_PROJECT_LIFETIME_IN_SECONDS / (60 * 60));
 
 // Google requires the answer in the FAQPage schema to match the answer on the page, so both
 // are rendered from this one array.
@@ -48,9 +51,13 @@ const FAQ = [
       "No. Endpoints are created in the browser and answer over HTTPS straight away. There is no CLI, no SDK, and nothing to add to your project. Your app only needs the URL.",
   },
   {
+    question: "Can I create an endpoint without signing up?",
+    answer: `Yes. The home page has a trial box where you build up to ${GUEST_LIMITS.maxEndpointsPerGroup} endpoints and call them over HTTPS straight away, with no account. It is meant for a quick look rather than for work you keep: those endpoints are deleted after ${GUEST_LIFETIME_IN_HOURS} hours, anyone holding the URL can change them, the AI variants are off, and they stay behind when you sign up. Create an account when you want mocks that are yours.`,
+  },
+  {
     question: "How long do my mock endpoints stay up?",
     answer:
-      "An endpoint stays exactly as you left it until you change or delete it. Nothing expires on a timer, so a URL pasted into a ticket last month still answers today.",
+      "An endpoint in your account stays exactly as you left it until you change or delete it. Nothing expires on a timer, so a URL pasted into a ticket last month still answers today. The trial endpoints on the home page are the exception, since those are swept on a timer.",
   },
   {
     question: "Can I call the endpoints from CI or a test suite?",
@@ -167,44 +174,29 @@ export default async function FaqPage() {
           <TextLink href={PAGE_ROUTES.DOCS} className="text-blue-600 hover:underline">
             documentation
           </TextLink>{" "}
-          walks through creating a project, defining endpoints, and calling them from your app. For
-          the wider picture, the{" "}
-          <TextLink
-            href={PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR}
-            className="text-blue-600 hover:underline"
-          >
-            mock API generator
-          </TextLink>{" "}
-          page covers how endpoints are defined, and the{" "}
-          <TextLink
-            href={PAGE_ROUTES.MARKETING.FAKE_JSON_API}
-            className="text-blue-600 hover:underline"
-          >
-            fake JSON API
-          </TextLink>{" "}
-          page covers what they can return.
+          walks through creating a project, defining endpoints, and calling them from your app.
         </p>
 
         <p className="text-gray-600 leading-relaxed mt-4">
           There are also three guides that stand on their own, whichever tool you end up using:{" "}
+          <TextLink href={PAGE_ROUTES.MARKETING.MOCK_DATA} className="text-blue-600 hover:underline">
+            mock data
+          </TextLink>{" "}
+          covers where a mock belongs and which values actually break a UI,{" "}
+          <TextLink
+            href={PAGE_ROUTES.MARKETING.MOCK_API_TOOLS}
+            className="text-blue-600 hover:underline"
+          >
+            mock API tools
+          </TextLink>{" "}
+          compares the dedicated services and what separates them, and{" "}
           <TextLink
             href={PAGE_ROUTES.MARKETING.FREE_API_FOR_TESTING}
             className="text-blue-600 hover:underline"
           >
             free APIs for testing
           </TextLink>{" "}
-          compares the public services,{" "}
-          <TextLink
-            href={PAGE_ROUTES.MARKETING.DUMMY_JSON_DATA}
-            className="text-blue-600 hover:underline"
-          >
-            dummy JSON data
-          </TextLink>{" "}
-          covers the values that actually break a UI, and{" "}
-          <TextLink href={PAGE_ROUTES.MARKETING.JSON_TO_API} className="text-blue-600 hover:underline">
-            JSON to API
-          </TextLink>{" "}
-          walks through the ways to put a JSON file behind a URL.
+          compares the public datasets you might use before any of them.
         </p>
       </section>
 
