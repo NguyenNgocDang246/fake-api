@@ -32,8 +32,10 @@ export function HeaderNav() {
         position="left"
         variant="outline"
         btnClassName="p-0 size-9 flex items-center justify-center rounded-full"
-        // The clamp keeps the panel inside the viewport at the 300px floor MinWidthGuard allows.
-        boxClassName="w-64 max-w-[calc(100vw-2.5rem)]"
+        // Anchored to the screen, not to the button: the account control sits between the two,
+        // and its width is what a `100vw` clamp cannot see. `bottom-auto mt-2` cancels the
+        // dropUp flip, whose `bottom-full` would resolve against the screen once this is fixed.
+        boxClassName="fixed inset-x-4 ml-auto w-auto max-w-64 bottom-auto mt-2 max-h-[calc(100vh-5rem)] overflow-y-auto"
         // The guides keep their own mock/bug line, then Docs and FAQ sit under one more.
         dividerAfter={[2, 5]}
         options={[
