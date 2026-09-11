@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAnalyticsEvent } from "@/app/components/Wrapper/Consent/Analytics";
 import api from "@/app/libs/helpers/api_call.client";
 import buildUrl from "@/app/libs/helpers/url_builder";
 import { API_ROUTES } from "@/app/libs/routes";
@@ -35,6 +36,7 @@ function readStoredSandbox(): GuestSandbox | null {
 
 export function useGuestPlaygroundViewModel() {
   const queryClient = useQueryClient();
+  const trackEvent = useAnalyticsEvent();
   const [sandbox, setSandbox] = useState<GuestSandbox | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -88,6 +90,8 @@ export function useGuestPlaygroundViewModel() {
       const res = (await api.post(API_ROUTES.GUEST.SANDBOX)).data as ApiSuccessResponse;
       const next = res.data as GuestSandbox;
       store(next);
+      // The first real sign a visitor is trying the product rather than reading about it.
+      trackEvent("guest_sandbox_created");
       return next;
     } catch (error) {
       Notify.error((error as ApiErrorResponse).message);
@@ -95,7 +99,7 @@ export function useGuestPlaygroundViewModel() {
     } finally {
       setCreating(false);
     }
-  }, [sandbox, store]);
+  }, [sandbox, store, trackEvent]);
 
   const { openCreateEndpointModal } = useCreateEndpointViewModel();
 
@@ -115,8 +119,9 @@ export function useGuestPlaygroundViewModel() {
       projectId: target.project_id,
       endpointRoutes: API_ROUTES.GUEST.ENDPOINT,
       aiAvailable: false,
+      onCreated: () => trackEvent("guest_endpoint_created"),
     });
-  }, [ensureSandbox, openCreateEndpointModal, queryClient]);
+  }, [ensureSandbox, openCreateEndpointModal, queryClient, trackEvent]);
 
   const endpoints = endpointsState.data ?? [];
 

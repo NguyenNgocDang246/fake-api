@@ -8,6 +8,10 @@ import { AuthWrapper } from "@/app/components/Wrapper/Auth/AuthWrapper";
 import { ModalWrapper } from "@/app/components/Wrapper/Modal/ModalWrapper";
 import { QueryWrapper } from "@/app/components/Wrapper/QueryClient/QueryWrapper";
 import { MinWidthGuard } from "@/app/components/Wrapper/MinWidth/MinWidthGuard";
+import { ConsentWrapper } from "@/app/components/Wrapper/Consent/ConsentWrapper";
+import { CookieBanner } from "@/app/components/Wrapper/Consent/CookieBanner";
+import { CookiePreferencesButton } from "@/app/components/Wrapper/Consent/CookiePreferencesButton";
+import { Analytics } from "@/app/components/Wrapper/Consent/Analytics";
 import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/Constants";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 import { TextLink } from "@/app/components/Link/TextLink";
@@ -36,11 +40,13 @@ const OG_IMAGES = [
   },
 ];
 
-// The landing pages live in the header's Guides menu instead, so the footer holds only the two
-// pages a reader looks for by name.
+// The landing pages live in the header's Guides menu instead, so the footer holds the two pages
+// a reader looks for by name plus the two a reader looks for in a footer and nowhere else.
 const FOOTER_LINKS = [
   { href: PAGE_ROUTES.DOCS, label: "Docs" },
   { href: PAGE_ROUTES.MARKETING.FAQ, label: "FAQ" },
+  { href: PAGE_ROUTES.PRIVACY, label: "Privacy" },
+  { href: PAGE_ROUTES.TERMS, label: "Terms" },
 ];
 
 export const metadata: Metadata = {
@@ -99,40 +105,47 @@ export default async function RootLayout({
       >
         <HeroGlow />
 
-        <MinWidthGuard>
-          <div className="flex-1">
-            <QueryWrapper>
-              <HydrationBoundary state={dehydrate(queryClient)}>
-                <ModalWrapper>
-                  <AuthWrapper>
-                    <HeaderWrapper />
-                    <div className="lg:px-32 md:px-24 sm:px-12 px-8 mt-4">{children}</div>
-                  </AuthWrapper>
-                </ModalWrapper>
-              </HydrationBoundary>
-            </QueryWrapper>
-            <ToastContainer
-              position="bottom-right"
-              autoClose={4000}
-              newestOnTop
-              closeOnClick
-              pauseOnHover
-              theme="dark"
-              transition={Slide}
-            />
-          </div>
+        <ConsentWrapper>
+          <MinWidthGuard>
+            <div className="flex-1">
+              <QueryWrapper>
+                <HydrationBoundary state={dehydrate(queryClient)}>
+                  <ModalWrapper>
+                    <AuthWrapper>
+                      <HeaderWrapper />
+                      <div className="lg:px-32 md:px-24 sm:px-12 px-8 mt-4">{children}</div>
+                    </AuthWrapper>
+                  </ModalWrapper>
+                </HydrationBoundary>
+              </QueryWrapper>
+              <ToastContainer
+                position="bottom-right"
+                autoClose={4000}
+                newestOnTop
+                closeOnClick
+                pauseOnHover
+                theme="dark"
+                transition={Slide}
+              />
+            </div>
 
-          <footer className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 mt-4 lg:px-24 md:px-16 sm:px-8 px-4 text-sm text-gray-500">
-            <p>© {new Date().getFullYear()} Fake API. All rights reserved.</p>
-            <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-              {FOOTER_LINKS.map(({ href, label }) => (
-                <TextLink key={href} href={href} variant="muted">
-                  {label}
-                </TextLink>
-              ))}
-            </nav>
-          </footer>
-        </MinWidthGuard>
+            <footer className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 mt-4 lg:px-24 md:px-16 sm:px-8 px-4 text-sm text-gray-500">
+              <p>© {new Date().getFullYear()} Fake API. All rights reserved.</p>
+              <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+                {FOOTER_LINKS.map(({ href, label }) => (
+                  <TextLink key={href} href={href} variant="muted">
+                    {label}
+                  </TextLink>
+                ))}
+                <CookiePreferencesButton />
+              </nav>
+            </footer>
+
+            <CookieBanner />
+          </MinWidthGuard>
+
+          <Analytics />
+        </ConsentWrapper>
       </body>
     </html>
   );

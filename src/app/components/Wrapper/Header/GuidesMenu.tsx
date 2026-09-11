@@ -6,7 +6,7 @@ import { TextLink } from "@/app/components/Link/TextLink";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 
 // The mock group first, then the bug group, which is how the landing pages themselves are grouped.
-const GUIDE_LINKS = [
+export const GUIDE_LINKS = [
   { href: PAGE_ROUTES.MARKETING.MOCK_DATA, label: "Building mock data" },
   { href: PAGE_ROUTES.MARKETING.FREE_API_FOR_TESTING, label: "Free APIs for testing" },
   { href: PAGE_ROUTES.MARKETING.MOCK_API_TOOLS, label: "Choosing a mock API tool" },
