@@ -6,16 +6,16 @@ export const UserSchema = z
     public_id: PublicIdSchema,
     name: z
       .string()
-      .nonempty("Tên người dùng không được để trống")
-      .max(255, "Tên người dùng không được quá 255 ký tự"),
+      .nonempty("The name cannot be empty")
+      .max(255, "The name cannot be longer than 255 characters"),
     email: z
-      .email("Email không hợp lệ")
-      .nonempty("Email dùng không được để trống")
-      .max(255, "Email không được quá 255 ký tự"),
+      .email("The email address is not valid")
+      .nonempty("The email address cannot be empty")
+      .max(255, "The email address cannot be longer than 255 characters"),
     password: z
       .string()
-      .min(6, "Mật khẩu phải có ít nhất 6 ký tự")
-      .max(255, "Mật khẩu không được quá 255 ký tự"),
+      .min(6, "The password must be at least 6 characters")
+      .max(255, "The password cannot be longer than 255 characters"),
     is_verified: z.boolean().default(false),
     token_version: z.bigint(),
     role: z.enum(["USER", "GUEST", "USER_VIP"]).default("USER"),

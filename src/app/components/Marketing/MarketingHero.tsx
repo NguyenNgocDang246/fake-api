@@ -7,7 +7,7 @@ interface MarketingHeroProps {
   badgeIcon: LucideIcon;
   heading: React.ReactNode;
   description: string;
-  primaryHref: string;
+  primaryHref?: string;
   primaryLabel?: string;
   secondaryHref?: string;
   secondaryLabel?: string;
@@ -34,29 +34,37 @@ export function MarketingHero({
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-black mb-5 max-w-3xl">
           {heading}
         </h1>
-        <p className="text-lg text-gray-600 max-w-2xl mb-9 leading-relaxed">{description}</p>
+        <p
+          className={`text-lg text-gray-600 max-w-2xl leading-relaxed ${
+            primaryHref ? "mb-9" : ""
+          }`}
+        >
+          {description}
+        </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <NavigationButton
-            variant="primary"
-            className="text-lg shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.03] active:scale-[0.98]"
-            href={primaryHref}
-          >
-            <span className="flex items-center gap-1.5">
-              {primaryLabel}
-              <ArrowRight size={18} />
-            </span>
-          </NavigationButton>
-          {secondaryHref && secondaryLabel && (
+        {primaryHref && (
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <NavigationButton
-              variant="outline"
-              className="text-lg transition-all hover:scale-[1.03] active:scale-[0.98]"
-              href={secondaryHref}
+              variant="primary"
+              className="text-lg shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.03] active:scale-[0.98]"
+              href={primaryHref}
             >
-              {secondaryLabel}
+              <span className="flex items-center gap-1.5">
+                {primaryLabel}
+                <ArrowRight size={18} />
+              </span>
             </NavigationButton>
-          )}
-        </div>
+            {secondaryHref && secondaryLabel && (
+              <NavigationButton
+                variant="outline"
+                className="text-lg transition-all hover:scale-[1.03] active:scale-[0.98]"
+                href={secondaryHref}
+              >
+                {secondaryLabel}
+              </NavigationButton>
+            )}
+          </div>
+        )}
       </section>
     </>
   );

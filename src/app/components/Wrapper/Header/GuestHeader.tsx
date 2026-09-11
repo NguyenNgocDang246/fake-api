@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
+import { GuidesMenu } from "@/app/components/Wrapper/Header/GuidesMenu";
 import { TextLink } from "@/app/components/Link/TextLink";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 export function GuestHeader() {
@@ -20,10 +21,17 @@ export function GuestHeader() {
         Fake API
       </TextLink>
       <div className="flex justify-between items-center gap-6">
+        <GuidesMenu />
         <NavigationButton
           href={PAGE_ROUTES.DOCS}
           label="Docs"
           target="_blank"
+          variant="ghost"
+          className="p-0"
+        />
+        <NavigationButton
+          href={PAGE_ROUTES.MARKETING.FAQ}
+          label="FAQ"
           variant="ghost"
           className="p-0"
         />

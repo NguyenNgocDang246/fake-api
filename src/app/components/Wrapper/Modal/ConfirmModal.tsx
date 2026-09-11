@@ -75,7 +75,7 @@ export function ConfirmModal({
           <div className="px-6 pb-4">
             <div className="bg-red-100 border border-red-300 rounded-lg p-4">
               <p className="text-sm text-destructive font-medium mb-3">
-                Để xác nhận, vui lòng nhập:{" "}
+                To confirm, please type:{" "}
                 <span className="font-mono bg-red-300 px-2 py-1 rounded-xl text-xs">
                   {CONFIRM_TEXT}
                 </span>

@@ -70,7 +70,7 @@ export const UpdateProjectForm = forwardRef<UpdateProjectFormHandles, UpdateProj
 
         await handleSubmit(
           async (data) => {
-            isValid = await onSubmit(data); // onSubmit trả về true/false
+            isValid = await onSubmit(data); // onSubmit resolves true or false
           },
           (errors) => {
             void errors;

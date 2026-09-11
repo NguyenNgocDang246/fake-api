@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Plus, X } from "lucide-react";
+import { Check, ChevronDown, Plus } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 
 export interface ComboOption {
@@ -215,32 +215,22 @@ export const ComboInput: React.FC<ComboInputProps> = ({
             reveal();
             event.target.select();
           }}
+          // Committing a row keeps focus on the input, so a later click fires no focus event.
+          // Opening from the pointer too is what lets the same field be reopened.
+          onMouseDown={() => {
+            if (open && !typing) {
+              setOpen(false);
+              return;
+            }
+            reveal();
+          }}
           onBlur={close}
           onKeyDown={onKeyDown}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 pr-16 text-gray-800 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 pr-9 text-gray-800 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         />
 
-        <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 text-gray-400">
-          {!!text && !disabled && (
-            <button
-              type="button"
-              aria-label="Clear"
-              tabIndex={-1}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                setText("");
-                setTyping(false);
-                commit("");
-              }}
-              className="pointer-events-auto flex cursor-pointer rounded-full p-1 transition hover:bg-gray-200 hover:text-gray-700"
-            >
-              <X size={14} />
-            </button>
-          )}
-          <ChevronDown
-            size={16}
-            className={twMerge("transition-transform", open && "rotate-180")}
-          />
+        <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center text-gray-400">
+          <ChevronDown size={16} className={twMerge("transition-transform", open && "rotate-180")} />
         </div>
       </div>
 

@@ -90,8 +90,12 @@ export const PAGE_ROUTES = {
   HOME: "/",
   PROJECT: "/project",
   MARKETING: {
-    MOCK_API_GENERATOR: "/mock-api-generator",
-    FAKE_JSON_API: "/fake-json-api",
+    MOCK_DATA: "/mock-data",
+    MOCK_API_TOOLS: "/mock-api-tools",
+    FREE_API_FOR_TESTING: "/free-api-for-testing",
+    CORS_ERROR: "/cors-error",
+    RACE_CONDITION: "/race-condition",
+    API_ERROR_HANDLING: "/api-error-handling",
     FAQ: "/faq",
   },
 };

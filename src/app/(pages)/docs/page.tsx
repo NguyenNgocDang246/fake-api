@@ -48,7 +48,7 @@ import { WarningCallout } from "@/app/(pages)/docs/components/WarningCallout";
 import { DocsToc } from "@/app/(pages)/docs/components/DocsToc";
 
 const DESCRIPTION =
-  "Learn how to create projects, define mock endpoints with fixed or AI generated responses, and call your Fake API URLs from your app.";
+  "Learn how to create projects, define mock endpoints with fixed or AI generated responses, set headers and CORS, and call your Fake API URLs from your app.";
 
 export const metadata: Metadata = buildMetadata({
   title: "Docs",

@@ -14,7 +14,7 @@ export const SITE = {
   name: "Fake API",
   url: domain ?? "http://localhost:3000",
   description:
-    "Create your own fake API instantly without a backend. Perfect for frontend developers who need mock data for testing and prototyping.",
+    "Create free mock REST API endpoints in your browser and call them over a real HTTPS URL. Set the JSON body, status code, headers and latency, no backend.",
   locale: "en_US",
   themeColor: "#4f46e5",
 } as const;

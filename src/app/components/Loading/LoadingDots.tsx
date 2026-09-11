@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 interface LoadingDotsProps {
   text?: string;
-  interval?: number; // thời gian đổi (ms)
+  interval?: number; // how long each step is held, in ms
   className?: string;
 }
 

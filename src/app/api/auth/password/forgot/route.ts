@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const email = emailValidation.data.email;
     const user = await UserService.getUserByEmail({ email });
     if (!user) {
-      return ApiResponse.success(); // hạn chế lộ thông tin
+      return ApiResponse.success(); // the same answer either way, so this never confirms an account
     }
     if (user.is_verified == false) return ApiResponse.success();
     const token = await TokenService.createResetPasswordToken({

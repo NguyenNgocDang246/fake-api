@@ -15,7 +15,6 @@ import { JsonEditor } from "@/app/components/Input/JsonEditor";
 import { ErrorText } from "@/app/components/Text/ErrorText";
 import { FormTabs } from "@/app/components/Tabs/FormTabs";
 import { httpMethods } from "@/app/(pages)/project/[id]/components/EndpointForm/httpMethods";
-import { statusCodeOptions } from "@/app/(pages)/project/[id]/components/EndpointForm/statusCodeOptions";
 import {
   AiEndpointSection,
   EndpointDesign,
@@ -26,8 +25,8 @@ interface EndpointFormProps {
   register: UseFormRegister<ClientCreateEndpointDTO>;
   control: Control<ClientCreateEndpointDTO>;
   errors: FieldErrors<ClientCreateEndpointDTO>;
-  // The method and status code pickers write through `setValue` rather than `register`, the way
-  // `ProjectForm` drives its origin list.
+  // The method picker writes through `setValue` rather than `register`, the way `ProjectForm`
+  // drives its origin list.
   setValue: UseFormSetValue<ClientCreateEndpointDTO>;
   // `FormTabs` needs the attempts, not the errors alone: an error already on screen must not yank
   // the tab while the user types.
@@ -62,17 +61,11 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
   const aiEnabled = useWatch({ control, name: "ai_enabled" });
   const responseHeaders = useWatch({ control, name: "response_headers" });
   const method = useWatch({ control, name: "method" });
-  const statusCode = useWatch({ control, name: "status_code" });
 
-  // The two pickers hand back a plain string; `method` is a string union in the DTO, so it is
-  // cast on the way in. The schema still rejects anything outside the set on submit.
+  // The picker hands back a plain string; `method` is a string union in the DTO, so it is cast on
+  // the way in. The schema still rejects anything outside the set on submit.
   const setMethod = (value: string) =>
     setValue("method", value as ClientCreateEndpointDTO["method"], {
-      shouldDirty: true,
-      shouldValidate: submitCount > 0,
-    });
-  const setStatusCode = (value: string) =>
-    setValue("status_code", value, {
       shouldDirty: true,
       shouldValidate: submitCount > 0,
     });
@@ -131,14 +124,12 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
         </div>
 
         <div className="flex min-w-0 flex-col gap-1">
-          <ComboInput
+          <DefaultInput
             className="w-full"
-            id="status_code"
             label="Status Code"
-            options={statusCodeOptions}
-            value={statusCode == null ? "" : String(statusCode)}
-            onChange={setStatusCode}
-            allowCreate
+            register={register("status_code")}
+            type="text"
+            id="status_code"
             placeholder="200"
           />
           {errors.status_code && <ErrorText message={errors.status_code.message} />}
