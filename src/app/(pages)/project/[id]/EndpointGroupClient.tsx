@@ -92,6 +92,7 @@ export default function EndpointGroupClient({
                         method: endpoint.method,
                         status_code: endpoint.status_code,
                         response_body: JSON.stringify(endpoint.response_body),
+                        response_headers: endpoint.response_headers,
                         endpoint_groups_id: endpoint.endpoint_groups_id,
                         project_id: projectInfoState.data?.public_id ?? "",
                         ai_enabled: endpoint.ai_enabled,

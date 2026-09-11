@@ -41,6 +41,9 @@ export function ProjectListClient() {
                   description={project.description}
                   name={project.name}
                   public_id={project.public_id}
+                  cors_enabled={project.cors_enabled}
+                  cors_origins={project.cors_origins}
+                  cors_allow_credentials={project.cors_allow_credentials}
                 />
               </div>
             ))

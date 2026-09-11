@@ -1,5 +1,5 @@
 import projectService from "@/server/services/project.service";
-import { CreateProjectSchema, ProjectInfoSchema } from "@/models/project.model";
+import { CreateProjectSchema, ProjectInfoSchema, toProjectInfoInput } from "@/models/project.model";
 import { ERROR_MESSAGES, LIMIT_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { validateData } from "@/server/core/validation";
 import ApiResponse from "@/server/core/api_response";
@@ -16,12 +16,7 @@ export const GET = createStaticRouteHandler(
     }
 
     const projectInfoValidation = validateData(
-      projects.map((p) => ({
-        public_id: p.public_id,
-        name: p.name,
-        description: p.description,
-        user_id: ctx.userId,
-      })),
+      projects.map((p) => toProjectInfoInput(p, ctx.userId)),
       [ProjectInfoSchema]
     );
     if (!projectInfoValidation.success) return projectInfoValidation.response;
@@ -48,12 +43,7 @@ export const POST = createStaticRouteHandler(
 
     const projectCreated = await projectService.createProject(validation.data);
     const projectInfoValidation = validateData(
-      {
-        public_id: projectCreated.public_id,
-        name: projectCreated.name,
-        description: projectCreated.description,
-        user_id: ctx.userId,
-      },
+      toProjectInfoInput(projectCreated, ctx.userId),
       ProjectInfoSchema
     );
     if (!projectInfoValidation.success) return projectInfoValidation.response;

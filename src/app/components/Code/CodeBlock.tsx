@@ -14,7 +14,7 @@ export function CodeBlock({ lang, children }: CodeBlockProps) {
           <span className="ml-3 text-xs text-gray-400">{lang}</span>
         </div>
       )}
-      <pre className="bg-gray-900 text-gray-100 p-4 text-sm overflow-x-auto leading-relaxed">
+      <pre className="fa-code bg-gray-900 text-gray-100 p-4 text-sm overflow-x-auto leading-relaxed">
         <code className="whitespace-pre">{children}</code>
       </pre>
     </div>

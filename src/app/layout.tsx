@@ -12,18 +12,41 @@ import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/Constants";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 import { TextLink } from "@/app/components/Link/TextLink";
 import { PAGE_ROUTES } from "@/app/libs/routes";
-import { SITE } from "@/app/libs/seo";
+import { SITE, absoluteUrl, OG_IMAGE_SIZE } from "@/app/libs/seo";
 import { ToastContainer, Slide } from "react-toastify";
 
+// 600 is loaded so `font-semibold` has a face of its own. With only 500 and 800 present, CSS
+// resolves a desired 600 or 700 upward to 800, which left every sub-heading as heavy as the title.
 export const baloo2 = Baloo_2({
   subsets: ["latin", "vietnamese"],
-  weight: ["500", "800"],
+  weight: ["500", "600", "800"],
 });
+
+// The home page declares no metadata of its own, so this default is its title verbatim.
+const HOME_TITLE = SITE.name;
+
+// Declaring `openGraph` here stops the root `opengraph-image` file convention applying, so the
+// image is named explicitly, the same way `buildMetadata` does it for every other page.
+const OG_IMAGES = [
+  {
+    url: absoluteUrl("/opengraph-image"),
+    width: OG_IMAGE_SIZE.width,
+    height: OG_IMAGE_SIZE.height,
+    alt: `${SITE.name}, mock REST endpoints in seconds`,
+  },
+];
+
+// The landing pages live in the header's Guides menu instead, so the footer holds only the two
+// pages a reader looks for by name.
+const FOOTER_LINKS = [
+  { href: PAGE_ROUTES.DOCS, label: "Docs" },
+  { href: PAGE_ROUTES.MARKETING.FAQ, label: "FAQ" },
+];
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
-    default: "Fake API, mock REST endpoints in seconds",
+    default: HOME_TITLE,
     template: `%s | ${SITE.name}`,
   },
   description: SITE.description,
@@ -44,13 +67,15 @@ export const metadata: Metadata = {
     siteName: SITE.name,
     locale: SITE.locale,
     url: SITE.url,
-    title: "Fake API, mock REST endpoints in seconds",
+    title: HOME_TITLE,
     description: SITE.description,
+    images: OG_IMAGES,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fake API, mock REST endpoints in seconds",
+    title: HOME_TITLE,
     description: SITE.description,
+    images: OG_IMAGES,
   },
   robots: {
     index: true,
@@ -97,22 +122,15 @@ export default async function RootLayout({
             />
           </div>
 
-          <footer className="flex flex-col items-center gap-3 mb-4 mt-4 text-sm text-gray-500">
-            <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-              <TextLink href={PAGE_ROUTES.DOCS} variant="muted">
-                Docs
-              </TextLink>
-              <TextLink href={PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR} variant="muted">
-                Mock API generator
-              </TextLink>
-              <TextLink href={PAGE_ROUTES.MARKETING.FAKE_JSON_API} variant="muted">
-                Fake JSON API
-              </TextLink>
-              <TextLink href={PAGE_ROUTES.MARKETING.FAQ} variant="muted">
-                FAQ
-              </TextLink>
-            </nav>
+          <footer className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 mt-4 lg:px-24 md:px-16 sm:px-8 px-4 text-sm text-gray-500">
             <p>© {new Date().getFullYear()} Fake API. All rights reserved.</p>
+            <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+              {FOOTER_LINKS.map(({ href, label }) => (
+                <TextLink key={href} href={href} variant="muted">
+                  {label}
+                </TextLink>
+              ))}
+            </nav>
           </footer>
         </MinWidthGuard>
       </body>

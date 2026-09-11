@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, ReactNode } from "react";
+import { useState, useRef, useEffect, Fragment, ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 
 const variantClasses: Record<string, string> = {
@@ -20,6 +20,9 @@ interface DropdownProps {
   dividerClassName?: string;
   boxClassName?: string;
   optionClassName?: string;
+  // Indices to draw a separating line after, so a long list can read as groups without the
+  // option indices moving. A trailing index is ignored.
+  dividerAfter?: number[];
   position?: "left" | "right" | "center";
 }
 
@@ -34,6 +37,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
   dividerClassName,
   boxClassName,
   optionClassName,
+  dividerAfter,
   position = "left",
 }: DropdownProps) => {
   const [open, setOpen] = useState(false);
@@ -113,20 +117,24 @@ export const DropdownButton: React.FC<DropdownProps> = ({
         )}
 
         {options.map((option, index) => (
-          <div
-            key={index}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect?.(index);
-              setOpen(false);
-            }}
-            className={twMerge(
-              "cursor-pointer flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-200 text-sm font-medium text-gray-700 transition-colors",
-              optionClassName,
+          <Fragment key={index}>
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect?.(index);
+                setOpen(false);
+              }}
+              className={twMerge(
+                "cursor-pointer flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-200 text-sm font-medium text-gray-700 transition-colors",
+                optionClassName,
+              )}
+            >
+              {option}
+            </div>
+            {dividerAfter?.includes(index) && index < options.length - 1 && (
+              <div className="mx-2 my-1 border-b border-gray-200" />
             )}
-          >
-            {option}
-          </div>
+          </Fragment>
         ))}
       </div>
     </div>

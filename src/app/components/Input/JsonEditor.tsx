@@ -65,8 +65,8 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
   const [height, setHeight] = useState("auto");
   const [caretColor, setCaretColor] = useState("black");
 
-  // Các nhánh Tab/Enter/{ [ gán thẳng textarea.value nên undo stack của trình duyệt không
-  // dùng được. Tự lưu lịch sử ở đây, mỗi phần tử là một trạng thái (nội dung + vị trí caret).
+  // The Tab/Enter/{ [ branches assign textarea.value directly, which throws away the browser's
+  // own undo stack. This keeps the history instead, one entry per state (content plus caret).
   const historyRef = useRef<HistoryEntry[]>([]);
   const historyIndexRef = useRef(0);
   const lastPushAtRef = useRef(0);
@@ -74,8 +74,8 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
   const registerRef = useRef(register);
   registerRef.current = register;
 
-  // Gọi tay register.onChange: component đã ghi đè onChange của register, và các nhánh gán
-  // thẳng textarea.value cũng không kích hoạt onChange của React, nên form chỉ cập nhật khi blur.
+  // register.onChange is called by hand: this component overrides the one register supplies, and
+  // assigning textarea.value fires no React change either, so the form would only update on blur.
   const syncFormValue = useCallback((textarea: HTMLTextAreaElement) => {
     void registerRef.current.onChange({ target: textarea, type: "change" });
   }, []);
@@ -89,7 +89,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       return;
     }
 
-    // gõ liên tục trong TYPING_MERGE_MS thì gộp chung vào một bước undo
+    // typing that keeps going within TYPING_MERGE_MS collapses into a single undo step
     const now = Date.now();
     if (coalesce && historyIndexRef.current > 0 && now - lastPushAtRef.current < TYPING_MERGE_MS) {
       history[historyIndexRef.current] = { value, caret };
@@ -111,7 +111,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
     if (!textarea || !entry) return;
 
     historyIndexRef.current += offset;
-    lastPushAtRef.current = 0; // không gộp thao tác kế tiếp vào bước vừa khôi phục
+    lastPushAtRef.current = 0; // the next edit must not merge into the step just restored
 
     textarea.value = entry.value;
     setColoredJson(jsonToColoredSpans(entry.value));

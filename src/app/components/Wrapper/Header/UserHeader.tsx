@@ -3,6 +3,7 @@ import { NavigationButton } from "@/app/components/Button/NavigationButton";
 import Image from "next/image";
 import { User, KeyRound } from "lucide-react";
 import { DropdownButton } from "@/app/components/Button/DropdownButton";
+import { GuidesMenu } from "@/app/components/Wrapper/Header/GuidesMenu";
 import { LogoutButton } from "@/app/components/Button/LogoutButton";
 import { TextLink } from "@/app/components/Link/TextLink";
 import { useAuth } from "@/app/components/Wrapper/Auth/AuthWrapper";
@@ -27,10 +28,17 @@ export function UserHeader() {
       </TextLink>
 
       <div className="flex justify-between items-center gap-6">
+        <GuidesMenu />
         <NavigationButton
           href={PAGE_ROUTES.DOCS}
           label="Docs"
           target="_blank"
+          variant="ghost"
+          className="p-0"
+        />
+        <NavigationButton
+          href={PAGE_ROUTES.MARKETING.FAQ}
+          label="FAQ"
           variant="ghost"
           className="p-0"
         />

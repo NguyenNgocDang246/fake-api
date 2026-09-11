@@ -27,6 +27,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
     path: "/users",
     status_code: 200,
     response_body: '{"name":"An","id":1}',
+    response_headers: "[]",
     delay_ms: 0,
     ai_enabled: true,
     ai_fields: ["name"],
@@ -59,9 +60,29 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
     expect(body.name).not.toBe("An");
   });
 
-  // The bytes an author typed are what the client has to read, and a re-stringified parse would
-  // reorder the integer-like key and round the big integer.
-  it("serves the stored text verbatim when AI is off", async () => {
+  // Only the ticked field is drawn again. Everything else is written back from the author's own
+  // text, which a re-stringified parse would have rounded, renormalized and reordered.
+  it("leaves every field the blueprint does not name byte for byte", async () => {
+    const body =
+      '{\n\t"name": "Dang",\n\t"price": 10.00,\n\t"id": 12345678901234567890,\n\t"ratio": 1e2,\n\t"tag": "\\u0041",\n\t"1": "x"\n}';
+    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+      ...aiEndpoint,
+      response_body: body,
+    });
+    (endpointVariantPlanService.loadRenderable as jest.Mock).mockReturnValue(renderable);
+
+    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const text = await res.text();
+
+    expect(text).toMatch(
+      /^\{"name":"[^"]+","price":10\.00,"id":12345678901234567890,"ratio":1e2,"tag":"\\u0041","1":"x"\}$/
+    );
+    expect(text).not.toContain('"name":"Dang"');
+  });
+
+  // Only the whitespace goes. A re-stringified parse would reorder the integer-like key and
+  // round the big integer, which is why the body is compacted as text instead.
+  it("compacts the stored body when AI is off", async () => {
     const body = '{\n  "b": 1,\n  "1": 3,\n  "n": 12345678901234567890\n}';
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
       ...aiEndpoint,
@@ -72,8 +93,34 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
 
     const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
 
-    expect(await res.text()).toBe(body);
-    expect(res.headers.get("content-type")).toBe("application/json");
+    expect(await res.text()).toBe('{"b":1,"1":3,"n":12345678901234567890}');
+    expect(res.headers.get("content-type")).toBe("application/json; charset=utf-8");
+  });
+
+  it("keeps the indentation out of a body the editor formatted", async () => {
+    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+      ...aiEndpoint,
+      ai_enabled: false,
+      ai_fields: [],
+      response_body: '{\n\t"name": "Dang",\n\t"old": 3,\n\t"birthday": "1/1/2023"\n}',
+    });
+
+    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+
+    expect(await res.text()).toBe('{"name":"Dang","old":3,"birthday":"1/1/2023"}');
+  });
+
+  it("leaves the whitespace inside a string alone", async () => {
+    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+      ...aiEndpoint,
+      ai_enabled: false,
+      ai_fields: [],
+      response_body: '{\n  "msg": "hello   world",\n  "a": 1\n}',
+    });
+
+    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+
+    expect(await res.text()).toBe('{"msg":"hello   world","a":1}');
   });
 
   it("serves the stored text verbatim when a blueprint is missing", async () => {

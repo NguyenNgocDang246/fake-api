@@ -4,6 +4,15 @@
 :root {
   --background: #f8fdfd;
   --foreground: #171717;
+
+  /* Scrollbars. Thin, trackless, thumb shows on hover of the scrolling element. */
+  --scroll-thumb: var(--color-gray-300);
+  --scroll-thumb-hover: var(--color-gray-400);
+  --scroll-thumb-active: var(--color-gray-500);
+  --scroll-thumb-dark: var(--color-gray-600);
+  --scroll-thumb-dark-hover: var(--color-gray-500);
+  --scroll-size: 10px;
+  --scroll-fade: 1rem;
 }
 
 @theme inline {
@@ -17,7 +26,98 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+
+    --scroll-thumb: var(--color-gray-700);
+    --scroll-thumb-hover: var(--color-gray-600);
+    --scroll-thumb-active: var(--color-gray-500);
   }
+}
+
+/* Scrollbars, global. Thin, no track, thumb appears on hover of the scrolling element. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover,
+*:focus-within {
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+::-webkit-scrollbar {
+  width: var(--scroll-size);
+  height: var(--scroll-size);
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.2s ease;
+}
+:hover::-webkit-scrollbar-thumb,
+:focus-within::-webkit-scrollbar-thumb {
+  background-color: var(--scroll-thumb);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scroll-thumb-hover);
+}
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--scroll-thumb-active);
+}
+html {
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+/* Dark surfaces need a lighter thumb. */
+.fa-scroll--dark,
+.fa-code,
+.fa-json {
+  scrollbar-color: transparent transparent;
+}
+.fa-scroll--dark:hover,
+.fa-scroll--dark:focus-within,
+.fa-code:hover,
+.fa-json:hover {
+  scrollbar-color: var(--scroll-thumb-dark) transparent;
+}
+.fa-scroll--dark:hover::-webkit-scrollbar-thumb,
+.fa-scroll--dark:focus-within::-webkit-scrollbar-thumb,
+.fa-code:hover::-webkit-scrollbar-thumb,
+.fa-json:hover::-webkit-scrollbar-thumb {
+  background-color: var(--scroll-thumb-dark);
+}
+.fa-scroll--dark::-webkit-scrollbar-thumb:hover,
+.fa-code::-webkit-scrollbar-thumb:hover,
+.fa-json::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scroll-thumb-dark-hover);
+}
+
+/* Opt-in helpers. */
+.fa-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.fa-scroll--always {
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+.fa-scroll--always::-webkit-scrollbar-thumb {
+  background-color: var(--scroll-thumb);
+}
+.fa-scroll--fade {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--scroll-fade),
+    #000 calc(100% - var(--scroll-fade)),
+    transparent 100%
+  );
+}
+.fa-scroll--fade-bottom {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--scroll-fade)), transparent 100%);
 }
 
 body {

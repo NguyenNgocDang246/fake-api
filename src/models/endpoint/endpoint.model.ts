@@ -8,6 +8,7 @@ import {
   checkAiFieldList,
   checkAiFields,
 } from "@/models/endpoint/ai_fields.model";
+import { ResponseHeaderListSchema } from "@/models/endpoint/response_headers.model";
 import {
   MAX_DELAY_MS,
   MAX_STATUS_CODE,
@@ -17,6 +18,7 @@ import {
 
 export * from "@/models/endpoint/primitives.model";
 export * from "@/models/endpoint/ai_fields.model";
+export * from "@/models/endpoint/response_headers.model";
 export * from "@/models/endpoint/base.model";
 
 // A blueprint the caller already holds, so the preview route and the two write routes can take
@@ -48,6 +50,7 @@ export const ClientCreateEndpointSchema = EndpointInfoSchema.pick({
 })
   .extend({
     response_body: z.string(),
+    response_headers: ResponseHeaderListSchema,
     delay_ms: z
       .string()
       .refine(
@@ -80,6 +83,7 @@ const WRITABLE_FIELDS = {
   path: true,
   status_code: true,
   response_body: true,
+  response_headers: true,
   delay_ms: true,
   ai_enabled: true,
   ai_fields: true,
@@ -151,6 +155,7 @@ export function toEndpointInfoInput(
     method: string;
     status_code: number;
     response_body: string;
+    response_headers: string;
     delay_ms: number;
     ai_enabled: boolean;
     ai_fields: string[];
@@ -167,6 +172,7 @@ export function toEndpointInfoInput(
     method: endpoint.method,
     status_code: endpoint.status_code,
     response_body: endpoint.response_body,
+    response_headers: endpoint.response_headers,
     delay_ms: endpoint.delay_ms,
     ai_enabled: endpoint.ai_enabled,
     ai_fields: endpoint.ai_fields,

@@ -19,6 +19,7 @@ import endpointVariantPlanService, {
 } from "@/server/services/endpoint/variant/plan.service";
 import { collectUniqueCatalogs } from "@/server/services/endpoint/variant/plan_catalogs";
 import { renderVariant } from "@/server/services/endpoint/variant/faker.service";
+import { emitFromSource, parseJsonSource } from "@/server/services/endpoint/variant/json_source";
 import { validatePlan } from "@/server/services/endpoint/variant/validate";
 import { isAiConfigured } from "@/server/services/ai/ai_router.service";
 import {
@@ -86,7 +87,11 @@ export const POST = createRouteHandler<AiPreviewRouteParams>(
 
         const { method, path, response_body, ai_fields, ai_prompt, count, endpoint_id } =
           validation.data;
-        const base: unknown = JSON.parse(response_body);
+        // Kept alongside the value so a sample is written back against the author's own text,
+        // exactly as the fake route serves it. A preview built any other way shows a body the
+        // endpoint would never answer with.
+        const source = parseJsonSource(response_body);
+        const base: unknown = source ? source.value : JSON.parse(response_body);
         const { valueFields, arrayPaths } = splitSelection(base, ai_fields);
         const covered = [...valueFields.map((field) => field.path), ...arrayPaths];
 
@@ -163,7 +168,7 @@ export const POST = createRouteHandler<AiPreviewRouteParams>(
           renderVariant(plan, base, { uniqueCatalogs })
         )
           .filter((body): body is NonNullable<typeof body> => body !== null)
-          .map((body) => JSON.stringify(body));
+          .map((body) => (source ? emitFromSource(body, source) : JSON.stringify(body)));
 
         if (variants.length === 0) {
           return ApiResponse.error({

@@ -3,8 +3,7 @@ import { forwardRef, useImperativeHandle } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { ClientUpdateProjectDTO, ClientUpdateProjectSchema } from "@/models/project.model";
-import { FloatingInput } from "@/app/components/Input/FloatingInput";
-import { ErrorText } from "@/app/components/Text/ErrorText";
+import { ProjectForm } from "@/app/(pages)/project/components/ProjectForm/ProjectForm";
 import { API_ROUTES } from "@/app/libs/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
@@ -27,11 +26,14 @@ export const UpdateProjectForm = forwardRef<UpdateProjectFormHandles, UpdateProj
       register,
       handleSubmit,
       reset,
-      formState: { errors },
+      control,
+      setValue,
+      formState: { errors, submitCount },
     } = useForm<ClientUpdateProjectDTO>({
       resolver: zodResolver(ClientUpdateProjectSchema),
       defaultValues: props.old_data,
     });
+
     const queryClient = useQueryClient();
     const updateProjectMutation = useMutation<
       ApiSuccessResponse,
@@ -44,6 +46,8 @@ export const UpdateProjectForm = forwardRef<UpdateProjectFormHandles, UpdateProj
         reset();
         Notify.success("Updated project");
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY.PROJECT.ALL] });
+        // The project page reads this key for its own CORS switch, so a save here has to reach it.
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY.PROJECT.ONE, props.public_id] });
       },
       onError: (error) => {
         Notify.error(error.message);
@@ -66,7 +70,7 @@ export const UpdateProjectForm = forwardRef<UpdateProjectFormHandles, UpdateProj
 
         await handleSubmit(
           async (data) => {
-            isValid = await onSubmit(data); // onSubmit trả về true/false
+            isValid = await onSubmit(data); // onSubmit resolves true or false
           },
           (errors) => {
             void errors;
@@ -77,22 +81,16 @@ export const UpdateProjectForm = forwardRef<UpdateProjectFormHandles, UpdateProj
         return isValid;
       },
     }));
+
     return (
-      <div className="flex flex-col gap-4">
-        <div>
-          <FloatingInput label="Name" register={register("name")} type="text" id="name" />
-          {errors.name && <ErrorText message={errors.name.message} />}
-        </div>
-        <div>
-          <FloatingInput
-            label="Description"
-            register={register("description")}
-            type="text"
-            id="description"
-          />
-          {errors.description && <ErrorText message={errors.description.message} />}
-        </div>
-      </div>
+      <ProjectForm
+        register={register}
+        control={control}
+        errors={errors}
+        setValue={setValue}
+        submitCount={submitCount}
+        openOriginsInitially={(props.old_data.cors_origins ?? []).length > 0}
+      />
     );
   },
 );

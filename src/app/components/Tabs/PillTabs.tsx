@@ -15,6 +15,9 @@ interface PillTabsProps {
   onChange: (id: string) => void;
   ariaLabel: string;
   size?: "sm" | "md";
+  // `card` spreads the tabs evenly across the full width, for a strip that names the sections of
+  // a form rather than one that filters a list.
+  variant?: "pill" | "card";
   // Set it when the panel below is a real `role="tabpanel"`, and give that panel
   // `id={`${idPrefix}-panel-${value}`}` and `aria-labelledby={`${idPrefix}-tab-${value}`}`. A
   // tab strip that only switches sections of one form does not need it.
@@ -38,9 +41,11 @@ export const PillTabs: React.FC<PillTabsProps> = ({
   onChange,
   ariaLabel,
   size = "md",
+  variant = "pill",
   idPrefix,
   className,
 }) => {
+  const isCard = variant === "card";
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // A tab the caller no longer offers leaves nothing selected, so the arrow keys start from the
@@ -74,7 +79,9 @@ export const PillTabs: React.FC<PillTabsProps> = ({
       aria-label={ariaLabel}
       onKeyDown={onKeyDown}
       className={twMerge(
-        "flex max-w-full gap-1 self-start overflow-x-auto rounded-full bg-gray-50 p-0.5",
+        isCard
+          ? "grid w-full grid-flow-col auto-cols-fr gap-1 rounded-xl bg-gray-100 p-1"
+          : "flex max-w-full gap-1 self-start overflow-x-auto rounded-full bg-gray-50 p-0.5",
         className,
       )}
     >
@@ -99,16 +106,22 @@ export const PillTabs: React.FC<PillTabsProps> = ({
             }}
             onClick={() => onChange(tab.id)}
             className={twMerge(
-              "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full whitespace-nowrap transition-colors",
-              SIZE_CLASSES[size],
+              "cursor-pointer items-center gap-1.5 whitespace-nowrap transition-colors",
+              isCard
+                ? "flex min-w-0 justify-center rounded-[9px] px-3 py-[9px] text-sm"
+                : twMerge("inline-flex shrink-0 rounded-full", SIZE_CLASSES[size]),
+              // The card variant carries no weight change at all: colour and the raised white
+              // tile already say which one is open.
               selected
-                ? "bg-white font-medium text-blue-700 shadow-sm"
+                ? twMerge("bg-white text-blue-700 shadow-sm", !isCard && "font-medium")
                 : "text-gray-500 hover:text-gray-800",
             )}
           >
-            {tab.label}
+            <span className="truncate">{tab.label}</span>
             {tab.dot && (
-              <span className={twMerge("size-1.5 rounded-full", DOT_CLASSES[tab.dot])} />
+              <span
+                className={twMerge("size-1.5 shrink-0 rounded-full", DOT_CLASSES[tab.dot])}
+              />
             )}
           </button>
         );

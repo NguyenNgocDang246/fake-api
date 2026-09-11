@@ -16,6 +16,7 @@ export const useUpdateProjectViewModel = ({
       type: "form",
       props: {
         title: "Update project",
+        size: "wide",
         onSubmit: async () => {
           const result = await formRef.current?.submit?.();
           return result ?? false;

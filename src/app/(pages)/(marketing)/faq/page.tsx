@@ -9,6 +9,7 @@ import { PAGE_ROUTES } from "@/app/libs/routes";
 import { SITE, absoluteUrl, breadcrumbSchema, buildMetadata, type Crumb } from "@/app/libs/seo";
 import { getCurrentUser } from "@/app/libs/helpers/get_current_user.server";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
+import { GUEST_PROJECT_LIFETIME_IN_SECONDS } from "@/server/services/guest.constants";
 import {
   MAX_ARRAY_ITEMS,
   MAX_DELAY_MS,
@@ -20,13 +21,13 @@ import {
 const PATH = PAGE_ROUTES.MARKETING.FAQ;
 
 const META_DESCRIPTION =
-  "Answers about Fake API: what it costs, how long mock endpoints live, which limits apply, and how AI generated responses work.";
+  "Answers about Fake API: what it costs, how long your mock endpoints live, which limits apply, whether writes persist, and how AI generated responses work.";
 
 const HERO_DESCRIPTION =
   "Answers about Fake API: what it costs, how long your mock endpoints live, which limits apply, whether you can call them from CI, and how AI generated responses work.";
 
 export const metadata: Metadata = buildMetadata({
-  title: "FAQ",
+  title: "FAQ - Limits, Pricing and How Fake API Works",
   description: META_DESCRIPTION,
   path: PATH,
 });
@@ -34,6 +35,8 @@ export const metadata: Metadata = buildMetadata({
 const BREADCRUMB: Crumb[] = [{ label: "Home", href: PAGE_ROUTES.HOME }, { label: "FAQ" }];
 
 const USER_LIMITS = ROLE_LIMITS.USER;
+const GUEST_LIMITS = ROLE_LIMITS.GUEST;
+const GUEST_LIFETIME_IN_HOURS = Math.round(GUEST_PROJECT_LIFETIME_IN_SECONDS / (60 * 60));
 
 // Google requires the answer in the FAQPage schema to match the answer on the page, so both
 // are rendered from this one array.
@@ -48,9 +51,13 @@ const FAQ = [
       "No. Endpoints are created in the browser and answer over HTTPS straight away. There is no CLI, no SDK, and nothing to add to your project. Your app only needs the URL.",
   },
   {
+    question: "Can I create an endpoint without signing up?",
+    answer: `Yes. The home page has a trial box where you build up to ${GUEST_LIMITS.maxEndpointsPerGroup} endpoints and call them over HTTPS straight away, with no account. It is meant for a quick look rather than for work you keep: those endpoints are deleted after ${GUEST_LIFETIME_IN_HOURS} hours, anyone holding the URL can change them, the AI variants are off, and they stay behind when you sign up. Create an account when you want mocks that are yours.`,
+  },
+  {
     question: "How long do my mock endpoints stay up?",
     answer:
-      "An endpoint stays exactly as you left it until you change or delete it. Nothing expires on a timer, so a URL pasted into a ticket last month still answers today.",
+      "An endpoint in your account stays exactly as you left it until you change or delete it. Nothing expires on a timer, so a URL pasted into a ticket last month still answers today. The trial endpoints on the home page are the exception, since those are swept on a timer.",
   },
   {
     question: "Can I call the endpoints from CI or a test suite?",
@@ -83,6 +90,26 @@ const FAQ = [
     question: "Is this a replacement for a real backend?",
     answer:
       "No, and it is not meant to be. There is no persistence between calls, so a POST does not change what a later GET returns. It exists to unblock frontend work while the real API is being built.",
+  },
+  {
+    question: "Does it come with ready made products or users data?",
+    answer:
+      "No. Every response body is one you write. There is no built in products, users, or carts collection to call, so if you want a storefront or a user list you paste that shape yourself, optionally letting the AI variants fill the values in.",
+  },
+  {
+    question: "Should I use this instead of JSONPlaceholder?",
+    answer:
+      "For a first fetch or a tutorial, JSONPlaceholder is simpler and needs no account. Use this when you need your own response shape, a specific status code, or a deliberate delay, none of which a shared public dataset can give you.",
+  },
+  {
+    question: "What happened to myjson.com?",
+    answer:
+      "It shut down, which is why links to it in older tutorials and Stack Overflow answers no longer resolve. This site does the same job: paste a JSON body and get a public HTTPS URL that serves it back.",
+  },
+  {
+    question: "Can I return a JSON:API shaped response?",
+    answer:
+      "Yes, by pasting a JSON:API shaped body. An endpoint serves whatever valid JSON object you write, so the envelope is yours to choose. It does not implement the specification itself, so there is no content negotiation, sparse fieldset handling, or relationship traversal.",
   },
 ];
 
@@ -147,22 +174,29 @@ export default async function FaqPage() {
           <TextLink href={PAGE_ROUTES.DOCS} className="text-blue-600 hover:underline">
             documentation
           </TextLink>{" "}
-          walks through creating a project, defining endpoints, and calling them from your app. For
-          the wider picture, the{" "}
+          walks through creating a project, defining endpoints, and calling them from your app.
+        </p>
+
+        <p className="text-gray-600 leading-relaxed mt-4">
+          There are also three guides that stand on their own, whichever tool you end up using:{" "}
+          <TextLink href={PAGE_ROUTES.MARKETING.MOCK_DATA} className="text-blue-600 hover:underline">
+            mock data
+          </TextLink>{" "}
+          covers where a mock belongs and which values actually break a UI,{" "}
           <TextLink
-            href={PAGE_ROUTES.MARKETING.MOCK_API_GENERATOR}
+            href={PAGE_ROUTES.MARKETING.MOCK_API_TOOLS}
             className="text-blue-600 hover:underline"
           >
-            mock API generator
+            mock API tools
           </TextLink>{" "}
-          page covers how endpoints are defined, and the{" "}
+          compares the dedicated services and what separates them, and{" "}
           <TextLink
-            href={PAGE_ROUTES.MARKETING.FAKE_JSON_API}
+            href={PAGE_ROUTES.MARKETING.FREE_API_FOR_TESTING}
             className="text-blue-600 hover:underline"
           >
-            fake JSON API
+            free APIs for testing
           </TextLink>{" "}
-          page covers what they can return.
+          compares the public datasets you might use before any of them.
         </p>
       </section>
 
