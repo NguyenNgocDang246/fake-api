@@ -124,8 +124,10 @@ export const DropdownButton: React.FC<DropdownProps> = ({
                 onSelect?.(index);
                 setOpen(false);
               }}
+              // The padding sits on the option, not here, so an option that is a link covers the
+              // whole hover area instead of leaving a strip that only closes the menu.
               className={twMerge(
-                "cursor-pointer flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-200 text-sm font-medium text-gray-700 transition-colors",
+                "cursor-pointer flex items-center gap-2 w-full text-left rounded-lg hover:bg-gray-200 text-sm font-medium text-gray-700 transition-colors *:w-full *:px-3 *:py-2",
                 optionClassName,
               )}
             >
