@@ -16,6 +16,7 @@ Everything Next.js routes: the API route handlers under `api/**`, and the UI. Th
 - `libs/routes.ts` — `API_ROUTES` and `PAGE_ROUTES`, the one place a URL template is written.
 - `libs/seo.ts` — `SITE` (name, absolute URL, description), `absoluteUrl`, `buildMetadata`, which every page calls instead of writing a `Metadata` object by hand, and `breadcrumbSchema`, which turns the page's `Crumb[]` into its `BreadcrumbList`.
 - `robots.ts`, `sitemap.ts`, `manifest.ts`, `opengraph-image.tsx`, `twitter-image.tsx`, `icon.png`, `apple-icon.png` — Next file conventions for the crawler-facing and share-facing assets.
+- `llms.txt/route.ts` — the llmstxt.org index an AI assistant reads instead of crawling: the site description, the shape of a mock URL, then a link list covering `docs/`, the guides and `faq/`, with `privacy/` and `terms/` under the standard `Optional` heading that a reader short on context may skip. It is a route handler rather than a file in `public/` so its links come from `PAGE_ROUTES` and `SITE.url` like the sitemap's do, and `force-static` prerenders it at build.
 
 ## Conventions
 

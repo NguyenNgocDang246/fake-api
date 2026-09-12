@@ -8,7 +8,7 @@ import { useConsent } from "@/app/components/Wrapper/Consent/ConsentWrapper";
 const CLASSES = "cursor-pointer text-gray-600 hover:text-gray-900 hover:underline";
 
 export function CookiePreferencesButton() {
-  const { consent, ready, setConsent } = useConsent();
+  const { setConsent } = useConsent();
 
   // Nothing to configure where no measurement id was built in. The id is a build-time constant,
   // so this is decided identically on the server and in the browser and costs no layout shift.
@@ -20,11 +20,6 @@ export function CookiePreferencesButton() {
   return (
     <button type="button" className={CLASSES} onClick={() => setConsent(null)}>
       Cookie preferences
-      {ready && consent !== null && (
-        <span className="text-gray-400">
-          {consent === "granted" ? " (analytics on)" : " (analytics off)"}
-        </span>
-      )}
     </button>
   );
 }
