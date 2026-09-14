@@ -113,7 +113,7 @@ const TOOLS: { name: string; href: string; cells: string[] }[] = [
   },
   {
     name: SITE.name,
-    href: "",
+    href: `${PAGE_ROUTES.HOME}`,
     cells: [
       "A hosted service",
       "No, a trial sandbox runs without one",

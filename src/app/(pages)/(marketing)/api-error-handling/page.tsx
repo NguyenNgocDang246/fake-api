@@ -168,10 +168,12 @@ if (!res.ok) {
   throw new HttpError(res.status, await res.text())
 }`;
 
-const TIMEOUT = `POST /api/orders               request leaves the browser
-                               server creates order 8821
-                               the response never arrives
-client gives up after 10s      the user is shown a failure
+const TIMEOUT = `// the request leaves the browser
+// the server creates order 8821
+// the response never arrives
+// the client gives up after 10s
+// the user is shown a failure
+POST /api/orders
 
 // retrying blind creates a second order
 POST /api/orders
