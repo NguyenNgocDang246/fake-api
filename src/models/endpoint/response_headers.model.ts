@@ -9,12 +9,16 @@ export const MAX_HEADER_VALUE_LENGTH = 1024;
 const HEADER_NAME_REGEX = /^[A-Za-z0-9!#$%&'*+.^_`|~-]+$/;
 const HEADER_VALUE_REGEX = /^[\x20-\x7E]*$/;
 
-// `set-cookie` is the one that matters: a mock answers on the same origin as the app itself, so
-// a cookie an author sets here would land on the app's own `access_token`. The rest are either
-// framework owned or, for `access-control-*`, owned by the project's CORS settings.
+// A mock host shares its parent domain with the app, so `set-cookie` could reach the app's own
+// session and `refresh` sends a browser anywhere. The three the fake route locks are refused here
+// too, the rest are framework owned or, for `access-control-*`, the project's CORS settings.
 const BLOCKED_HEADERS = new Set([
   "set-cookie",
   "set-cookie2",
+  "refresh",
+  "content-security-policy",
+  "x-content-type-options",
+  "x-robots-tag",
   "content-length",
   "content-encoding",
   "transfer-encoding",

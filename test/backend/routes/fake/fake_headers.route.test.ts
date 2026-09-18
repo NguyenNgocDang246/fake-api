@@ -21,7 +21,10 @@ import EndpointService from "@/server/services/endpoint/endpoint.service";
 import projectService from "@/server/services/project.service";
 import { GET } from "@/app/api/fake/[projectId]/route";
 import { STATUS_CODE } from "@/server/core/constants";
-import { createJsonRequest } from "../../helpers/http";
+import { createJsonRequest, createRouteParams } from "../../helpers/http";
+
+const PARAMS = createRouteParams({ projectId: "PUBLIC" });
+const MOCK_HOST = "projectpubab.localhost";
 
 const base = {
   method: "GET",
@@ -34,7 +37,14 @@ const base = {
 
 function serve(overrides: Partial<typeof base> = {}) {
   (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({ ...base, ...overrides });
-  return GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+  return GET(createJsonRequest({}, { pathname: "/users", headers: { host: MOCK_HOST } }), PARAMS);
+}
+
+function redirectTo(location: string, status_code = 302) {
+  return serve({
+    status_code,
+    response_headers: JSON.stringify([{ name: "Location", value: location }]),
+  });
 }
 
 beforeEach(() => {
@@ -84,10 +94,27 @@ describe("headers the endpoint sets", () => {
     });
 
     const res = await GET(
-      createJsonRequest({}, { pathname: "/PUBLIC/users", headers: { origin: "http://localhost" } })
+      createJsonRequest({}, { pathname: "/users", headers: { origin: "http://localhost" } }),
+      PARAMS
     );
 
     expect(res.headers.get("access-control-expose-headers")).toContain("x-total-count");
+  });
+
+  // `constructor` is a valid header name and a key every object answers to, so the locked list
+  // has to be asked what it owns rather than what it inherits.
+  it("names one that happens to be spelled like an object's own key", async () => {
+    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+      ...base,
+      response_headers: JSON.stringify([{ name: "constructor", value: "42" }]),
+    });
+
+    const res = await GET(
+      createJsonRequest({}, { pathname: "/users", headers: { origin: "http://localhost" } }),
+      PARAMS
+    );
+
+    expect(res.headers.get("access-control-expose-headers")).toContain("constructor");
   });
 
   it("replaces a default rather than sitting beside it", async () => {
@@ -116,7 +143,7 @@ describe("headers the endpoint sets", () => {
   // The model refuses these on the way in, but a row written before that rule never passed
   // through it. Serving one still answers, it just leaves the header out: failing the request
   // would take down a whole endpoint over a header nobody can see.
-  it.each(["Set-Cookie", "Content-Length", "Access-Control-Allow-Origin"])(
+  it.each(["Set-Cookie", "Content-Length", "Access-Control-Allow-Origin", "Refresh"])(
     "answers normally and drops %s when a stored row carries it",
     async (name) => {
       const res = await serve({
@@ -141,4 +168,59 @@ describe("headers the endpoint sets", () => {
       expect(res.headers.get("content-type")).toBe("application/json; charset=utf-8");
     }
   );
+});
+
+describe("what an author cannot take over", () => {
+  it("sandboxes the response and turns off sniffing, whatever content type was picked", async () => {
+    const res = await serve({
+      response_headers: JSON.stringify([
+        { name: "content-type", value: "text/html" },
+        { name: "Content-Security-Policy", value: "default-src *" },
+      ]),
+    });
+
+    expect(res.headers.get("content-type")).toBe("text/html");
+    expect(res.headers.get("content-security-policy")).toBe("sandbox");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
+  // A project answers on a host of its own, and that host serves no robots.txt: the rewrite hands
+  // `/robots.txt` to this route like any other mock path, so the header is the only refusal left.
+  it("refuses indexing, whatever the stored row asked for", async () => {
+    const res = await serve({
+      response_headers: JSON.stringify([{ name: "X-Robots-Tag", value: "all" }]),
+    });
+
+    expect(res.headers.get("x-robots-tag")).toBe("noindex");
+  });
+
+  it.each(["/login", "?step=2", `http://${MOCK_HOST}/login`])(
+    "keeps a redirect to %s, which stays on the mock's own host",
+    async (location) => {
+      const res = await redirectTo(location);
+
+      expect(res.status).toBe(302);
+      expect(res.headers.get("location")).toBe(location);
+    }
+  );
+
+  // Both slash spellings are ones a browser reads as a different host.
+  it.each([
+    "https://evil.example/login",
+    "//evil.example/login",
+    "/\\evil.example/login",
+    `http://${MOCK_HOST}.evil.example/login`,
+    "javascript:alert(1)",
+  ])("drops a redirect to %s", async (location) => {
+    const res = await redirectTo(location);
+
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("keeps a Location off the host on a status a browser does not follow", async () => {
+    const res = await redirectTo("https://elsewhere.example/users/1", STATUS_CODE.CREATED);
+
+    expect(res.headers.get("location")).toBe("https://elsewhere.example/users/1");
+  });
 });

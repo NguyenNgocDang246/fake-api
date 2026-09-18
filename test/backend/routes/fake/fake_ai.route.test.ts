@@ -18,7 +18,9 @@ jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
 import EndpointService from "@/server/services/endpoint/endpoint.service";
 import endpointVariantPlanService from "@/server/services/endpoint/variant/plan.service";
 import { GET } from "@/app/api/fake/[projectId]/route";
-import { createJsonRequest, readJson } from "../../helpers/http";
+import { createJsonRequest, createRouteParams, readJson } from "../../helpers/http";
+
+const PARAMS = createRouteParams({ projectId: "PUBLIC" });
 
 describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
   const aiEndpoint = {
@@ -51,7 +53,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
     (endpointVariantPlanService.loadRenderable as jest.Mock).mockReturnValue(renderable);
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     const body = (await readJson(res)) as { name: string; id: number };
 
     expect(res.status).toBe(200);
@@ -71,7 +73,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
     });
     (endpointVariantPlanService.loadRenderable as jest.Mock).mockReturnValue(renderable);
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     const text = await res.text();
 
     expect(text).toMatch(
@@ -91,7 +93,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
       response_body: body,
     });
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     expect(await res.text()).toBe('{"b":1,"1":3,"n":12345678901234567890}');
     expect(res.headers.get("content-type")).toBe("application/json; charset=utf-8");
@@ -105,7 +107,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
       response_body: '{\n\t"name": "Dang",\n\t"old": 3,\n\t"birthday": "1/1/2023"\n}',
     });
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     expect(await res.text()).toBe('{"name":"Dang","old":3,"birthday":"1/1/2023"}');
   });
@@ -118,7 +120,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
       response_body: '{\n  "msg": "hello   world",\n  "a": 1\n}',
     });
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     expect(await res.text()).toBe('{"msg":"hello   world","a":1}');
   });
@@ -131,7 +133,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
     });
     (endpointVariantPlanService.loadRenderable as jest.Mock).mockReturnValue(null);
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     expect(await res.text()).toBe(body);
   });
 
@@ -140,7 +142,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
     (endpointVariantPlanService.loadRenderable as jest.Mock).mockReturnValue(renderable);
 
-    await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     // No use to count and no pool to top up, so nothing is deferred either.
     expect(server.__afterCount()).toBe(0);
@@ -155,7 +157,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
     (endpointVariantPlanService.loadRenderable as jest.Mock).mockReturnValue(null);
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     expect(await readJson(res)).toEqual({ name: "An", id: 1 });
     expect(endpointVariantPlanService.ensurePlan).not.toHaveBeenCalled();
@@ -172,7 +174,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
       throw new Error("plan column unreadable");
     });
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({ name: "An", id: 1 });
@@ -186,7 +188,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
       ai_enabled: false,
     });
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     expect(res.status).toBe(200);
     expect(endpointVariantPlanService.loadRenderable).not.toHaveBeenCalled();
@@ -198,7 +200,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
       ai_fields: [],
     });
 
-    await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     expect(endpointVariantPlanService.loadRenderable).not.toHaveBeenCalled();
   });

@@ -50,6 +50,12 @@ export function createThrowingJsonRequest(
   return req as unknown as NextRequest;
 }
 
+// The second argument a `createRouteHandler` export takes. One resolved promise is reused across
+// calls, which is all the handler ever does with it.
+export function createRouteParams<T extends Record<string, string>>(params: T) {
+  return { params: Promise.resolve(params) };
+}
+
 export async function readJson(res: NextResponse) {
   return await res.json();
 }

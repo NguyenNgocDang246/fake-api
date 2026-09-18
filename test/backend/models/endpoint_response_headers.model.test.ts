@@ -50,11 +50,15 @@ describe("what a header value may be", () => {
 });
 
 describe("the headers Fake API keeps for itself", () => {
-  // A mock answers on the same origin as the app, so a cookie set here would land on the app's
-  // own session.
+  // A mock host shares its parent domain with the app, so a cookie set here could land on the
+  // app's own session, and a page it serves must stay sandboxed.
   it.each([
     "Set-Cookie",
     "set-cookie",
+    "Refresh",
+    "Content-Security-Policy",
+    "X-Content-Type-Options",
+    "X-Robots-Tag",
     "Content-Length",
     "Transfer-Encoding",
     "Access-Control-Allow-Origin",

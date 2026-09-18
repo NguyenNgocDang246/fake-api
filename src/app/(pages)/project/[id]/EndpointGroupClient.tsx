@@ -7,7 +7,7 @@ import { EmptyState } from "@/app/components/Text/EmptyState";
 import { useCreateEndpointViewModel } from "@/app/(pages)/project/[id]/components/CreateEndpointForm/viewmodel";
 import { useCreateEndpointGroupViewModel } from "@/app/(pages)/project/[id]/components/CreateEndpointGroupForm/viewmodel";
 import { EndpointGroupContainer } from "@/app/(pages)/project/[id]/components/EndpointGroupContainer/EndpointGroupContainer";
-import { mockBaseUrl } from "@/app/libs/helpers/mock_url";
+import { MOCK_HOST_SUFFIX, MOCK_URL_PREFIX } from "@/app/libs/helpers/mock_url";
 
 interface EndpointGroupClientProps {
   projectId: string;
@@ -47,9 +47,9 @@ export default function EndpointGroupClient({
             <div>
               <div className="font-semibold text-lg">API Endpoint: </div>
               <div className="text-blue-800 py-2 min-w-full flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto">
-                <span>{mockBaseUrl()}/</span>
+                <span>{MOCK_URL_PREFIX}</span>
                 <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">{projectId}</span>
-                <span>/</span>
+                <span>{MOCK_HOST_SUFFIX}/</span>
                 <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">:path</span>
               </div>
             </div>
