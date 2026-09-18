@@ -10,6 +10,7 @@ import { GetUserByIdDTO, UserSchema } from "@/models/user.model";
 import { prisma } from "@/server/prisma/prisma_provider";
 import { AppError } from "@/server/core/errors";
 import { createWithUniquePublicId } from "@/server/core/prisma_retry";
+import { generateProjectPublicId } from "@/app/libs/helpers/publicId";
 import endpointGroupService from "@/server/services/endpoint_group.service";
 import userService from "@/server/services/user.service";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
@@ -127,16 +128,18 @@ class ProjectService {
         ...(cors_origins === undefined ? {} : { cors_origins }),
         ...(cors_allow_credentials === undefined ? {} : { cors_allow_credentials }),
       };
-      const newProject = await createWithUniquePublicId((public_id) =>
-        prisma.projects.create({
-          data: {
-            ...projectData,
-            public_id,
-            users: {
-              connect: { public_id: user_public_id },
+      const newProject = await createWithUniquePublicId(
+        (public_id) =>
+          prisma.projects.create({
+            data: {
+              ...projectData,
+              public_id,
+              users: {
+                connect: { public_id: user_public_id },
+              },
             },
-          },
-        })
+          }),
+        generateProjectPublicId
       );
       await endpointGroupService.createEndpointGroup({
         project_public_id: newProject.public_id,

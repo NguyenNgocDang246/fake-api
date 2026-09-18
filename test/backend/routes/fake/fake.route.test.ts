@@ -19,7 +19,9 @@ import EndpointService from "@/server/services/endpoint/endpoint.service";
 import { GET, POST } from "@/app/api/fake/[projectId]/route";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { AppError } from "@/server/core/errors";
-import { createJsonRequest, expectError, readJson } from "../../helpers/http";
+import { createJsonRequest, createRouteParams, expectError, readJson } from "../../helpers/http";
+
+const PARAMS = createRouteParams({ projectId: "PUBLIC" });
 
 describe("src/app/api/fake/[projectId]/route.ts", () => {
   it("answers an AppError as the standard envelope, like every other route", async () => {
@@ -27,12 +29,15 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       new AppError({ message: ERROR_MESSAGES.SERVER_ERROR, statusCode: STATUS_CODE.SERVER_ERROR })
     );
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     await expectError(res, STATUS_CODE.SERVER_ERROR, ERROR_MESSAGES.SERVER_ERROR);
   });
 
   it("returns 404 when publicId missing", async () => {
-    const res = await GET(createJsonRequest({}, { pathname: "/" }));
+    const res = await GET(
+      createJsonRequest({}, { pathname: "/" }),
+      createRouteParams({ projectId: "" })
+    );
     await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
   });
 
@@ -40,7 +45,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
     (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
     (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue([]);
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
   });
 
@@ -52,7 +57,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       response_body: "{}",
       delay_ms: 0,
     });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     expect(res.status).toBe(200);
     expect(EndpointService.getEndpointByDynamicPath).not.toHaveBeenCalled();
   });
@@ -66,7 +71,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       response_body: "{}",
       delay_ms: 0,
     });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/user/abc123" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/user/abc123" }), PARAMS);
     expect(res.status).toBe(200);
     expect(EndpointService.getEndpointByDynamicPath).toHaveBeenCalledWith(
       expect.objectContaining({ path: "/user/abc123", method: "GET" })
@@ -78,7 +83,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
     (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
     (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue(["POST", "PUT"]);
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     await expectError(res, STATUS_CODE.METHOD_NOT_ALLOWED, ERROR_MESSAGES.METHOD_NOT_ALLOWED);
     expect(await readJson(res)).toMatchObject({ errors: { allow: ["POST", "PUT"] } });
@@ -97,7 +102,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       delay_ms: 0,
     });
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     expect(res.status).toBe(200);
     expect(EndpointService.findMethodsForPath).not.toHaveBeenCalled();
@@ -111,7 +116,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       response_body: "{}",
       delay_ms: 0,
     });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     expect(res.status).toBe(204);
   });
 
@@ -123,7 +128,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       response_body: "{}",
       delay_ms: 0,
     });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users?active=true" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users?active=true" }), PARAMS);
     expect(res.status).toBe(200);
     expect(EndpointService.getEndpointByPath).toHaveBeenCalledWith(
       expect.objectContaining({ path: "/users" })
@@ -138,7 +143,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       response_body: "{}",
       delay_ms: 0,
     });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users#section" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users#section" }), PARAMS);
     expect(res.status).toBe(200);
     expect(EndpointService.getEndpointByPath).toHaveBeenCalledWith(
       expect.objectContaining({ path: "/users" })
@@ -155,10 +160,34 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       delay_ms: 50,
     });
 
-    const promise = POST(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const promise = POST(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     await jest.advanceTimersByTimeAsync(50);
     const res = await promise;
     expect(res.status).toBe(200);
     jest.useRealTimers();
+  });
+
+  describe("the mock path it looks up", () => {
+    beforeEach(() => {
+      (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
+      (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+      (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue([]);
+    });
+
+    // A dynamic segment carries whatever the caller put in the URL. An encoded `/` stays inside
+    // its segment, and a segment that does not decode is kept as it arrived.
+    it.each([
+      ["/users/", "/users"],
+      ["/user/Nguy%E1%BB%85n", "/user/Nguyễn"],
+      ["/user/a%20b", "/user/a b"],
+      ["/files/a%2Fb", "/files/a%2Fb"],
+      ["/user/%E0%A4%A", "/user/%E0%A4%A"],
+    ])("reads %s as %s", async (pathname, path) => {
+      await GET(createJsonRequest({}, { pathname }), PARAMS);
+
+      expect(EndpointService.getEndpointByPath).toHaveBeenLastCalledWith(
+        expect.objectContaining({ path })
+      );
+    });
   });
 });

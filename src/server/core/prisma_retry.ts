@@ -4,12 +4,13 @@ import { generatePublicId } from "@/app/libs/helpers/publicId";
 const MAX_RETRIES = 5;
 
 export async function createWithUniquePublicId<T>(
-  createFn: (public_id: string) => Promise<T>
+  createFn: (public_id: string) => Promise<T>,
+  generate: () => string = generatePublicId
 ): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      return await createFn(generatePublicId());
+      return await createFn(generate());
     } catch (error) {
       lastError = error;
       const isPublicIdConflict =

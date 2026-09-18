@@ -9,27 +9,36 @@ import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import {
   EndpointMethod,
   EndpointResponseSchema,
-  getEndpointByPathSchema,
   isBlockedHeader,
 } from "@/models/endpoint/endpoint.model";
 import { validateData } from "@/server/core/validation";
-import { createStaticRouteHandler, withErrorHandling } from "@/server/core/route_helpers";
+import { createRouteHandler, withErrorHandling } from "@/server/core/route_helpers";
 import {
   ALLOWED_METHODS,
   DEFAULT_MOCK_HEADERS,
+  LOCKED_MOCK_HEADERS,
   applyCorsHeaders,
   buildCorsHeaders,
 } from "@/server/core/cors";
+import { requestHost } from "@/server/middlewares/fake.middleware";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// The rewrite in `fake.middleware.ts` drops everything past the id, so the original pathname is
-// what every reader here works from.
-function segmentsOf(req: NextRequest): string[] {
-  const rawPathname = req.nextUrl.pathname.split(/[?#]/)[0] ?? "";
-  return rawPathname.split("/").filter(Boolean);
+// The id arrives on the rewritten URL as the dynamic segment, so the whole original pathname is
+// the mock path. Segments are decoded one at a time so an encoded `/` stays inside its own.
+function mockPathname(req: NextRequest): string {
+  const raw = req.nextUrl.pathname.split(/[?#]/)[0] ?? "";
+  return "/" + raw.split("/").filter(Boolean).map(decodeSegment).join("/");
+}
+
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment).replace(/\//g, "%2F");
+  } catch {
+    return segment;
+  }
 }
 
 // Either a whole string literal, which is kept as it is, or a run of whitespace outside one.
@@ -41,37 +50,34 @@ function compactJson(text: string): string {
   return text.replace(JSON_TOKEN, (_match, stringLiteral) => stringLiteral ?? "");
 }
 
-async function handle(req: NextRequest, method: EndpointMethod["method"]) {
-  const segments = segmentsOf(req);
-  const publicId = segments[0];
+async function handle(
+  req: NextRequest,
+  publicId: string,
+  method: EndpointMethod["method"]
+) {
   if (!publicId)
     return ApiResponse.error({
       message: ERROR_MESSAGES.NOT_FOUND,
       statusCode: STATUS_CODE.NOT_FOUND,
     });
-  const pathname = "/" + segments.slice(1).join("/");
-
-  const pathValidation = validateData({ path: pathname, method }, getEndpointByPathSchema);
-  if (!pathValidation.success)
-    return ApiResponse.error({
-      message: ERROR_MESSAGES.NOT_FOUND,
-      statusCode: STATUS_CODE.NOT_FOUND,
-    });
+  const path = mockPathname(req);
 
   let endpoint = await EndpointService.getEndpointByPath({
     project_public_id: publicId,
-    ...pathValidation.data,
+    path,
+    method,
   });
   if (!endpoint) {
     endpoint = await EndpointService.getEndpointByDynamicPath({
       project_public_id: publicId,
-      ...pathValidation.data,
+      path,
+      method,
     });
   }
   if (!endpoint) {
     const allow = await EndpointService.findMethodsForPath({
       project_public_id: publicId,
-      path: pathname,
+      path,
     });
     if (allow.length > 0) {
       const response = ApiResponse.error({
@@ -104,10 +110,12 @@ async function handle(req: NextRequest, method: EndpointMethod["method"]) {
   const validEndpoint = endpointValidation.data;
   await sleep(validEndpoint.delay_ms || 0);
 
+  const status = validEndpoint.status_code || STATUS_CODE.OK;
   const headers = mockHeaders(validEndpoint.response_headers);
+  dropForeignRedirect(headers, status, requestHost(req));
 
   // A 204 still carries headers, and `Location` on one is the reason an author sets any.
-  if (validEndpoint.status_code == STATUS_CODE.NO_CONTENT) {
+  if (status == STATUS_CODE.NO_CONTENT) {
     headers.delete("content-type");
     return new NextResponse(null, { status: STATUS_CODE.NO_CONTENT, headers });
   }
@@ -117,10 +125,7 @@ async function handle(req: NextRequest, method: EndpointMethod["method"]) {
   // Only whitespace is stripped, never handed to `NextResponse.json`, so the bytes the author
   // typed are the bytes the client reads. Rebuilding them through a parse is what loses a large
   // integer's precision and reorders integer-like keys.
-  return new NextResponse(compactJson(body), {
-    status: validEndpoint.status_code || STATUS_CODE.OK,
-    headers,
-  });
+  return new NextResponse(compactJson(body), { status, headers });
 }
 
 // `set` rather than `append`, and `Headers` matches names case-insensitively, so an endpoint
@@ -133,8 +138,25 @@ function mockHeaders(stored: { name: string; value: string }[]): Headers {
     if (isBlockedHeader(name)) continue;
     headers.set(name, value);
   }
+  for (const [name, value] of Object.entries(LOCKED_MOCK_HEADERS)) headers.set(name, value);
 
   return headers;
+}
+
+// A browser follows a 3xx by itself, so a Location off the mock's own host would make the
+// project's subdomain an open redirect. Resolving it first is what catches `//evil.example`.
+function dropForeignRedirect(headers: Headers, status: number, host: string) {
+  const location = headers.get("location");
+  if (status < 300 || status > 399 || location === null) return;
+  if (!isOnHost(location, host)) headers.delete("location");
+}
+
+function isOnHost(location: string, host: string): boolean {
+  try {
+    return new URL(location, `http://${host}`).host === host;
+  } catch {
+    return false;
+  }
 }
 
 // Returns JSON text: the stored body verbatim on every path that serves it, a rendered variant
@@ -197,24 +219,27 @@ const SAFELISTED_HEADERS = new Set([
 
 function exposableHeaders(res: NextResponse): string[] {
   return [...res.headers.keys()].filter(
-    (name) => !SAFELISTED_HEADERS.has(name) && !name.startsWith("access-control-")
+    (name) =>
+      !SAFELISTED_HEADERS.has(name) &&
+      // `hasOwn`, not `in`: `constructor` and `toString` are header names an author may pick.
+      !Object.hasOwn(LOCKED_MOCK_HEADERS, name) &&
+      !name.startsWith("access-control-")
   );
 }
 
 // CORS has to cover every answer, the 404s and 405s included: a response without these headers
 // reaches the browser as an opaque failure, hiding the status that would have explained it.
 function mockRoute(method: EndpointMethod["method"]) {
-  return createStaticRouteHandler(async (req) => {
+  return createRouteHandler<{ projectId: string }>(async (req, params) => {
+    const publicId = params["projectId"] ?? "";
     const guarded = withErrorHandling(handle);
     const origin = req.headers.get("origin");
-    // No Origin means curl, Postman or a server calling. Nothing to negotiate, nothing to look up.
-    if (!origin) return guarded(req, method);
-
-    const publicId = segmentsOf(req)[0];
-    if (!publicId) return guarded(req, method);
+    // No Origin means curl, Postman or a server calling. Nothing to negotiate, nothing to look up,
+    // and with no id there is no project whose settings could be looked up either.
+    if (!origin || !publicId) return guarded(req, publicId, method);
 
     const config = await projectService.getCorsConfig({ public_id: publicId });
-    const res = await guarded(req, method);
+    const res = await guarded(req, publicId, method);
     if (!config) return res;
 
     return applyCorsHeaders(
@@ -237,8 +262,8 @@ export const DELETE = mockRoute("DELETE");
 
 // Answers from the project's CORS settings alone: no endpoint lookup, no `delay_ms`, no variant
 // rendering. A preflight is the browser asking whether it may call, not a call.
-export const OPTIONS = createStaticRouteHandler(async (req) => {
-  const publicId = segmentsOf(req)[0];
+export const OPTIONS = createRouteHandler<{ projectId: string }>(async (req, params) => {
+  const publicId = params["projectId"] ?? "";
   const origin = req.headers.get("origin");
 
   if (!publicId)
