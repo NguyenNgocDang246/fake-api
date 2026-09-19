@@ -3,8 +3,10 @@ import {
   entityAttributeType,
   parseTemplatePlaceholders,
 } from "@/models/endpoint_plan/endpoint_plan.model";
+import { isEqualityOp } from "@/models/endpoint_plan/catalog.model";
 import { MAX_ARRAY_ITEMS } from "@/models/endpoint_plan/limits.model";
 import { arrayDepthOf, flattenPathValues } from "@/app/libs/helpers/json_path";
+import { toBoundMs } from "@/server/services/endpoint/variant/faker_value";
 import {
   ValidateRecipeInput,
   expectedTypeAt,
@@ -98,14 +100,27 @@ function checkPairRecipe(input: ValidateRecipeInput): boolean {
     );
     return false;
   }
+
+  // Asking whether two sides are the same needs no order between them, so a boolean answers it.
+  if (isEqualityOp(recipe.op)) {
+    if (types[0] === undefined || types[0] === "null") {
+      errors.push(`Field "${path}" compares values the body leaves empty`);
+      return false;
+    }
+    return true;
+  }
+
   if (types[0] !== "number" && types[0] !== "string") {
-    errors.push(`Field "${path}" compares values that hold nothing that can be ordered`);
+    errors.push(
+      `Field "${path}" uses "${recipe.op}" on values that cannot be ranked, so only "eq" and "neq" can answer about them`
+    );
     return false;
   }
   return true;
 }
 
-// A bound is turned into a moment by `toEpochMs`, which reads an epoch number or a date string.
+// The bound's own value, through the read the executor will use, rather than its type: a count is
+// a number and so passed a type check, then landed in 1970 and dragged the range onto it.
 function checkDateRecipe(input: ValidateRecipeInput): boolean {
   const { path, recipe, baseBody, errors } = input;
   if (recipe.kind !== "date") return true;
@@ -113,8 +128,8 @@ function checkDateRecipe(input: ValidateRecipeInput): boolean {
   for (const bound of [recipe.not_before, recipe.not_after]) {
     if (bound === undefined) continue;
 
-    const type = expectedTypeAt(baseBody, bound);
-    if (type !== "string" && type !== "number") {
+    const values = flattenPathValues(baseBody, bound, MAX_ARRAY_ITEMS);
+    if (values === null || values.length === 0 || values.some((v) => toBoundMs(v) === null)) {
       errors.push(`Field "${path}" is bounded by "${bound}", which holds no date`);
       return false;
     }

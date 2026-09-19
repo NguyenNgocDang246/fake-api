@@ -1,5 +1,10 @@
 import type { Faker } from "@faker-js/faker";
-import { DateFormat, JsonLeaf } from "@/models/endpoint_plan/catalog.model";
+import {
+  DateFormat,
+  JsonLeaf,
+  MAX_DATE_BOUND_MS,
+  MIN_DATE_BOUND_MS,
+} from "@/models/endpoint_plan/catalog.model";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const UNIT_MS: Record<string, number> = { minute: 60_000, hour: 3_600_000, day: DAY_MS };
@@ -46,6 +51,15 @@ export function toEpochMs(value: unknown): number | null {
     : value;
   const parsed = Date.parse(normalized);
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+// The same read as `toEpochMs`, refusing a number that lands outside where a real date does. Both
+// the validator and the executor go through this, so a bound a plan may not carry is also a bound
+// a stored plan cannot be rendered from.
+export function toBoundMs(value: unknown): number | null {
+  const ms = toEpochMs(value);
+  if (ms === null || typeof value !== "number") return ms;
+  return ms >= MIN_DATE_BOUND_MS && ms <= MAX_DATE_BOUND_MS ? ms : null;
 }
 
 export function pickWeighted<T>(f: Faker, values: T[], weights?: number[]): T {

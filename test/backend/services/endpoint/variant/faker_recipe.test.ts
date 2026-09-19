@@ -1,3 +1,4 @@
+import { renderVariant } from "@/server/services/endpoint/variant/faker.service";
 import { plan, render } from "./faker_harness";
 
 describe("derived relations", () => {
@@ -202,6 +203,29 @@ describe("compute and compare", () => {
       expect(typeof out.has_next).toBe("boolean");
     }
   });
+
+  // Ranking is what the four other ops need a number or a string for; these two only ask whether
+  // the sides match, which a boolean answers as well as anything.
+  it("answers eq and neq about two booleans", () => {
+    const flags = { is_admin: true, is_verified: false, in_sync: false, differs: false };
+    const PAIRED = plan({
+      fields: [
+        { path: "is_admin", recipe: { kind: "bool", probability: 0.5 } },
+        { path: "is_verified", recipe: { kind: "bool", probability: 0.5 } },
+        { path: "in_sync", recipe: { kind: "compare", op: "eq", of: ["is_admin", "is_verified"] } },
+        { path: "differs", recipe: { kind: "compare", op: "neq", of: ["is_admin", "is_verified"] } },
+      ],
+    });
+
+    const seen = new Set<boolean>();
+    for (const out of render(PAIRED, flags, 120)) {
+      expect(out.in_sync).toBe(out.is_admin === out.is_verified);
+      expect(out.differs).toBe(!out.in_sync);
+      seen.add(out.in_sync);
+    }
+    // Both answers actually come up, so neither assertion above is passing on one constant.
+    expect(seen.size).toBe(2);
+  });
 });
 
 describe("bounded dates", () => {
@@ -284,6 +308,28 @@ describe("bounded dates", () => {
       // A replaced range would answer the bound itself every time.
       expect(new Set(dates).size).toBeGreaterThan(1);
     });
+  });
+
+  // A blueprint stored before the bound was checked can still name a count, and the executor has
+  // to read that the same way the validator now does: as no bound, not as a moment in 1970.
+  // `not_after` is the direction that bites, since 1970 is earlier than any window `not_before`
+  // would widen and `Math.max` absorbs it, while `Math.min` collapses the whole range onto it.
+  it("ignores a bound the body does not mean as a moment", () => {
+    const PLAN = plan({
+      fields: [
+        {
+          path: "created_at",
+          recipe: { kind: "date", format: "date", days_back: 30, not_after: "year" },
+        },
+      ],
+    });
+    const body = { ...BASE, year: 2024 };
+    const floor = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    for (let i = 0; i < 40; i += 1) {
+      const out = renderVariant(PLAN, body) as typeof body;
+      expect(out.created_at >= floor).toBe(true);
+    }
   });
 
   it("holds every element of a list inside a range named outside it", () => {

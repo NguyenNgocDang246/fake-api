@@ -117,6 +117,8 @@ body's language, industry-specific status codes, plan tiers, local street names.
 {"kind":"date","format":"...","days_back":n,"days_forward":n,"not_before":"<path>","not_after":"<path>"}
     The two bounds are optional and name fields holding a date or an epoch. Use them when the
     body states a range the date has to fall inside, so the value cannot land outside it.
+    A field has to be a moment to be a bound. A year, a page or a total is a number and not a
+    date, and naming one is refused rather than read as a timestamp in 1970.
 {"kind":"pattern","pattern":"ORD-#####"}          # digit, ? letter, * alphanumeric, \\ escapes
 {"kind":"semantic","name":"..."}                  a standalone well known value
 {"kind":"const","value":...}
@@ -135,6 +137,8 @@ body's language, industry-specific status codes, plan tiers, local street names.
 {"kind":"compare","op":"lt|lte|gt|gte|eq|neq","of":["<path>","<path>"]}
     A true or false answer about two fields, in that order: "lt" is the first below the second.
     This is how a flag saying whether anything follows stops contradicting the numbers beside it.
+    The four ranking ops need two numbers or two strings. "eq" and "neq" ask only whether the
+    sides match, so they take any pair of the same type, two true or false fields included.
 {"kind":"branch","on":"<path>","cases":{"<value>":<recipe>},"default":<recipe>}
 {"kind":"array_length","min":n,"max":n}           a length drawn between the two
 {"kind":"array_length","of":"<path>"}             a length equal to that field's value

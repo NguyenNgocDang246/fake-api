@@ -273,6 +273,16 @@ describe("validatePlan on an array_length that follows a field", () => {
     ).toEqual([]);
   });
 
+  // The executor prefers `of` and would drop the band without a word, so which one sets the
+  // length has to be decided by the author rather than by that preference.
+  it("blocks a length that follows a field and names a band as well", () => {
+    expect(
+      errorsFor([
+        { path: "items", recipe: { kind: "array_length", of: "limit", min: 1, max: 3 } },
+      ]).join(" ")
+    ).toContain("write one or the other");
+  });
+
   it("blocks a length that follows something the body does not hold as a number", () => {
     expect(
       errorsFor([{ path: "items", recipe: { kind: "array_length", of: "label" } }]).join(" ")
@@ -372,10 +382,15 @@ describe("validatePlan on compute, compare and bounded dates", () => {
     total: 42,
     page_count: 1,
     has_next: false,
+    is_admin: true,
+    is_verified: false,
     label: "a",
     from: "2024-01-01",
     to: "2024-06-30",
     created_at: "2024-03-01",
+    year: 2024,
+    stamp_seconds: 1_704_067_200,
+    stamp_ms: 1_704_067_200_000,
   };
   const ALLOWED = Object.keys(BASE);
 
@@ -405,10 +420,67 @@ describe("validatePlan on compute, compare and bounded dates", () => {
     ).toContain("hold different types");
   });
 
+  // Asking whether two sides are the same needs no order between them, which is the whole
+  // difference between these two ops and the four that rank.
+  it("accepts eq and neq on two booleans", () => {
+    for (const op of ["eq", "neq"] as const) {
+      expect(
+        errorsFor([{ path: "has_next", recipe: { kind: "compare", op, of: ["is_admin", "is_verified"] } }])
+      ).toEqual([]);
+    }
+  });
+
+  it("blocks the ranking ops on the same two booleans", () => {
+    for (const op of ["lt", "lte", "gt", "gte"] as const) {
+      expect(
+        errorsFor([
+          { path: "has_next", recipe: { kind: "compare", op, of: ["is_admin", "is_verified"] } },
+        ]).join(" ")
+      ).toContain("cannot be ranked");
+    }
+  });
+
   it("blocks a bound that holds no date", () => {
     expect(
       errorsFor([
         { path: "created_at", recipe: { kind: "date", format: "date", not_after: "has_next" } },
+      ]).join(" ")
+    ).toContain("holds no date");
+  });
+
+  // `toEpochMs` reads a small number as epoch seconds, so a plain count reads as the first weeks
+  // of 1970 and drags the whole range onto it. Only the type was checked, and a count is a number.
+  describe("a bound that is a number the body does not mean as a moment", () => {
+    it.each([
+      ["a year", "year"],
+      ["a page", "page"],
+      ["a total", "total"],
+    ])("blocks %s", (_label, bound) => {
+      expect(
+        errorsFor([
+          { path: "created_at", recipe: { kind: "date", format: "date", not_before: bound } },
+        ]).join(" ")
+      ).toContain("holds no date");
+    });
+
+    it.each([
+      ["epoch seconds", "stamp_seconds"],
+      ["epoch milliseconds", "stamp_ms"],
+    ])("still accepts %s", (_label, bound) => {
+      expect(
+        errorsFor([
+          { path: "created_at", recipe: { kind: "date", format: "date", not_before: bound } },
+        ])
+      ).toEqual([]);
+    });
+  });
+
+  // A string says what it is, so it is held only to parsing. Nothing read this one at all: the
+  // type check passed, `toEpochMs` then answered null and the bound was dropped in silence.
+  it("blocks a bound that is a string holding no date", () => {
+    expect(
+      errorsFor([
+        { path: "created_at", recipe: { kind: "date", format: "date", not_after: "label" } },
       ]).join(" ")
     ).toContain("holds no date");
   });

@@ -3,7 +3,9 @@ import {
   AggregateOp,
   CompareOp,
   ComputeOp,
+  EqualityOp,
   JsonLeaf,
+  isEqualityOp,
 } from "@/models/endpoint_plan/catalog.model";
 import { LeafRecipeDTO, RecipeDTO } from "@/models/endpoint_plan/recipe.model";
 import {
@@ -26,6 +28,7 @@ import {
   pickWeighted,
   renderPattern,
   shapeNumber,
+  toBoundMs,
   toEpochMs,
 } from "@/server/services/endpoint/variant/faker_value";
 
@@ -48,13 +51,21 @@ const COMPUTATIONS: Record<ComputeOp, (left: number, right: number) => number | 
   ceil_divide: (left, right) => (right === 0 ? null : Math.ceil(left / right)),
 };
 
-const COMPARISONS: Record<CompareOp, (left: number | string, right: number | string) => boolean> = {
+// Two tables over complementary halves of `COMPARE_OPS`, so an op added to it fails the build
+// until one of them covers it. Equality answers about any leaf; ranking needs a rankable pair.
+const EQUALITIES: Record<EqualityOp, (left: JsonLeaf, right: JsonLeaf) => boolean> = {
+  eq: (left, right) => left === right,
+  neq: (left, right) => left !== right,
+};
+
+const ORDERINGS: Record<
+  Exclude<CompareOp, EqualityOp>,
+  (left: number | string, right: number | string) => boolean
+> = {
   lt: (left, right) => left < right,
   lte: (left, right) => left <= right,
   gt: (left, right) => left > right,
   gte: (left, right) => left >= right,
-  eq: (left, right) => left === right,
-  neq: (left, right) => left !== right,
 };
 
 // The days give a window around now and each bound narrows it, so a date lands inside a range the
@@ -66,8 +77,8 @@ function narrowWindow(
   from: number,
   to: number
 ): { from: number; to: number } {
-  const lower = recipe.not_before ? toEpochMs(readReferenced(ctx, recipe.not_before)) : null;
-  const upper = recipe.not_after ? toEpochMs(readReferenced(ctx, recipe.not_after)) : null;
+  const lower = recipe.not_before ? toBoundMs(readReferenced(ctx, recipe.not_before)) : null;
+  const upper = recipe.not_after ? toBoundMs(readReferenced(ctx, recipe.not_after)) : null;
 
   let start = lower === null ? from : Math.max(from, lower);
   let end = upper === null ? to : Math.min(to, upper);
@@ -187,11 +198,16 @@ function drawDerived(ctx: RenderContext, recipe: LeafRecipeDTO): JsonLeaf | unde
       const right = readReferenced(ctx, rightPath);
 
       // Same type on both sides, or the comparison is JavaScript coercion rather than an answer.
+      if (isEqualityOp(recipe.op)) {
+        const type = jsonLeafTypeOf(left);
+        if (type === undefined || type !== jsonLeafTypeOf(right)) return undefined;
+        return EQUALITIES[recipe.op](left as JsonLeaf, right as JsonLeaf);
+      }
       if (typeof left === "number" && typeof right === "number") {
-        return COMPARISONS[recipe.op](left, right);
+        return ORDERINGS[recipe.op](left, right);
       }
       if (typeof left === "string" && typeof right === "string") {
-        return COMPARISONS[recipe.op](left, right);
+        return ORDERINGS[recipe.op](left, right);
       }
       return undefined;
     }

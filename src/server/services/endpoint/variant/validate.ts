@@ -143,6 +143,13 @@ function checkArrayLength({
   }
 
   if (recipe.of !== undefined) {
+    // Both forms at once leaves nothing to say which one sets the length, and the executor would
+    // answer that by preferring `of` silently. The prompt asks for one or the other; this is it.
+    if (recipe.min !== undefined || recipe.max !== undefined) {
+      errors.push(
+        `Field "${path}" follows "${recipe.of}" and names a length band as well, so write one or the other`
+      );
+    }
     checkLengthDriver({ path, of: recipe.of, baseBody, fieldByPath, errors });
     return;
   }
