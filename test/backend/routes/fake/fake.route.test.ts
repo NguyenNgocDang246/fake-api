@@ -18,6 +18,7 @@ jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
 import EndpointService from "@/server/services/endpoint/endpoint.service";
 import { GET, POST } from "@/app/api/fake/[projectId]/route";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { MAX_MOCK_PATH_LENGTH } from "@/models/endpoint/endpoint.model";
 import { AppError } from "@/server/core/errors";
 import { createJsonRequest, createRouteParams, expectError, readJson } from "../../helpers/http";
 
@@ -188,6 +189,27 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       expect(EndpointService.getEndpointByPath).toHaveBeenLastCalledWith(
         expect.objectContaining({ path })
       );
+    });
+
+    // The cap stands in for the path validation the lookup no longer runs, so a path nothing could
+    // ever match answers before it costs a query. It includes its own limit.
+    const atTheCap = "/a".repeat(MAX_MOCK_PATH_LENGTH / 2);
+
+    it("looks up a path as long as the cap allows", async () => {
+      await GET(createJsonRequest({}, { pathname: atTheCap }), PARAMS);
+
+      expect(EndpointService.getEndpointByPath).toHaveBeenLastCalledWith(
+        expect.objectContaining({ path: atTheCap })
+      );
+    });
+
+    it("answers 404 for a path past the cap without looking anything up", async () => {
+      const res = await GET(createJsonRequest({}, { pathname: `${atTheCap}a` }), PARAMS);
+
+      await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
+      expect(EndpointService.getEndpointByPath).not.toHaveBeenCalled();
+      expect(EndpointService.getEndpointByDynamicPath).not.toHaveBeenCalled();
+      expect(EndpointService.findMethodsForPath).not.toHaveBeenCalled();
     });
   });
 });

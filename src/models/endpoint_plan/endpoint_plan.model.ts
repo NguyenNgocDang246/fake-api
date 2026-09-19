@@ -106,8 +106,17 @@ export function recipeDependencies(recipe: RecipeDTO): string[] {
     case "sum":
     case "aggregate":
       return [recipe.of];
+    // A length that follows a field is an edge like any other, which is what lets
+    // `validateAcyclic` catch a count and a length pointing at each other.
+    case "array_length":
+      return recipe.of === undefined ? [] : [recipe.of];
     case "product":
+    case "compute":
+    case "compare":
       return [...recipe.of];
+    // A bound is read before the date is drawn, so it is an edge like any other.
+    case "date":
+      return [recipe.not_before, recipe.not_after].filter((path) => path !== undefined);
     case "template":
       return Object.values(recipe.refs ?? {});
     case "branch":
@@ -131,8 +140,10 @@ export function staticRecipeType(recipe: RecipeDTO): JsonLeafType | undefined {
     case "sum":
     case "aggregate":
     case "product":
+    case "compute":
       return "number";
     case "bool":
+    case "compare":
       return "boolean";
     case "date":
       return DATE_FORMAT_TYPES[recipe.format];

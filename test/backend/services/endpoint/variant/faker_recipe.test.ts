@@ -151,3 +151,157 @@ describe("aggregate", () => {
     }
   });
 });
+
+describe("compute and compare", () => {
+  const BASE = { page: 1, per_page: 10, total: 42, page_count: 1, has_next: false, ratio: 0 };
+
+  const PLAN = plan({
+    fields: [
+      { path: "page", recipe: { kind: "int", min: 1, max: 5 } },
+      { path: "per_page", recipe: { kind: "pick", values: [10, 20, 25] } },
+      { path: "total", recipe: { kind: "int", min: 0, max: 400 } },
+      {
+        path: "page_count",
+        recipe: { kind: "compute", op: "ceil_divide", of: ["total", "per_page"] },
+      },
+      { path: "has_next", recipe: { kind: "compare", op: "lt", of: ["page", "page_count"] } },
+    ],
+  });
+
+  it("derives a page count and a flag that agree with the numbers beside them", () => {
+    for (const out of render(PLAN, BASE, 300)) {
+      const page = out.page as number;
+      const expected = Math.ceil((out.total as number) / (out.per_page as number));
+
+      expect(out.page_count).toBe(expected);
+      expect(out.has_next).toBe(page < expected);
+    }
+  });
+
+  // Every other recipe leaves the base value on a read it cannot use, and this is the same rule.
+  it("leaves the base value in place when the divisor is zero", () => {
+    const zeroed = plan({
+      fields: [
+        { path: "per_page", recipe: { kind: "const", value: 0 } },
+        { path: "ratio", recipe: { kind: "compute", op: "divide", of: ["total", "per_page"] } },
+      ],
+    });
+
+    for (const out of render(zeroed, BASE, 20)) {
+      expect(out.ratio).toBe(0);
+      expect(Number.isFinite(out.ratio as number)).toBe(true);
+    }
+  });
+
+  it("refuses to compare across types rather than coercing", () => {
+    const mixed = plan({
+      fields: [{ path: "has_next", recipe: { kind: "compare", op: "gt", of: ["total", "page"] } }],
+    });
+
+    for (const out of render(mixed, BASE, 20)) {
+      expect(typeof out.has_next).toBe("boolean");
+    }
+  });
+});
+
+describe("bounded dates", () => {
+  const BASE = {
+    from: "2024-01-01",
+    to: "2024-03-31",
+    created_at: "2024-02-01",
+    items: [{ at: "2024-02-01" }],
+  };
+
+  it("keeps the date inside the range the body states", () => {
+    const PLAN = plan({
+      fields: [
+        {
+          path: "created_at",
+          // A window far wider than the bounds, so only the bounds can be holding it in.
+          recipe: {
+            kind: "date",
+            format: "date",
+            days_back: 3650,
+            days_forward: 3650,
+            not_before: "from",
+            not_after: "to",
+          },
+        },
+      ],
+    });
+
+    for (const out of render(PLAN, BASE, 200)) {
+      expect(out.created_at >= BASE.from).toBe(true);
+      expect(out.created_at <= BASE.to).toBe(true);
+    }
+  });
+
+  // One bound and no other is the case the days window can still swallow, since there is no
+  // second bound to pin the other end against.
+  describe("a lone bound", () => {
+    it("holds a date after a `not_before` the window cannot reach", () => {
+      const PLAN = plan({
+        fields: [
+          {
+            path: "created_at",
+            recipe: { kind: "date", format: "date", days_back: 30, not_before: "far" },
+          },
+        ],
+      });
+
+      for (const out of render(PLAN, { ...BASE, far: "2090-01-01" }, 60)) {
+        expect(out.created_at >= "2090-01-01").toBe(true);
+      }
+    });
+
+    it("holds a date before a `not_after` the window cannot reach", () => {
+      const PLAN = plan({
+        fields: [
+          {
+            path: "created_at",
+            recipe: { kind: "date", format: "date", days_back: 30, not_after: "ancient" },
+          },
+        ],
+      });
+
+      for (const out of render(PLAN, { ...BASE, ancient: "1970-06-01" }, 60)) {
+        expect(out.created_at <= "1970-06-01").toBe(true);
+      }
+    });
+
+    it("still narrows rather than replaces when the window does reach it", () => {
+      const PLAN = plan({
+        fields: [
+          {
+            path: "created_at",
+            recipe: { kind: "date", format: "date", days_back: 3650, not_before: "from" },
+          },
+        ],
+      });
+
+      const dates = render(PLAN, BASE, 200).map((out) => out.created_at);
+      for (const date of dates) expect(date >= BASE.from).toBe(true);
+      // A replaced range would answer the bound itself every time.
+      expect(new Set(dates).size).toBeGreaterThan(1);
+    });
+  });
+
+  it("holds every element of a list inside a range named outside it", () => {
+    const PLAN = plan({
+      fields: [
+        { path: "items", recipe: { kind: "array_length", min: 3, max: 6 } },
+        {
+          path: "items[].at",
+          recipe: { kind: "date", format: "date", days_back: 3650, not_before: "from", not_after: "to" },
+        },
+      ],
+    });
+
+    for (const out of render(PLAN, BASE, 60)) {
+      for (const item of out.items as { at: string }[]) {
+        expect(item.at >= BASE.from).toBe(true);
+        expect(item.at <= BASE.to).toBe(true);
+      }
+    }
+  });
+});

@@ -9,6 +9,7 @@ import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import {
   EndpointMethod,
   EndpointResponseSchema,
+  MAX_MOCK_PATH_LENGTH,
   isBlockedHeader,
 } from "@/models/endpoint/endpoint.model";
 import { validateData } from "@/server/core/validation";
@@ -26,10 +27,19 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function notFound() {
+  return ApiResponse.error({
+    message: ERROR_MESSAGES.NOT_FOUND,
+    statusCode: STATUS_CODE.NOT_FOUND,
+  });
+}
+
 // The id arrives on the rewritten URL as the dynamic segment, so the whole original pathname is
 // the mock path. Segments are decoded one at a time so an encoded `/` stays inside its own.
-function mockPathname(req: NextRequest): string {
+// Null for a path past the cap, measured before decoding, which only ever shortens it.
+function mockPathname(req: NextRequest): string | null {
   const raw = req.nextUrl.pathname.split(/[?#]/)[0] ?? "";
+  if (raw.length > MAX_MOCK_PATH_LENGTH) return null;
   return "/" + raw.split("/").filter(Boolean).map(decodeSegment).join("/");
 }
 
@@ -55,12 +65,9 @@ async function handle(
   publicId: string,
   method: EndpointMethod["method"]
 ) {
-  if (!publicId)
-    return ApiResponse.error({
-      message: ERROR_MESSAGES.NOT_FOUND,
-      statusCode: STATUS_CODE.NOT_FOUND,
-    });
+  if (!publicId) return notFound();
   const path = mockPathname(req);
+  if (path === null) return notFound();
 
   let endpoint = await EndpointService.getEndpointByPath({
     project_public_id: publicId,
@@ -89,10 +96,7 @@ async function handle(
       return response;
     }
 
-    return ApiResponse.error({
-      message: ERROR_MESSAGES.NOT_FOUND,
-      statusCode: STATUS_CODE.NOT_FOUND,
-    });
+    return notFound();
   }
 
   const endpointValidation = validateData(
@@ -266,22 +270,14 @@ export const OPTIONS = createRouteHandler<{ projectId: string }>(async (req, par
   const publicId = params["projectId"] ?? "";
   const origin = req.headers.get("origin");
 
-  if (!publicId)
-    return ApiResponse.error({
-      message: ERROR_MESSAGES.NOT_FOUND,
-      statusCode: STATUS_CODE.NOT_FOUND,
-    });
+  if (!publicId) return notFound();
 
   const response = new NextResponse(null, { status: STATUS_CODE.NO_CONTENT });
   response.headers.set("allow", ALLOWED_METHODS);
   if (!origin) return response;
 
   const config = await projectService.getCorsConfig({ public_id: publicId });
-  if (!config)
-    return ApiResponse.error({
-      message: ERROR_MESSAGES.NOT_FOUND,
-      statusCode: STATUS_CODE.NOT_FOUND,
-    });
+  if (!config) return notFound();
 
   return applyCorsHeaders(
     response,

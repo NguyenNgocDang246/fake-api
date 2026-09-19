@@ -36,6 +36,45 @@ describe("schema level rejection", () => {
       }).success
     ).toBe(false);
   });
+
+  // `validatePlan` decides which combination a blueprint may carry, so everything parses here and
+  // a blueprint stored before any of these keys existed still loads.
+  it("parses every form of the array container recipe, and the recipes added beside it", () => {
+    const recipes = [
+      { kind: "array_length", min: 1, max: 5 },
+      { kind: "array_length", of: "limit" },
+      { kind: "array_length", of: "limit", order_by: "a[].price", order: "desc" },
+      { kind: "array_length", order_by: "a[]" },
+      { kind: "compute", op: "ceil_divide", of: ["total", "per_page"] },
+      { kind: "compare", op: "lt", of: ["page", "pages"] },
+      { kind: "date", format: "date", not_before: "from", not_after: "to" },
+      { kind: "product", of: ["a", "b"] },
+    ];
+
+    for (const recipe of recipes) {
+      expect(
+        VariantPlanSchema.safeParse({
+          version: PLAN_VERSION,
+          fields: [{ path: "a", recipe }],
+        }).success
+      ).toBe(true);
+    }
+  });
+
+  it("refuses an op outside the closed lists", () => {
+    for (const recipe of [
+      { kind: "compute", op: "modulo", of: ["a", "b"] },
+      { kind: "compare", op: "between", of: ["a", "b"] },
+      { kind: "array_length", order_by: "a[]", order: "random" },
+    ]) {
+      expect(
+        VariantPlanSchema.safeParse({
+          version: PLAN_VERSION,
+          fields: [{ path: "a", recipe }],
+        }).success
+      ).toBe(false);
+    }
+  });
 });
 
 describe("plan size limits", () => {

@@ -75,6 +75,53 @@ function checkAggregateRecipe(input: ValidateRecipeInput): boolean {
   return true;
 }
 
+// Both sides are read one element at a time, so each has to be a single value the body already
+// holds. `checkDependencies` has covered existence and scope; this covers the type.
+function checkPairRecipe(input: ValidateRecipeInput): boolean {
+  const { path, recipe, baseBody, errors } = input;
+  if (recipe.kind !== "compute" && recipe.kind !== "compare") return true;
+
+  const types = recipe.of.map((operand) => expectedTypeAt(baseBody, operand));
+
+  if (recipe.kind === "compute") {
+    const wrong = recipe.of.find((_, index) => types[index] !== "number");
+    if (wrong !== undefined) {
+      errors.push(`Field "${path}" computes with "${wrong}", which does not hold a number`);
+      return false;
+    }
+    return true;
+  }
+
+  if (types[0] !== types[1]) {
+    errors.push(
+      `Field "${path}" compares "${recipe.of[0]}" with "${recipe.of[1]}", which hold different types`
+    );
+    return false;
+  }
+  if (types[0] !== "number" && types[0] !== "string") {
+    errors.push(`Field "${path}" compares values that hold nothing that can be ordered`);
+    return false;
+  }
+  return true;
+}
+
+// A bound is turned into a moment by `toEpochMs`, which reads an epoch number or a date string.
+function checkDateRecipe(input: ValidateRecipeInput): boolean {
+  const { path, recipe, baseBody, errors } = input;
+  if (recipe.kind !== "date") return true;
+
+  for (const bound of [recipe.not_before, recipe.not_after]) {
+    if (bound === undefined) continue;
+
+    const type = expectedTypeAt(baseBody, bound);
+    if (type !== "string" && type !== "number") {
+      errors.push(`Field "${path}" is bounded by "${bound}", which holds no date`);
+      return false;
+    }
+  }
+  return true;
+}
+
 // Returns false when the recipe has already been reported and the type check must be skipped.
 function checkRecipeShape(input: ValidateRecipeInput): boolean {
   const { path, recipe, expected, entityById, errors } = input;
@@ -97,6 +144,11 @@ function checkRecipeShape(input: ValidateRecipeInput): boolean {
       return checkCatalogRecipe(input);
     case "aggregate":
       return checkAggregateRecipe(input);
+    case "compute":
+    case "compare":
+      return checkPairRecipe(input);
+    case "date":
+      return checkDateRecipe(input);
     case "pick": {
       if (recipe.weights && recipe.weights.length !== recipe.values.length) {
         errors.push(`Field "${path}" has a weight list that does not match its values`);

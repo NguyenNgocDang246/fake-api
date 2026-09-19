@@ -1,4 +1,5 @@
 import {
+  MAX_ARRAY_ITEMS,
   VariantPlanDTO,
 } from "@/models/endpoint_plan/endpoint_plan.model";
 import { validatePlan } from "@/server/services/endpoint/variant/validate";
@@ -248,5 +249,183 @@ describe("validatePlan on aggregate", () => {
     expect(
       errorsFor([{ path: "name", recipe: { kind: "aggregate", op: "count", of: "items" } }]).join(" ")
     ).toContain("produces number where the body holds string");
+  });
+});
+
+describe("validatePlan on an array_length that follows a field", () => {
+  const BASE = { limit: 5, label: "a", items: [{ price: 1 }] };
+  const ALLOWED = ["limit", "label", "items", "items[].price"];
+
+  function errorsFor(fields: VariantPlanDTO["fields"], base: unknown = BASE) {
+    return validatePlan(plan({ fields }), base, ALLOWED).errors;
+  }
+
+  it("accepts a length that follows a number the body already holds", () => {
+    expect(errorsFor([{ path: "items", recipe: { kind: "array_length", of: "limit" } }])).toEqual([]);
+  });
+
+  it("accepts a length that follows a pick the plan draws", () => {
+    expect(
+      errorsFor([
+        { path: "items", recipe: { kind: "array_length", of: "limit" } },
+        { path: "limit", recipe: { kind: "pick", values: [2, 5, 10] } },
+      ])
+    ).toEqual([]);
+  });
+
+  it("blocks a length that follows something the body does not hold as a number", () => {
+    expect(
+      errorsFor([{ path: "items", recipe: { kind: "array_length", of: "label" } }]).join(" ")
+    ).toContain("not a single number");
+  });
+
+  // The executor draws a driver before it resizes, so a driver that reads anything would be drawn
+  // out of order. Refusing the recipe kind is what keeps that one pass enough.
+  it("blocks a length that follows a field drawn from other fields", () => {
+    const errors = errorsFor([
+      { path: "items", recipe: { kind: "array_length", of: "limit" } },
+      { path: "limit", recipe: { kind: "aggregate", op: "count", of: "items" } },
+    ]).join(" ");
+    expect(errors).toContain(`needs a "const", "int" or "pick" recipe`);
+    expect(errors).toContain("in a loop");
+  });
+
+  it("blocks a length that follows a number above the item ceiling", () => {
+    expect(
+      errorsFor([{ path: "items", recipe: { kind: "array_length", of: "limit" } }], {
+        ...BASE,
+        limit: MAX_ARRAY_ITEMS + 1,
+      }).join(" ")
+    ).toContain(`above the ${MAX_ARRAY_ITEMS} item limit`);
+  });
+
+  it("blocks a driver that can reach above the item ceiling", () => {
+    expect(
+      errorsFor([
+        { path: "items", recipe: { kind: "array_length", of: "limit" } },
+        { path: "limit", recipe: { kind: "int", min: 1, max: MAX_ARRAY_ITEMS } },
+      ])
+    ).toEqual([]);
+    expect(
+      errorsFor([
+        { path: "items", recipe: { kind: "array_length", of: "limit" } },
+        { path: "limit", recipe: { kind: "pick", values: [10, MAX_ARRAY_ITEMS + 1] } },
+      ]).join(" ")
+    ).toContain(`can reach ${MAX_ARRAY_ITEMS + 1}`);
+  });
+
+  it("blocks a band missing one of its two ends", () => {
+    expect(
+      errorsFor([{ path: "items", recipe: { kind: "array_length", min: 1 } }]).join(" ")
+    ).toContain("needs both a minimum and a maximum");
+  });
+});
+
+describe("validatePlan on an ordered array", () => {
+  const BASE = {
+    limit: 3,
+    tags: ["b", "a"],
+    items: [{ price: 1, meta: { at: "2024-01-01" } }],
+    others: [{ price: 2 }],
+  };
+  const ALLOWED = ["limit", "tags", "tags[]", "items", "items[].price", "items[].meta.at", "others"];
+
+  function errorsFor(fields: VariantPlanDTO["fields"]) {
+    return validatePlan(plan({ fields }), BASE, ALLOWED).errors;
+  }
+
+  it("accepts a key inside the array, nested or not", () => {
+    expect(
+      errorsFor([
+        { path: "items", recipe: { kind: "array_length", of: "limit", order_by: "items[].price", order: "desc" } },
+      ])
+    ).toEqual([]);
+    expect(
+      errorsFor([{ path: "items", recipe: { kind: "array_length", order_by: "items[].meta.at" } }])
+    ).toEqual([]);
+  });
+
+  it("accepts a list of plain values ordered by the element itself", () => {
+    expect(errorsFor([{ path: "tags", recipe: { kind: "array_length", order_by: "tags[]" } }])).toEqual([]);
+  });
+
+  it("blocks a key outside the array and one in a different array", () => {
+    expect(
+      errorsFor([{ path: "items", recipe: { kind: "array_length", order_by: "limit" } }]).join(" ")
+    ).toContain("not a path inside it");
+    expect(
+      errorsFor([{ path: "items", recipe: { kind: "array_length", order_by: "others[].price" } }]).join(" ")
+    ).toContain("not a path inside it");
+  });
+
+  it("blocks ordering by something with no order", () => {
+    expect(
+      errorsFor([{ path: "items", recipe: { kind: "array_length", order_by: "items[].meta" } }]).join(" ")
+    ).toContain("nothing that can be ordered");
+  });
+});
+
+describe("validatePlan on compute, compare and bounded dates", () => {
+  const BASE = {
+    page: 1,
+    per_page: 10,
+    total: 42,
+    page_count: 1,
+    has_next: false,
+    label: "a",
+    from: "2024-01-01",
+    to: "2024-06-30",
+    created_at: "2024-03-01",
+  };
+  const ALLOWED = Object.keys(BASE);
+
+  function errorsFor(fields: VariantPlanDTO["fields"]) {
+    return validatePlan(plan({ fields }), BASE, ALLOWED).errors;
+  }
+
+  it("accepts a page count, a flag and a bounded date", () => {
+    expect(
+      errorsFor([
+        { path: "page_count", recipe: { kind: "compute", op: "ceil_divide", of: ["total", "per_page"] } },
+        { path: "has_next", recipe: { kind: "compare", op: "lt", of: ["page", "page_count"] } },
+        { path: "created_at", recipe: { kind: "date", format: "date", not_before: "from", not_after: "to" } },
+      ])
+    ).toEqual([]);
+  });
+
+  it("blocks computing with an operand the body does not hold as a number", () => {
+    expect(
+      errorsFor([{ path: "total", recipe: { kind: "compute", op: "add", of: ["page", "label"] } }]).join(" ")
+    ).toContain(`computes with "label"`);
+  });
+
+  it("blocks comparing two operands of different types", () => {
+    expect(
+      errorsFor([{ path: "has_next", recipe: { kind: "compare", op: "lt", of: ["page", "label"] } }]).join(" ")
+    ).toContain("hold different types");
+  });
+
+  it("blocks a bound that holds no date", () => {
+    expect(
+      errorsFor([
+        { path: "created_at", recipe: { kind: "date", format: "date", not_after: "has_next" } },
+      ]).join(" ")
+    ).toContain("holds no date");
+  });
+
+  it("blocks a compute written into a field the body holds as a string", () => {
+    expect(
+      errorsFor([{ path: "label", recipe: { kind: "compute", op: "add", of: ["page", "total"] } }]).join(" ")
+    ).toContain("produces number where the body holds string");
+  });
+
+  // `recipeDependencies` reports both operands, so the graph check needs nothing of its own.
+  it("blocks two computed fields that depend on each other", () => {
+    expect(
+      errorsFor([
+        { path: "total", recipe: { kind: "compute", op: "multiply", of: ["page_count", "per_page"] } },
+        { path: "page_count", recipe: { kind: "compute", op: "ceil_divide", of: ["total", "per_page"] } },
+      ]).join(" ")
+    ).toContain("in a loop");
   });
 });

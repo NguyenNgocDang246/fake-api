@@ -5,6 +5,7 @@ import {
   SUPPORTED_LOCALES,
 } from "@/models/endpoint_plan/catalog.model";
 import {
+  MAX_ARRAY_ITEMS,
   MAX_CATALOG_ROWS,
   MAX_PICK_VALUES,
   MAX_SLOT_VALUES,
@@ -113,7 +114,9 @@ body's language, industry-specific status codes, plan tiers, local street names.
 {"kind":"int","min":n,"max":n,"step":n}
 {"kind":"float","min":n,"max":n,"step":n,"fraction_digits":n}
 {"kind":"bool","probability":0..1}
-{"kind":"date","format":"...","days_back":n,"days_forward":n}
+{"kind":"date","format":"...","days_back":n,"days_forward":n,"not_before":"<path>","not_after":"<path>"}
+    The two bounds are optional and name fields holding a date or an epoch. Use them when the
+    body states a range the date has to fall inside, so the value cannot land outside it.
 {"kind":"pattern","pattern":"ORD-#####"}          # digit, ? letter, * alphanumeric, \\ escapes
 {"kind":"semantic","name":"..."}                  a standalone well known value
 {"kind":"const","value":...}
@@ -126,9 +129,24 @@ body's language, industry-specific status codes, plan tiers, local street names.
     For avg, min and max, "of" is a value path inside an array, such as "items[].price".
     For count, "of" is the array itself, such as "items", and the result is how many elements
     it has on this call, which follows "array_length" instead of being a fixed number.
-{"kind":"product","of":["<path>","<path>"],"multiplier":n,"fraction_digits":n}
+{"kind":"compute","op":"add|subtract|multiply|divide|ceil_divide","of":["<path>","<path>"],"multiplier":n,"fraction_digits":n}
+    Arithmetic between two fields, in that order: "of":["a","b"] with "subtract" is a minus b.
+    Use "ceil_divide" for a number of pages, which is a total divided by a page size rounded up.
+{"kind":"compare","op":"lt|lte|gt|gte|eq|neq","of":["<path>","<path>"]}
+    A true or false answer about two fields, in that order: "lt" is the first below the second.
+    This is how a flag saying whether anything follows stops contradicting the numbers beside it.
 {"kind":"branch","on":"<path>","cases":{"<value>":<recipe>},"default":<recipe>}
-{"kind":"array_length","min":n,"max":n}
+{"kind":"array_length","min":n,"max":n}           a length drawn between the two
+{"kind":"array_length","of":"<path>"}             a length equal to that field's value
+    Use the second form when some field already states how many elements the response carries.
+    "of" names a number outside every array, and if it is a field you control, its own recipe
+    has to be "const", "int" or "pick" and nothing it can take may go above ${MAX_ARRAY_ITEMS}.
+    Write one length form or the other, never both.
+{"kind":"array_length","order_by":"<path>","order":"asc|desc"}
+    The order the elements come back in. "order_by" is a path running through this very array,
+    such as "items[].price", or the array's own path plus "[]" for a list of plain values.
+    "order" defaults to "asc". Add it beside a length on the same recipe, or write it alone to
+    order a list whose length does not change.
 
 Date formats: ${DATE_FORMATS.join(", ")}.
 
@@ -166,6 +184,19 @@ ${SEMANTIC_NAMES.join(", ")}
    round, and not into a different array. "sum" and "aggregate" are the exceptions, since they
    read a whole array. Put them on a field outside the array they read: on a field inside one
    they read every element of it, not that element's share, so every row would get one number.
+   A field outside a list that says what the list was asked for constrains every element of it,
+   and this is the relationship most often left to chance. A value the response says it narrowed
+   the results to has to be the value every element holds, so "copy" it into that element's field
+   rather than drawing each one freely. A term the response says it matched on has to appear in
+   the text it would have matched, so reference it from a "template". A field naming the order
+   the results came back in has to be matched by the order they are actually in, so set
+   "order_by" and "order" on the list to whatever that field says. Judge which fields those are
+   by what they mean, not by their names.
+   Where two number fields stand in a fixed arithmetic relation, derive one from the other with
+   "compute", and where a flag is the answer to a question about two numbers, derive it with
+   "compare". A page count is a total divided by a page size, rounded up; a flag saying more
+   follows is a comparison, not a coin toss. Every one of these left to chance is a response
+   that disagrees with itself.
 6. Choose ranges wide enough to stay interesting over thousands of calls, and narrow enough to
    stay plausible. A price band of 1 to 1000000 is useless; so is a fixed 99000.
 7. Give every enum realistic "weights". Real APIs are lopsided: most orders succeed, most users
@@ -174,6 +205,13 @@ ${SEMANTIC_NAMES.join(", ")}
    id, sku or email of a list element.
 9. Use "array_length" on an array path when a real client would see a different number of
    elements each call. Only offer it when the path is in your list.
+   When a field outside the list already states its size, the two have to agree on every call,
+   so follow it with "of" rather than a band that drifts away from it. Go by what a field means
+   and not by what it is called, since every API names these differently: a size the caller
+   asked for leads and the list follows it with "of", while a field that only reports what came
+   back follows the list with "aggregate" "count". A count of everything that matched, rather
+   than of what this response carries, is neither: leave it an "int" wide enough to be larger
+   than one response.
 10. For free text (a description, a comment, a bio), prefer "template" with several short slots
     over one long list: slots multiply, a list only repeats. Up to ${MAX_SLOT_VALUES} values per
     slot. Reference nearby fields with "refs" so the sentence talks about the right thing.
@@ -194,7 +232,16 @@ the data looks like, not what you do. Translate each instruction into a recipe:
 - "delivery is 1 to 2 weeks after the order" -> {"kind":"after","of":"...","min_delta":7,"max_delta":14}
 - "rating is the average of the reviews" -> {"kind":"aggregate","op":"avg","of":"reviews[].rating"}
 - "total_items is how many lines there are" -> {"kind":"aggregate","op":"count","of":"items"}
+- "return as many rows as per_page asks for" -> {"kind":"array_length","of":"per_page"} on the list
+- "every result matches the category filter" -> {"kind":"copy","of":"<the filter's own path>"}
+- "newest first" -> {"kind":"array_length","order_by":"<the date inside the list>","order":"desc"}
+- "page_count is the total over the page size" -> {"kind":"compute","op":"ceil_divide","of":["total","per_page"]}
+- "has_next is on until the last page" -> {"kind":"compare","op":"lt","of":["page","page_count"]}
+- "orders are dated inside the range asked for" -> {"kind":"date","not_before":"from","not_after":"to"}
 - "products should be coffee shop items" -> a catalog whose rows are coffee shop products
+
+The names in those examples are examples. The body decides what a field is called, and a request
+worded for one name applies to whichever field of the body actually means that.
 
 Put anything you genuinely cannot express into "unapplied_hints", quoting the part of the
 instruction you dropped. Silently ignoring an instruction is worse than admitting it: the author

@@ -144,6 +144,17 @@ export type DeltaUnit = (typeof DELTA_UNITS)[number];
 export const AGGREGATE_OPS = ["avg", "min", "max", "count"] as const;
 export type AggregateOp = (typeof AGGREGATE_OPS)[number];
 
+// Arithmetic and comparison between two fields already drawn, each an axis inside one kind so a
+// seventh op is a row in the executor's lookup table and nothing else.
+export const COMPUTE_OPS = ["add", "subtract", "multiply", "divide", "ceil_divide"] as const;
+export type ComputeOp = (typeof COMPUTE_OPS)[number];
+
+export const COMPARE_OPS = ["lt", "lte", "gt", "gte", "eq", "neq"] as const;
+export type CompareOp = (typeof COMPARE_OPS)[number];
+
+export const SORT_DIRECTIONS = ["asc", "desc"] as const;
+export type SortDirection = (typeof SORT_DIRECTIONS)[number];
+
 // Only locales the executor actually builds a Faker instance for.
 export const SUPPORTED_LOCALES = ["en", "vi", "ja", "ko", "zh_CN", "fr", "de", "es"] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
