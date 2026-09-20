@@ -18,7 +18,7 @@ import {
   isIntegerInRange,
 } from "@/models/endpoint/primitives.model";
 
-export const MAX_SCENARIO_NAME_LENGTH = 100;
+export const MAX_SCENARIO_NAME_LENGTH = 25;
 
 // The absolute bound, which is the highest role's allowance. `ROLE_LIMITS` reads it rather than
 // restating it, and the per-role ceiling stays a route check since a schema cannot see the role.

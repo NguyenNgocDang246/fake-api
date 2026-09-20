@@ -4,27 +4,30 @@ import projectService from "@/server/services/project.service";
 import { validateData } from "@/server/core/validation";
 import { CreateEndpointGroupSchema, EndpointGroupInfoSchema } from "@/models/endpoint_group.model";
 import { STATUS_CODE, ERROR_MESSAGES, LIMIT_MESSAGES } from "@/server/core/constants";
-import { createRouteHandler, withProjectId, withUserId } from "@/server/core/route_helpers";
+import { createRouteHandler, missingOrForbidden, withProjectId, withUserId } from "@/server/core/route_helpers";
 
 type EndpointGroupCollectionRouteParams = { projectId: string };
 
 export const GET = createRouteHandler<EndpointGroupCollectionRouteParams>(
   withUserId(
     withProjectId(async (_req, _params, ctx) => {
-      const hasPermission = await projectService.checkPermission({
-        userProps: { public_id: ctx.userId },
-        projectProps: { public_id: ctx.projectId },
-      });
-      if (!hasPermission) {
-        return ApiResponse.error({
-          message: ERROR_MESSAGES.FORBIDDEN,
-          statusCode: STATUS_CODE.FORBIDDEN,
-        });
-      }
-      const endpointGroups = await endpointGroupService.getAllEndpointGroups({
+      // Read through the owner, so rows coming back are ones this user may see. An empty answer
+      // is the only one that has to ask whether the project was theirs at all.
+      const endpointGroups = await endpointGroupService.getOwnedEndpointGroups({
         public_id: ctx.projectId,
+        owner: { user_public_id: ctx.userId },
       });
       if (endpointGroups.length === 0) {
+        const hasPermission = await projectService.checkPermission({
+          userProps: { public_id: ctx.userId },
+          projectProps: { public_id: ctx.projectId },
+        });
+        if (!hasPermission) {
+          return missingOrForbidden(
+            await projectService.projectExists({ public_id: ctx.projectId })
+          );
+        }
+
         return ApiResponse.error({
           message: ERROR_MESSAGES.NO_CONTENT,
           statusCode: STATUS_CODE.NO_CONTENT,

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/prisma/prisma_provider";
 import { guardService } from "@/server/core/errors";
+import { EndpointGroupOwner, EndpointOwner } from "@/server/core/ownership";
 import { GetUserByIdDTO, UserSchema } from "@/models/user.model";
 import { GetProjectByIdDTO } from "@/models/project.model";
 import { GetEndpointGroupByIdDTO } from "@/models/endpoint_group.model";
@@ -34,12 +35,32 @@ const SERVING_SCENARIO: Prisma.endpointsInclude = {
   scenarios: { orderBy: [{ is_active: "desc" }, { position: "asc" }], take: 1 },
 };
 
+// The same one scenario, plus how many the endpoint holds. The count is a subquery rather than a
+// second read of the rows, so a row can offer a switch without the list carrying every body.
+const SERVING_SCENARIO_WITH_COUNT = {
+  scenarios: { orderBy: [{ is_active: "desc" }, { position: "asc" }], take: 1 },
+  _count: { select: { scenarios: true } },
+} satisfies Prisma.endpointsInclude;
+
 const ALL_SCENARIOS: Prisma.endpointsInclude = {
   scenarios: { orderBy: [{ position: "asc" }, { id: "asc" }] },
 };
 
 export function servingScenarioOf<T>(endpoint: { scenarios: T[] } | null): T | null {
   return endpoint?.scenarios[0] ?? null;
+}
+
+// The same chain `checkPermission` walks, as a `where` fragment.
+function ownedBy(owner: EndpointOwner) {
+  return {
+    endpoint_groups: {
+      public_id: owner.endpoint_groups_public_id,
+      projects: {
+        public_id: owner.project_public_id,
+        users: { public_id: owner.user_public_id },
+      },
+    },
+  };
 }
 
 class EndpointService {
@@ -116,9 +137,34 @@ class EndpointService {
 
   // Carries every scenario, because this is what the edit modal opens on. The list route sends
   // the active one alone, so a group of ten endpoints does not ship ten full pagers.
+  // Scoped to its owner, so the row that comes back is one the caller may see and a read answers
+  // what a permission check would have asked a query earlier. Null covers both "not there" and
+  // "not yours", which `endpointExists` is for, on the failing path alone.
   async getEndpointById({ public_id }: GetEndpointByIdDTO) {
     return guardService(() =>
       prisma.endpoints.findUnique({ where: { public_id }, include: ALL_SCENARIOS })
+    );
+  }
+
+  // The same read with the ownership chain in the `where`, which is what lets a caller skip the
+  // permission check beside it. Writes keep asking first, so they keep the plain read above.
+  async getOwnedEndpointById({
+    public_id,
+    owner,
+  }: GetEndpointByIdDTO & { owner: EndpointOwner }) {
+    return guardService(() =>
+      prisma.endpoints.findUnique({
+        where: { public_id, ...ownedBy(owner) },
+        include: ALL_SCENARIOS,
+      })
+    );
+  }
+
+  async endpointExists({ public_id }: GetEndpointByIdDTO) {
+    return guardService(async () =>
+      Boolean(
+        await prisma.endpoints.findUnique({ where: { public_id }, select: { public_id: true } })
+      )
     );
   }
 
@@ -209,12 +255,25 @@ class EndpointService {
 
   // The active scenario alone. Every scenario of every endpoint would be the whole group's
   // bodies, up to `MAX_RESPONSE_BODY_CHARS` each, for a page that shows one status badge per row.
-  async getAllEndpoints({ public_id }: GetEndpointGroupByIdDTO) {
+  // Scoped like the single read: an empty list is a group with nothing in it or a group that is
+  // not the caller's, and the route asks which only when the list comes back empty.
+  async getAllEndpoints({
+    public_id,
+    owner,
+  }: GetEndpointGroupByIdDTO & { owner: EndpointGroupOwner }) {
     return guardService(() =>
       prisma.endpoints.findMany({
-        where: { endpoint_groups: { public_id } },
+        where: {
+          endpoint_groups: {
+            public_id,
+            projects: {
+              public_id: owner.project_public_id,
+              users: { public_id: owner.user_public_id },
+            },
+          },
+        },
         orderBy: { updated_at: "desc" },
-        include: SERVING_SCENARIO,
+        include: SERVING_SCENARIO_WITH_COUNT,
       })
     );
   }

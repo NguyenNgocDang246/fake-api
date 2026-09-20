@@ -42,7 +42,9 @@ export default function EndpointGroupClient({
           />
         </div>
 
-        <div className="grow flex flex-col">
+        {/* A flex child is as wide as its content unless it is told otherwise, and one endpoint
+            with a long path would widen this column past the page. */}
+        <div className="grow min-w-0 flex flex-col">
           <div className="flex flex-col w-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div>
               <div className="font-semibold text-lg">API Endpoint: </div>

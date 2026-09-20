@@ -3,6 +3,8 @@ jest.mock("@/server/services/endpoint/endpoint.service", () => ({
   default: {
     checkPermission: jest.fn(),
     getEndpointById: jest.fn(),
+    getOwnedEndpointById: jest.fn(),
+    endpointExists: jest.fn(),
     getEndpointByPath: jest.fn(),
     updateEndpointById: jest.fn(),
     deleteEndpointById: jest.fn(),

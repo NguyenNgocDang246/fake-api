@@ -23,7 +23,8 @@ export const EndpointSchema = z
 export type EndpointDTO = z.infer<typeof EndpointSchema>;
 
 // The list sends one scenario, the active one; `GET_BY_ID` sends them all. Both are this shape,
-// so the form reads them the same way and only the length differs.
+// so the form reads them the same way and only the length differs. `scenario_count` is how many
+// the endpoint holds, which a row shipping one of them has no other way of knowing.
 export const EndpointInfoSchema = EndpointSchema.omit({
   public_id: true,
   endpoint_groups_public_id: true,
@@ -32,6 +33,7 @@ export const EndpointInfoSchema = EndpointSchema.omit({
     public_id: z.string(),
     endpoint_groups_id: z.string(),
     scenarios: z.array(ScenarioInfoSchema),
+    scenario_count: z.number().int().min(1),
   })
   .strict();
 export type EndpointInfoDTO = z.infer<typeof EndpointInfoSchema>;

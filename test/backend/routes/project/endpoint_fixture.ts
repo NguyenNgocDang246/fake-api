@@ -27,6 +27,9 @@ export const endpointRow = (overrides: Record<string, unknown> = {}) => ({
   path: "/x",
   method: "GET",
   scenarios: [scenarioRow()],
+  // What the list read counts alongside the one scenario it takes. A read that carries every
+  // scenario never looks at it.
+  _count: { scenarios: 1 },
   ...overrides,
 });
 

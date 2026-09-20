@@ -8,6 +8,7 @@ import {
   EndpointInfoDTO,
 } from "@/models/endpoint/endpoint.model";
 import { EndpointForm } from "@/app/(pages)/project/[id]/components/EndpointForm/EndpointForm";
+import { EndpointFormSkeleton } from "@/app/(pages)/project/[id]/components/EndpointForm/EndpointFormSkeleton";
 import { applyAiQuota } from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
 import { useScenarioLimit } from "@/app/(pages)/project/[id]/components/EndpointForm/useScenarioLimit";
 import {
@@ -21,8 +22,8 @@ import { API_ROUTES, EndpointRoutes } from "@/app/libs/routes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import api from "@/app/libs/helpers/api_call.client";
-import { QUERY_KEY, STALETIME } from "@/app/components/Wrapper/QueryClient/Constants";
-import { Spinner } from "@/app/components/Loading/Spinner";
+import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/Constants";
+import { endpointByIdQuery } from "@/app/(pages)/project/[id]/components/UpdateEndpointForm/endpointQuery";
 import buildUrl from "@/app/libs/helpers/url_builder";
 import { usePathname } from "next/navigation";
 
@@ -41,38 +42,36 @@ export interface UpdateEndpointFormProps {
   maxScenarios?: number | undefined;
 }
 
-// The list ships one scenario per endpoint, the one answering, so the pager's other pages are
+// The list ships one scenario per endpoint, the one answering, so the form's other pages are
 // fetched here. Rendering the body only once they arrive is what lets `useForm` mount on the real
-// values: `JsonEditor` measures itself once and a later `reset` would not move it.
+// values: `JsonEditor` measures itself once and a later `reset` would not move it. The wait is a
+// skeleton of the form rather than a spinner, so the modal opens at the size it will keep.
 export const UpdateEndpointForm = forwardRef<UpdateEndpointFormHandles, UpdateEndpointFormProps>(
   (props, ref) => {
     const pathname = usePathname();
     const pathnameSplit = pathname.split("/");
     const projectId = props.projectId ?? pathnameSplit[pathnameSplit.length - 1] ?? "";
     const endpointRoutes = props.endpointRoutes ?? API_ROUTES.ENDPOINT;
+    // Asked here as well as in the body, so the shape standing in knows whether the scenario
+    // column is part of it. Both calls read the one query.
+    const scenarioLimit = useScenarioLimit();
+    const maxScenarios = props.maxScenarios ?? scenarioLimit;
 
-    const endpointState = useQuery<EndpointInfoDTO, ApiErrorResponse>({
-      queryKey: [QUERY_KEY.ENDPOINT.ONE, props.endpointId],
-      queryFn: async () => {
-        const res = (
-          await api.get(
-            buildUrl(endpointRoutes.GET_BY_ID, {
-              projectId,
-              endpointGroupId: props.endpointGroupId,
-              endpointId: props.endpointId,
-            })
-          )
-        ).data as ApiSuccessResponse;
-        return res.data as EndpointInfoDTO;
-      },
-      staleTime: STALETIME,
-    });
+    const endpointState = useQuery<EndpointInfoDTO, ApiErrorResponse>(
+      endpointByIdQuery({
+        projectId,
+        endpointGroupId: props.endpointGroupId,
+        endpointId: props.endpointId,
+        endpointRoutes,
+      })
+    );
 
     if (!endpointState.data) {
       return (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
-        </div>
+        <EndpointFormSkeleton
+          multiScenario={maxScenarios > 1}
+          aiAvailable={props.aiAvailable ?? true}
+        />
       );
     }
 
@@ -123,21 +122,30 @@ const UpdateEndpointFormBody = forwardRef<
     const designsRef = useRef<ScenarioDesigns>(new Map());
 
     const updateEndpointMutation = useMutation<
-      ApiSuccessResponse,
+      EndpointInfoDTO,
       ApiErrorResponse,
       ClientUpdateEndpointByIdDTO
     >({
-      mutationFn: (data) =>
-        api.put(
-          buildUrl(endpointRoutes.UPDATE_BY_ID, {
-            projectId,
-            endpointGroupId: props.endpointGroupId,
-            endpointId: props.endpointId,
-          }),
-          withScenarioPlans(data, fields.map((field) => field.id), designsRef.current),
-        ),
-      onSuccess() {
+      mutationFn: async (data) => {
+        const res = (
+          await api.put(
+            buildUrl(endpointRoutes.UPDATE_BY_ID, {
+              projectId,
+              endpointGroupId: props.endpointGroupId,
+              endpointId: props.endpointId,
+            }),
+            withScenarioPlans(data, fields.map((field) => field.id), designsRef.current),
+          )
+        ).data as ApiSuccessResponse;
+        return res.data as EndpointInfoDTO;
+      },
+      onSuccess(endpoint) {
         Notify.success("Updated endpoint");
+        // This key is what the form mounts on, so leaving it on the endpoint as it was before
+        // the save is what makes reopening show the values the save replaced. The answer carries
+        // the stored rows, and the refetch behind it is for the blueprint that settles after it.
+        queryClient.setQueryData([QUERY_KEY.ENDPOINT.ONE, props.endpointId], endpoint);
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT.ONE, props.endpointId] });
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY.ENDPOINT.ALL] });
         // An edit that leaves the blueprint stale has the server redesign it, which spends one
         // of the day's calls.

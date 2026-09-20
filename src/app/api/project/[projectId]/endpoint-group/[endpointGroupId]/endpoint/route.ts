@@ -24,6 +24,7 @@ import {
 import { planScenarioOf, scenarioInfoOf } from "@/server/services/endpoint/scenario_view";
 import {
   createRouteHandler,
+  missingOrForbidden,
   withEndpointGroupId,
   withProjectId,
   withUserId,
@@ -35,31 +36,41 @@ export const GET = createRouteHandler<EndpointCollectionRouteParams>(
   withUserId(
     withProjectId(
       withEndpointGroupId(async (_req, _params, ctx) => {
-        const hasPermission = await endpointGroupService.checkPermission({
-          userProps: { public_id: ctx.userId },
-          projectProps: { public_id: ctx.projectId },
-          endpointGroupProps: { public_id: ctx.endpointGroupId },
+        // Read through the owner, so a row that comes back is one this user may see. An empty
+        // answer is the only one that has to ask whether the group was theirs at all.
+        const endpoints = await endpointService.getAllEndpoints({
+          public_id: ctx.endpointGroupId,
+          owner: { user_public_id: ctx.userId, project_public_id: ctx.projectId },
         });
-        if (!hasPermission) {
-          return ApiResponse.error({
-            message: ERROR_MESSAGES.FORBIDDEN,
-            statusCode: STATUS_CODE.FORBIDDEN,
-          });
-        }
-
-        const endpoints = await endpointService.getAllEndpoints({ public_id: ctx.endpointGroupId });
         if (endpoints.length === 0) {
+          const hasPermission = await endpointGroupService.checkPermission({
+            userProps: { public_id: ctx.userId },
+            projectProps: { public_id: ctx.projectId },
+            endpointGroupProps: { public_id: ctx.endpointGroupId },
+          });
+          if (!hasPermission) {
+            return missingOrForbidden(
+              await endpointGroupService.endpointGroupExists({ public_id: ctx.endpointGroupId })
+            );
+          }
+
           return ApiResponse.error({
             message: ERROR_MESSAGES.NO_CONTENT,
             statusCode: STATUS_CODE.NO_CONTENT,
           });
         }
 
-        // One scenario per endpoint, the active one. The edit modal asks `GET_BY_ID` for the
-        // rest, so a group of ten endpoints does not ship ten full pagers to draw ten badges.
+        // One scenario per endpoint, the active one, and the count of the rest. The edit modal
+        // and the row's switcher ask `GET_BY_ID` for those, so a group of ten endpoints does not
+        // ship ten full sets to draw ten badges.
         const endpointInfoValidation = validateData(
           endpoints.map((e) =>
-            toEndpointInfoInput(e, ctx.endpointGroupId, e.scenarios.map(scenarioInfoOf))
+            toEndpointInfoInput(
+              e,
+              ctx.endpointGroupId,
+              e.scenarios.map(scenarioInfoOf),
+              e._count.scenarios
+            )
           ),
           [EndpointInfoSchema]
         );

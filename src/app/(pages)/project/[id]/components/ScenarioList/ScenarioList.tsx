@@ -101,7 +101,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = ({
                 >
                   {scenario?.status_code || "200"}
                 </span>
-                {delay > 0 && <span>{delay}ms</span>}
+                {delay > 0 && <span className="whitespace-nowrap">{delay} ms</span>}
                 {scenario?.ai_enabled && <Sparkles size={12} className="text-blue-500" />}
               </span>
             </button>

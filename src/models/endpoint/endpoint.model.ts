@@ -198,10 +198,13 @@ export function toScenarioInfoInput(
   };
 }
 
+// The count defaults to what is being sent, which is right for every reader that carries the
+// whole set. Only the list, which sends the serving scenario alone, has to name it.
 export function toEndpointInfoInput(
   endpoint: { public_id: string; path: string; method: string },
   endpoint_groups_id: string,
-  scenarios: z.input<typeof ScenarioInfoSchema>[]
+  scenarios: z.input<typeof ScenarioInfoSchema>[],
+  scenario_count: number = scenarios.length
 ) {
   return {
     public_id: endpoint.public_id,
@@ -209,5 +212,6 @@ export function toEndpointInfoInput(
     method: endpoint.method,
     endpoint_groups_id,
     scenarios,
+    scenario_count,
   };
 }

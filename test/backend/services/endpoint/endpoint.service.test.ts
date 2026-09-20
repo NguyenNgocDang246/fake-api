@@ -95,6 +95,28 @@ describe("src/server/services/endpoint/endpoint.service.ts", () => {
     });
   });
 
+  describe("getAllEndpoints", () => {
+    // The count is a subquery, not a second read of the bodies, so a row can say how many
+    // scenarios it has while the list still ships one.
+    it("reads the serving scenario and how many there are", async () => {
+      (prisma.endpoints.findMany as jest.Mock).mockResolvedValue([]);
+
+      await endpointService.getAllEndpoints({
+        public_id: "group1",
+        owner: { user_public_id: "user1", project_public_id: "proj1" },
+      });
+
+      expect(prisma.endpoints.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: {
+            scenarios: { orderBy: [{ is_active: "desc" }, { position: "asc" }], take: 1 },
+            _count: { select: { scenarios: true } },
+          },
+        })
+      );
+    });
+  });
+
   describe("getServableEndpointByDynamicPath", () => {
     const find = (path: string) =>
       endpointService.getServableEndpointByDynamicPath({

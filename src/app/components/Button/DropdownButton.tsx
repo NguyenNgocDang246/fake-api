@@ -24,6 +24,8 @@ interface DropdownProps {
   // option indices moving. A trailing index is ignored.
   dividerAfter?: number[];
   position?: "left" | "right" | "center";
+  // For a menu whose options are not known until it is asked for. The state itself stays here.
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const DropdownButton: React.FC<DropdownProps> = ({
@@ -39,6 +41,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
   optionClassName,
   dividerAfter,
   position = "left",
+  onOpenChange,
 }: DropdownProps) => {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
@@ -46,10 +49,23 @@ export const DropdownButton: React.FC<DropdownProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
+  // The outside-click listener is registered once, so what it reads has to be a ref rather than
+  // the state and the callback the first render closed over.
+  const openRef = useRef(open);
+  const openChangeRef = useRef(onOpenChange);
+  openChangeRef.current = onOpenChange;
+
+  const changeOpen = (next: boolean) => {
+    if (openRef.current === next) return;
+    openRef.current = next;
+    setOpen(next);
+    openChangeRef.current?.(next);
+  };
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpen(false);
+        changeOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -65,7 +81,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
       const spaceBelow = window.innerHeight - btnRect.bottom;
       setDropUp(spaceBelow < boxHeight);
     }
-    setOpen((prev) => !prev);
+    changeOpen(!open);
   };
 
   const positionClass =
@@ -122,7 +138,7 @@ export const DropdownButton: React.FC<DropdownProps> = ({
               onClick={(e) => {
                 e.stopPropagation();
                 onSelect?.(index);
-                setOpen(false);
+                changeOpen(false);
               }}
               // The padding sits on the option, not here, so an option that is a link covers the
               // whole hover area instead of leaving a strip that only closes the menu.

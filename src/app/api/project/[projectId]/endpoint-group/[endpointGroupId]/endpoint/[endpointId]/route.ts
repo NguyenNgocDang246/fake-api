@@ -5,6 +5,7 @@ import { ENDPOINT_MESSAGES } from "@/server/services/endpoint/endpoint.constants
 import { validateData } from "@/server/core/validation";
 import {
   createRouteHandler,
+  missingOrForbidden,
   withEndpointGroupId,
   withEndpointId,
   withProjectId,
@@ -41,25 +42,20 @@ export const GET = createRouteHandler<EndpointRouteParams>(
     withProjectId(
       withEndpointGroupId(
         withEndpointId(async (_req, _params, ctx) => {
-          const hasPermission = await endpointService.checkPermission({
-            userProps: { public_id: ctx.userId },
-            projectProps: { public_id: ctx.projectId },
-            endpointGroupProps: { public_id: ctx.endpointGroupId },
-            endpointProps: { public_id: ctx.endpointId },
+          // The read carries the ownership chain, so this is the whole check on the path that
+          // finds something. Only an empty answer pays for the query that says which refusal it is.
+          const endpoint = await endpointService.getOwnedEndpointById({
+            public_id: ctx.endpointId,
+            owner: {
+              user_public_id: ctx.userId,
+              project_public_id: ctx.projectId,
+              endpoint_groups_public_id: ctx.endpointGroupId,
+            },
           });
-          if (!hasPermission) {
-            return ApiResponse.error({
-              message: ERROR_MESSAGES.FORBIDDEN,
-              statusCode: STATUS_CODE.FORBIDDEN,
-            });
-          }
-
-          const endpoint = await endpointService.getEndpointById({ public_id: ctx.endpointId });
           if (!endpoint) {
-            return ApiResponse.error({
-              message: ERROR_MESSAGES.NOT_FOUND,
-              statusCode: STATUS_CODE.NOT_FOUND,
-            });
+            return missingOrForbidden(
+              await endpointService.endpointExists({ public_id: ctx.endpointId })
+            );
           }
 
           // Every scenario, unlike the list: this is what the edit modal opens its pager on.
