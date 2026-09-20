@@ -2,14 +2,16 @@
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import Notify from "@/app/components/Notify";
 import customResolver from "@/app/(pages)/project/[id]/components/EndpointForm/customResolver";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { ClientCreateEndpointDTO } from "@/models/endpoint/endpoint.model";
 import { EndpointForm } from "@/app/(pages)/project/[id]/components/EndpointForm/EndpointForm";
+import { applyAiQuota } from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
+import { useScenarioLimit } from "@/app/(pages)/project/[id]/components/EndpointForm/useScenarioLimit";
 import {
-  EndpointDesign,
-  applyAiQuota,
-  planEnvelopeOf,
-} from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
+  ScenarioDesigns,
+  blankScenario,
+  withScenarioPlans,
+} from "@/app/(pages)/project/[id]/components/EndpointForm/scenarioPayload";
 import { API_ROUTES, EndpointRoutes } from "@/app/libs/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
@@ -29,6 +31,9 @@ export interface CreateEndpointFormProps {
   projectId?: string | undefined;
   endpointRoutes?: EndpointRoutes | undefined;
   aiAvailable?: boolean | undefined;
+  // The trial box on the home page runs as a role allowed one scenario, so it passes 1 and the
+  // pager never appears.
+  maxScenarios?: number | undefined;
   // Runs once the endpoint exists. The home page's trial box uses it to report the one
   // conversion it cares about, which the project page must not report as well.
   onCreated?: (() => void) | undefined;
@@ -46,18 +51,19 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
     } = useForm<ClientCreateEndpointDTO>({
       resolver: customResolver,
       defaultValues: {
-        ai_enabled: false,
-        ai_fields: [],
-        ai_prompt: null,
-        response_headers: [],
         method: "GET",
-        status_code: "200",
+        scenarios: [blankScenario("Default")],
+        active_scenario: 0,
       },
     });
 
+    const scenarioLimit = useScenarioLimit();
+    const { fields, append, remove } = useFieldArray({ control, name: "scenarios" });
+
     // Beside the form rather than in it: the blueprint carries `.default()`s, so its zod input and
-    // output types differ and a `Resolver` cannot hold both.
-    const designRef = useRef<EndpointDesign | null>(null);
+    // output types differ and a `Resolver` cannot hold both. Keyed by the field array's row key,
+    // because removing a page shifts every index after it.
+    const designsRef = useRef<ScenarioDesigns>(new Map());
 
     const queryClient = useQueryClient();
     const pathname = usePathname();
@@ -76,7 +82,7 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
             projectId,
             endpointGroupId: props.endpointGroupId,
           }),
-          { ...data, ...planEnvelopeOf(designRef.current) },
+          withScenarioPlans(data, fields.map((field) => field.id), designsRef.current),
         ),
       onSuccess() {
         reset();
@@ -131,9 +137,14 @@ export const CreateEndpointForm = forwardRef<CreateEndpointFormHandles, CreateEn
         projectId={projectId}
         endpointGroupId={props.endpointGroupId}
         aiAvailable={props.aiAvailable ?? true}
+        maxScenarios={props.maxScenarios ?? scenarioLimit}
         defaults={{ delay_ms: "0" }}
-        onDesign={(design) => {
-          designRef.current = design;
+        scenarioKeys={fields.map((field) => field.id)}
+        onAddScenario={() => append(blankScenario(`Scenario ${fields.length + 1}`))}
+        onRemoveScenario={remove}
+        onDesign={(index, design) => {
+          const key = fields[index]?.id;
+          if (key) designsRef.current.set(key, design);
         }}
       />
     );

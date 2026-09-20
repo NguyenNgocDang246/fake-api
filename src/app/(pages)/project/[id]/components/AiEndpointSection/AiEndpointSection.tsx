@@ -33,7 +33,10 @@ interface AiEndpointSectionProps {
   promptError?: string | undefined;
   // Set by the update form only: the endpoint being edited, and whether it already stores a
   // blueprint. Together they let the first reroll be free instead of designing what exists.
-  endpointId?: string | undefined;
+  // The scenario this card belongs to: its position in the pager, which every field name
+  // carries, and the stored row a blueprint could be reused from.
+  index: number;
+  scenarioId?: string | undefined;
   hasStoredPlan?: boolean | undefined;
   // The blueprint the last preview designed, or `null` once the inputs stop matching it. The form
   // sends it with the endpoint so the server adopts it instead of paying for the same design.
@@ -47,7 +50,8 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
   endpointGroupId,
   fieldsError,
   promptError,
-  endpointId,
+  index,
+  scenarioId,
   hasStoredPlan,
   onDesign,
 }) => {
@@ -55,7 +59,8 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
     control,
     projectId,
     endpointGroupId,
-    endpointId,
+    index,
+    scenarioId,
     hasStoredPlan,
     onDesign,
   });
@@ -108,10 +113,10 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
           <div className="ml-auto shrink-0">
             <Controller
               control={control}
-              name="ai_enabled"
+              name={`scenarios.${index}.ai_enabled`}
               render={({ field }) => (
                 <Switch
-                  id="ai_enabled"
+                  id={`scenarios.${index}.ai_enabled`}
                   label="Enable"
                   checked={!!field.value}
                   register={{
@@ -148,7 +153,7 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
 
               <Controller
                 control={control}
-                name="ai_fields"
+                name={`scenarios.${index}.ai_fields`}
                 render={({ field }) => (
                   <AiFieldSelector
                     bodyJson={vm.bodyJson}
@@ -161,17 +166,17 @@ export const AiEndpointSection: React.FC<AiEndpointSectionProps> = ({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="ai_prompt" className="text-sm text-gray-800">
+              <label htmlFor={`scenarios.${index}.ai_prompt`} className="text-sm text-gray-800">
                 Hint for the AI (optional)
               </label>
 
               <div className="flex flex-col gap-2 @min-[600px]:flex-row @min-[600px]:items-center">
                 <input
-                  id="ai_prompt"
+                  id={`scenarios.${index}.ai_prompt`}
                   type="text"
                   maxLength={MAX_AI_PROMPT_LENGTH}
                   placeholder="e.g. use uuid for id field"
-                  {...register("ai_prompt")}
+                  {...register(`scenarios.${index}.ai_prompt`)}
                   className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none @min-[600px]:min-w-0 @min-[600px]:flex-1"
                 />
 

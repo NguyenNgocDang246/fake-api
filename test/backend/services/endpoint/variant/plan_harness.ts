@@ -17,8 +17,11 @@ jest.mock("@/server/services/ai_usage.service", () => ({
 jest.mock("@/server/prisma/prisma_provider", () => ({
   __esModule: true,
   prisma: {
-    $executeRaw: jest.fn(),
-    endpoints: { findUnique: jest.fn() },
+    endpoint_scenarios: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+    },
   },
 }));
 
@@ -26,7 +29,7 @@ import { VariantPlanDTO } from "@/models/endpoint_plan/endpoint_plan.model";
 import { prisma } from "@/server/prisma/prisma_provider";
 import aiUsageService from "@/server/services/ai_usage.service";
 import endpointVariantPlanService, {
-  PlanEndpoint,
+  PlanScenario,
   buildPlan,
   planHash,
   splitSelection,
@@ -48,7 +51,7 @@ const PLAN: VariantPlanDTO = {
   ],
 };
 
-function endpoint(overrides: Partial<PlanEndpoint> = {}): PlanEndpoint {
+function scenario(overrides: Partial<PlanScenario> = {}): PlanScenario {
   return {
     id: 1n,
     method: "GET",
@@ -84,7 +87,7 @@ export {
   BODY,
   FIELDS,
   PLAN,
-  endpoint,
+  scenario,
   respond,
 };
-export type { PlanEndpoint };
+export type { PlanScenario };

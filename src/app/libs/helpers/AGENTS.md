@@ -6,7 +6,7 @@ Pure helpers with no framework and no database, imported from both halves of the
 
 ## Content
 
-- `json_path.ts` — the path language. `parsePath`/`formatPath` tokenise and round trip, `escapeKey` escapes a key, `getAtPath`/`setAtPath` read and write through one, `flattenPathValues`/`flattenAtDepth` collect every value a path controls, and `arrayDepthOf`/`scopePathOf`/`isOuterScope` answer which array a path sits in.
+- `json_path.ts` — the path language. `parsePath`/`formatPath` tokenise and round trip, `escapeKey` escapes a key, `getAtPath`/`setAtPath` read and write through one, `flattenPathValues`/`flattenAtDepth` collect every value a path controls, and `arrayDepthOf`/`scopePathOf`/`isOuterScope`/`relativeToElement` answer which array a path sits in and how to read one path against a single element of another.
 - `json_field_tree.ts` — `buildFieldTree` turns a JSON body into the rows the field selector renders, marking each one selectable or greying it with a `disabledReason`; `collectSelectablePaths` flattens the tree back to the paths a caller may accept.
 - `plan_summary.ts` — `describePlan`/`describePlanCatalogs`, which turn a blueprint into the plain-language rows the endpoint form shows.
 - `untrusted_text.ts` — `collapseUntrusted` and `carriesLinkOrFence`, the cleaning applied to short free text nobody here wrote: the author's hint on the way to a model, and the model's own words on the way back.

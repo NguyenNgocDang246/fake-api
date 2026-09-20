@@ -42,6 +42,7 @@ export enum LIMIT_MESSAGES {
   PROJECT_LIMIT_REACHED = "You have reached the maximum number of projects allowed for your account.",
   ENDPOINT_GROUP_LIMIT_REACHED = "You have reached the maximum number of groups allowed for this project.",
   ENDPOINT_LIMIT_REACHED = "You have reached the maximum number of endpoints allowed for this group.",
+  SCENARIO_LIMIT_REACHED = "You have reached the maximum number of scenarios allowed for one endpoint.",
   AI_PLAN_LIMIT_REACHED = "Your AI usage is on limit.",
   AI_PLAN_LIMIT_REACHED_ON_SAVE = "This change needs a new AI design, and your AI usage is on limit.",
   AI_NOT_AVAILABLE_FOR_ROLE = "AI response variants are not available for your account.",

@@ -6,8 +6,8 @@ import {
   isBlockedHeader,
   parseResponseHeaders,
 } from "@/models/endpoint/response_headers.model";
-import { ClientCreateEndpointSchema, CreateEndpointSchema } from "@/models/endpoint/endpoint.model";
-import { VALID } from "./endpoint_fixture";
+import { ClientScenarioSchema, ScenarioWriteSchema } from "@/models/endpoint/endpoint.model";
+import { VALID_SCENARIO } from "./endpoint_fixture";
 
 const rows = (...pairs: [string, string][]) => pairs.map(([name, value]) => ({ name, value }));
 
@@ -92,10 +92,11 @@ describe("an error points at the row that caused it", () => {
   });
 });
 
+// Headers belong to one scenario's response, so the round trip is asked of the scenario schema.
 describe("the column round trip", () => {
   it("turns what the form sends into the text the column holds", () => {
-    const result = CreateEndpointSchema.safeParse({
-      ...VALID,
+    const result = ScenarioWriteSchema.safeParse({
+      ...VALID_SCENARIO,
       response_headers: rows(["X-Total-Count", "42"]),
     });
 
@@ -105,8 +106,8 @@ describe("the column round trip", () => {
 
   // A row the author added and left empty is not something to refuse, it is something to drop.
   it("drops a blank row and trims the names it keeps", () => {
-    const result = CreateEndpointSchema.safeParse({
-      ...VALID,
+    const result = ScenarioWriteSchema.safeParse({
+      ...VALID_SCENARIO,
       response_headers: rows(["", ""], ["  X-Total-Count  ", "42"]),
     });
 
@@ -114,8 +115,8 @@ describe("the column round trip", () => {
   });
 
   it("accepts the text a stored row already holds", () => {
-    const result = CreateEndpointSchema.safeParse({
-      ...VALID,
+    const result = ScenarioWriteSchema.safeParse({
+      ...VALID_SCENARIO,
       response_headers: '[{"name":"ETag","value":"v1"}]',
     });
 
@@ -123,23 +124,23 @@ describe("the column round trip", () => {
   });
 
   it("defaults to no headers at all", () => {
-    const { response_headers, ...withoutHeaders } = VALID;
+    const { response_headers, ...withoutHeaders } = VALID_SCENARIO;
     void response_headers;
 
-    expect(CreateEndpointSchema.safeParse(withoutHeaders).data?.response_headers).toBe("[]");
+    expect(ScenarioWriteSchema.safeParse(withoutHeaders).data?.response_headers).toBe("[]");
   });
 
   it("refuses text that is not a list of headers", () => {
     expect(
-      CreateEndpointSchema.safeParse({ ...VALID, response_headers: '{"a":1}' }).success
+      ScenarioWriteSchema.safeParse({ ...VALID_SCENARIO, response_headers: '{"a":1}' }).success
     ).toBe(false);
   });
 
   // The resolver needs zod's input and output types to agree, so this one stays an array.
   it("leaves the client schema handing back rows, not text", () => {
-    const result = ClientCreateEndpointSchema.safeParse({
-      path: "/users",
-      method: "GET",
+    const result = ClientScenarioSchema.safeParse({
+      public_id: null,
+      name: "Default",
       response_body: '{"a":1}',
       response_headers: rows(["X-Total-Count", "42"]),
       delay_ms: "0",

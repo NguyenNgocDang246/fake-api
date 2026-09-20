@@ -1,5 +1,7 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/prisma/prisma_provider";
 import { guardService } from "@/server/core/errors";
+import { EndpointGroupOwner, EndpointOwner } from "@/server/core/ownership";
 import { GetUserByIdDTO, UserSchema } from "@/models/user.model";
 import { GetProjectByIdDTO } from "@/models/project.model";
 import { GetEndpointGroupByIdDTO } from "@/models/endpoint_group.model";
@@ -11,9 +13,11 @@ import {
   DeleteEndpointByIdDTO,
   UpdateEndpointByIdDTO,
 } from "@/models/endpoint/endpoint.model";
-import { createWithUniquePublicId } from "@/server/core/prisma_retry";
+import { retryOnPublicIdConflict } from "@/server/core/prisma_retry";
+import { generatePublicId } from "@/app/libs/helpers/publicId";
 import userService from "@/server/services/user.service";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
+import { reconcileScenarios } from "@/server/services/endpoint/scenario.service";
 import {
   compareTemplateSpecificity,
   matchPathTemplate,
@@ -23,6 +27,41 @@ export {
   compareTemplateSpecificity,
   matchPathTemplate,
 } from "@/server/services/endpoint/endpoint_path_match";
+
+// One scenario, the active one, falling back to the first page when none is. A switch clears
+// every row before it marks the new one, so an endpoint has none active in between and filtering
+// on `is_active` would 404 a live mock for the length of that transaction.
+const SERVING_SCENARIO: Prisma.endpointsInclude = {
+  scenarios: { orderBy: [{ is_active: "desc" }, { position: "asc" }], take: 1 },
+};
+
+// The same one scenario, plus how many the endpoint holds. The count is a subquery rather than a
+// second read of the rows, so a row can offer a switch without the list carrying every body.
+const SERVING_SCENARIO_WITH_COUNT = {
+  scenarios: { orderBy: [{ is_active: "desc" }, { position: "asc" }], take: 1 },
+  _count: { select: { scenarios: true } },
+} satisfies Prisma.endpointsInclude;
+
+const ALL_SCENARIOS: Prisma.endpointsInclude = {
+  scenarios: { orderBy: [{ position: "asc" }, { id: "asc" }] },
+};
+
+export function servingScenarioOf<T>(endpoint: { scenarios: T[] } | null): T | null {
+  return endpoint?.scenarios[0] ?? null;
+}
+
+// The same chain `checkPermission` walks, as a `where` fragment.
+function ownedBy(owner: EndpointOwner) {
+  return {
+    endpoint_groups: {
+      public_id: owner.endpoint_groups_public_id,
+      projects: {
+        public_id: owner.project_public_id,
+        users: { public_id: owner.user_public_id },
+      },
+    },
+  };
+}
 
 class EndpointService {
   async canCreateEndpoint({
@@ -67,56 +106,70 @@ class EndpointService {
     return !!endpointGroup;
   }
 
+  // The endpoint and its scenarios are one write: an endpoint with no scenario has nothing to
+  // answer with, so it must never exist, not even between two statements. The retry wraps the
+  // whole transaction because every id in it is generated, not just the endpoint's.
   async createEndpoint({
     method,
     path,
-    status_code,
-    response_body,
-    response_headers,
-    delay_ms,
-    ai_enabled,
-    ai_fields,
-    ai_prompt,
+    scenarios,
+    active_scenario,
     endpoint_groups_public_id,
   }: CreateEndpointDTO) {
     return guardService(() =>
-      createWithUniquePublicId((public_id) =>
-        prisma.endpoints.create({
-          data: {
-            public_id,
-            method,
-            path,
-            status_code,
-            response_body,
-            response_headers,
-            delay_ms,
-            ai_enabled,
-            ai_fields,
-            ai_prompt,
-            endpoint_groups: { connect: { public_id: endpoint_groups_public_id } },
-          },
+      retryOnPublicIdConflict(() =>
+        prisma.$transaction(async (tx) => {
+          const endpoint = await tx.endpoints.create({
+            data: {
+              public_id: generatePublicId(),
+              method,
+              path,
+              endpoint_groups: { connect: { public_id: endpoint_groups_public_id } },
+            },
+          });
+
+          const ids = await reconcileScenarios(tx, endpoint.id, scenarios, active_scenario);
+          return { endpoint, scenario_ids: ids };
         })
       )
     );
   }
 
+  // Carries every scenario, because this is what the edit modal opens on. The list route sends
+  // the active one alone, so a group of ten endpoints does not ship ten full pagers.
+  // Scoped to its owner, so the row that comes back is one the caller may see and a read answers
+  // what a permission check would have asked a query earlier. Null covers both "not there" and
+  // "not yours", which `endpointExists` is for, on the failing path alone.
   async getEndpointById({ public_id }: GetEndpointByIdDTO) {
-    return guardService(() => prisma.endpoints.findUnique({ where: { public_id } }));
+    return guardService(() =>
+      prisma.endpoints.findUnique({ where: { public_id }, include: ALL_SCENARIOS })
+    );
   }
 
-  // The group is part of the lookup rather than a check before it: the preview route reads a
-  // stored blueprint off this row, and the caller was only ever cleared for one group.
-  async getEndpointInGroup({
+  // The same read with the ownership chain in the `where`, which is what lets a caller skip the
+  // permission check beside it. Writes keep asking first, so they keep the plain read above.
+  async getOwnedEndpointById({
     public_id,
-    endpoint_groups_public_id,
-  }: GetEndpointByIdDTO & { endpoint_groups_public_id: GetEndpointGroupByIdDTO["public_id"] }) {
+    owner,
+  }: GetEndpointByIdDTO & { owner: EndpointOwner }) {
     return guardService(() =>
       prisma.endpoints.findUnique({
-        where: { public_id, endpoint_groups: { public_id: endpoint_groups_public_id } },
+        where: { public_id, ...ownedBy(owner) },
+        include: ALL_SCENARIOS,
       })
     );
   }
 
+  async endpointExists({ public_id }: GetEndpointByIdDTO) {
+    return guardService(async () =>
+      Boolean(
+        await prisma.endpoints.findUnique({ where: { public_id }, select: { public_id: true } })
+      )
+    );
+  }
+
+  // The duplicate-path check on both write routes, and nothing else: answering "does this path
+  // already exist" must not drag a response body across the wire.
   async getEndpointByPath({
     project_public_id,
     path,
@@ -125,13 +178,29 @@ class EndpointService {
     return guardService(() =>
       prisma.endpoints.findFirst({
         where: { path, method, endpoint_groups: { projects: { public_id: project_public_id } } },
+        select: { public_id: true },
       })
     );
   }
 
-  // Specificity decides, not the order the rows came back in: `updated_at desc` used to pick the
-  // winner by accident, so any write to a row could silently reroute a live request.
-  async getEndpointByDynamicPath({
+  async getServableEndpointByPath({
+    project_public_id,
+    path,
+    method,
+  }: GetEndpointByPathDTO & { project_public_id: GetProjectByIdDTO["public_id"] }) {
+    return guardService(() =>
+      prisma.endpoints.findFirst({
+        where: { path, method, endpoint_groups: { projects: { public_id: project_public_id } } },
+        include: SERVING_SCENARIO,
+      })
+    );
+  }
+
+  // Two phases. The winner is picked from ids and paths alone, and only the winner's body and
+  // blueprint are read; one phase would drag every candidate's response across the wire to throw
+  // all but one away. Specificity decides, not the order the rows came back in: `updated_at desc`
+  // used to pick the winner by accident, so any write to a row could reroute a live request.
+  async getServableEndpointByDynamicPath({
     project_public_id,
     path,
     method,
@@ -144,13 +213,20 @@ class EndpointService {
           endpoint_groups: { projects: { public_id: project_public_id } },
         },
         orderBy: { updated_at: "desc" },
+        select: { id: true, path: true },
       });
 
       const matched = candidates
         .filter((candidate) => matchPathTemplate(candidate.path, path))
         .sort((a, b) => compareTemplateSpecificity(a.path, b.path));
 
-      return matched[0] ?? null;
+      const winner = matched[0];
+      if (!winner) return null;
+
+      return prisma.endpoints.findUnique({
+        where: { id: winner.id },
+        include: SERVING_SCENARIO,
+      });
     });
   }
 
@@ -177,11 +253,27 @@ class EndpointService {
     });
   }
 
-  async getAllEndpoints({ public_id }: GetEndpointGroupByIdDTO) {
+  // The active scenario alone. Every scenario of every endpoint would be the whole group's
+  // bodies, up to `MAX_RESPONSE_BODY_CHARS` each, for a page that shows one status badge per row.
+  // Scoped like the single read: an empty list is a group with nothing in it or a group that is
+  // not the caller's, and the route asks which only when the list comes back empty.
+  async getAllEndpoints({
+    public_id,
+    owner,
+  }: GetEndpointGroupByIdDTO & { owner: EndpointGroupOwner }) {
     return guardService(() =>
       prisma.endpoints.findMany({
-        where: { endpoint_groups: { public_id } },
+        where: {
+          endpoint_groups: {
+            public_id,
+            projects: {
+              public_id: owner.project_public_id,
+              users: { public_id: owner.user_public_id },
+            },
+          },
+        },
         orderBy: { updated_at: "desc" },
+        include: SERVING_SCENARIO_WITH_COUNT,
       })
     );
   }
@@ -198,8 +290,28 @@ class EndpointService {
     );
   }
 
-  async updateEndpointById({ public_id, ...rest }: UpdateEndpointByIdDTO) {
-    return guardService(() => prisma.endpoints.update({ where: { public_id }, data: rest }));
+  // Spelled out rather than spread into Prisma: `scenarios` and `active_scenario` are not
+  // columns, and a spread would reach the driver with them and throw at runtime.
+  async updateEndpointById({
+    public_id,
+    method,
+    path,
+    scenarios,
+    active_scenario,
+  }: UpdateEndpointByIdDTO) {
+    return guardService(() =>
+      retryOnPublicIdConflict(() =>
+        prisma.$transaction(async (tx) => {
+          const endpoint = await tx.endpoints.update({
+            where: { public_id },
+            data: { method, path },
+          });
+
+          const ids = await reconcileScenarios(tx, endpoint.id, scenarios, active_scenario);
+          return { endpoint, scenario_ids: ids };
+        })
+      )
+    );
   }
 }
 const endpointService = new EndpointService();

@@ -54,7 +54,14 @@ function describeRecipe(recipe: RecipeDTO, plan: VariantPlanDTO): string {
       const back = recipe.days_back ?? 30;
       const forward = recipe.days_forward ?? 0;
       const window = forward > 0 ? `the last ${back} and next ${forward} days` : `the last ${back} days`;
-      return `a date within ${window}`;
+      const bounds = [
+        recipe.not_before === undefined ? "" : `no earlier than ${recipe.not_before}`,
+        recipe.not_after === undefined ? "" : `no later than ${recipe.not_after}`,
+      ].filter((bound) => bound !== "");
+
+      return bounds.length === 0
+        ? `a date within ${window}`
+        : `a date within ${window}, ${bounds.join(" and ")}`;
     }
     case "pattern":
       return `a code shaped like "${recipe.pattern}"`;
@@ -92,12 +99,47 @@ function describeRecipe(recipe: RecipeDTO, plan: VariantPlanDTO): string {
     }
     case "product":
       return `${recipe.of[0]} multiplied by ${recipe.of[1]}`;
+    case "compute": {
+      const [left, right] = recipe.of;
+      const phrase = {
+        add: `${left} plus ${right}`,
+        subtract: `${left} minus ${right}`,
+        multiply: `${left} multiplied by ${right}`,
+        divide: `${left} divided by ${right}`,
+        ceil_divide: `${left} divided by ${right}, rounded up`,
+      }[recipe.op];
+      const scale = recipe.multiplier === undefined ? "" : `, times ${amount(recipe.multiplier)}`;
+      return `${phrase}${scale}`;
+    }
+    case "compare": {
+      const [left, right] = recipe.of;
+      return {
+        lt: `true while ${left} is below ${right}`,
+        lte: `true while ${left} is at most ${right}`,
+        gt: `true while ${left} is above ${right}`,
+        gte: `true while ${left} is at least ${right}`,
+        eq: `true while ${left} matches ${right}`,
+        neq: `true while ${left} differs from ${right}`,
+      }[recipe.op];
+    }
     case "branch": {
       const cases = Object.keys(recipe.cases);
       return `depends on ${recipe.on}: set for ${list(cases)}, otherwise ${describeRecipe(recipe.default, plan)}`;
     }
-    case "array_length":
-      return `${recipe.min} to ${recipe.max} items, a different number each call`;
+    case "array_length": {
+      const length =
+        recipe.of !== undefined
+          ? `as many items as ${recipe.of} says`
+          : recipe.min === undefined || recipe.max === undefined
+            ? ""
+            : `${recipe.min} to ${recipe.max} items, a different number each call`;
+      if (recipe.order_by === undefined) return length;
+
+      const order = `ordered by ${recipe.order_by}, ${
+        recipe.order === "desc" ? "largest first" : "smallest first"
+      }`;
+      return length === "" ? order : `${length}, ${order}`;
+    }
   }
 }
 

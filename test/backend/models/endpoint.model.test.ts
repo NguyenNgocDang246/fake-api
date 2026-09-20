@@ -1,18 +1,20 @@
 import {
-  ClientCreateEndpointSchema,
-  CreateEndpointSchema,
-  EndpointInfoSchema,
+  ClientScenarioSchema,
   MAX_ARRAY_ITEMS,
   MAX_DELAY_MS,
   MAX_RESPONSE_BODY_CHARS,
   MAX_RESPONSE_BODY_DEPTH,
   MAX_STATUS_CODE,
   MIN_STATUS_CODE,
+  ScenarioWriteSchema,
 } from "@/models/endpoint/endpoint.model";
-import { VALID } from "./endpoint_fixture";
+import { VALID_SCENARIO } from "./endpoint_fixture";
 
+// These rules all belong to one scenario's response, so they are asked of the scenario schema
+// rather than through an endpoint carrying one. What the array itself has to hold is in
+// endpoint_scenario.model.test.ts.
 const parse = (overrides: Record<string, unknown>) =>
-  CreateEndpointSchema.safeParse({ ...VALID, ...overrides });
+  ScenarioWriteSchema.safeParse({ ...VALID_SCENARIO, ...overrides });
 
 const nest = (depth: number) => {
   let body: unknown = 1;
@@ -130,27 +132,12 @@ describe("response_body limits", () => {
     expect(result.error?.issues.map((issue) => issue.path)).toEqual([["response_body"]]);
   });
 
-  // The limits guard writes only. Rows saved before them must keep loading, or the endpoint list
-  // goes down for anyone who ever stored a long array.
-  it("keeps reading a stored body the write path would now refuse", () => {
+  // The limits guard writes only, and the read side of that is asserted against
+  // `ScenarioInfoSchema` in endpoint_scenario.model.test.ts.
+  it("refuses a stored-length array on the way in", () => {
     const body = JSON.stringify({ list: Array.from({ length: MAX_ARRAY_ITEMS + 10 }, () => 0) });
 
     expect(parse({ response_body: body }).success).toBe(false);
-    expect(
-      EndpointInfoSchema.safeParse({
-        public_id: "aaaaaaaaaaaa",
-        endpoint_groups_id: "cccccccccccc",
-        path: "/users",
-        method: "GET",
-        status_code: 200,
-        response_body: body,
-        response_headers: [],
-        delay_ms: 0,
-        ai_enabled: false,
-        ai_fields: [],
-        ai_prompt: null,
-      }).success
-    ).toBe(true);
   });
 });
 
@@ -196,8 +183,8 @@ describe("ai_fields", () => {
 
 describe("the client schema applies the same numeric bounds", () => {
   const CLIENT_VALID = {
-    path: "/users",
-    method: "GET" as const,
+    public_id: null,
+    name: "Default",
     response_body: '{"name":"An"}',
     response_headers: [],
     delay_ms: "0",
@@ -208,7 +195,7 @@ describe("the client schema applies the same numeric bounds", () => {
   };
 
   const parseClient = (overrides: Record<string, unknown>) =>
-    ClientCreateEndpointSchema.safeParse({ ...CLIENT_VALID, ...overrides });
+    ClientScenarioSchema.safeParse({ ...CLIENT_VALID, ...overrides });
 
   it("accepts what the form normally sends", () => {
     expect(parseClient({}).success).toBe(true);

@@ -142,3 +142,25 @@ describe("src/server/services/endpoint/variant/json_source.ts", () => {
     });
   });
 });
+
+// The sort pass moves whole elements after every value has been drawn, so element i is no longer
+// the element source node i was written from. `emitFromSource` reuses a literal only where the
+// rendered value still matches what the source held, which is what makes that safe.
+describe("emitting a body whose list was reordered", () => {
+  it("writes the reordered values out and reuses a literal only where it still fits", () => {
+    const node = parseJsonSource('{"items":[{"price":10.00},{"price":20.50}]}')!;
+
+    expect(emitFromSource({ items: [{ price: 20.5 }, { price: 10 }] }, node)).toBe(
+      '{"items":[{"price":20.5},{"price":10}]}'
+    );
+    expect(emitFromSource(node.value, node)).toBe('{"items":[{"price":10.00},{"price":20.50}]}');
+  });
+
+  it("keeps the source key order inside each element it moved", () => {
+    const node = parseJsonSource('{"rows":[{"b":2,"a":1},{"b":4,"a":3}]}')!;
+
+    expect(emitFromSource({ rows: [{ b: 4, a: 3 }, { b: 2, a: 1 }] }, node)).toBe(
+      '{"rows":[{"b":4,"a":3},{"b":2,"a":1}]}'
+    );
+  });
+});

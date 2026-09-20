@@ -4,8 +4,9 @@ import { PrismaClient } from "@prisma/client";
 // EXPLAIN ANALYZE the two queries on the mock-serving hot path, so the numbers in
 // docs/00-assessment.md compare the same statements at every milestone.
 //
-// The where-clauses below mirror EndpointService.getEndpointByPath and
-// getEndpointByDynamicPath (src/server/services/endpoint.service.ts). They are
+// The where-clauses below mirror EndpointService.getServableEndpointByPath and the first phase
+// of getServableEndpointByDynamicPath (src/server/services/endpoint/endpoint.service.ts). The
+// second phase is a findUnique by primary key, which has nothing to measure. They are
 // duplicated rather than imported because capturing the generated SQL needs a
 // client constructed with query-event logging, and the shared prisma_provider
 // client is not. Keep them in sync with the service.
@@ -87,9 +88,10 @@ async function main() {
       endpoint_groups: { projects: { public_id: projectPublicId } },
     },
   });
-  await explainCaptured("getEndpointByPath (static lookup)", mark);
+  await explainCaptured("getServableEndpointByPath (static lookup)", mark);
 
-  // 2. Dynamic path candidates, mirrors getEndpointByDynamicPath.
+  // 2. Dynamic path candidates, mirrors the first phase of getServableEndpointByDynamicPath,
+  // which reads ids and paths alone and fetches only the winner afterwards.
   const dynamicProjectPublicId = dynamicEndpoint
     ? dynamicEndpoint.endpoint_groups.projects.public_id
     : projectPublicId;
@@ -101,8 +103,9 @@ async function main() {
       endpoint_groups: { projects: { public_id: dynamicProjectPublicId } },
     },
     orderBy: { updated_at: "desc" },
+    select: { id: true, path: true },
   });
-  await explainCaptured("getEndpointByDynamicPath (candidate scan)", mark);
+  await explainCaptured("getServableEndpointByDynamicPath (candidate scan)", mark);
 
   // 3. The hand-written JOIN from docs/05-runbook.md, kept for continuity with the
   // runbook even though Prisma never emits this shape.

@@ -1,11 +1,6 @@
-jest.mock("@/server/services/endpoint/endpoint.service", () => ({
-  __esModule: true,
-  default: {
-    getEndpointByPath: jest.fn(),
-    getEndpointByDynamicPath: jest.fn(),
-    findMethodsForPath: jest.fn(),
-  },
-}));
+jest.mock("@/server/services/endpoint/endpoint.service", () =>
+  jest.requireActual("./fake_fixture").endpointServiceMock()
+);
 
 jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
   __esModule: true,
@@ -18,12 +13,13 @@ jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
 import EndpointService from "@/server/services/endpoint/endpoint.service";
 import endpointVariantPlanService from "@/server/services/endpoint/variant/plan.service";
 import { GET } from "@/app/api/fake/[projectId]/route";
+import { servable } from "./fake_fixture";
 import { createJsonRequest, createRouteParams, readJson } from "../../helpers/http";
 
 const PARAMS = createRouteParams({ projectId: "PUBLIC" });
 
 describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
-  const aiEndpoint = {
+  const aiFields = {
     id: 7n,
     method: "GET",
     path: "/users",
@@ -38,6 +34,8 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
     ai_plan_hash: null,
   };
 
+  const aiEndpoint = servable(aiFields);
+
   const plan = {
     version: 1 as const,
     locale: "en" as const,
@@ -50,7 +48,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
   const renderable = { plan, uniqueCatalogs: new Set<string>(), source: JSON.stringify(plan) };
 
   it("renders a fresh variant from the stored blueprint", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
     (endpointVariantPlanService.loadRenderable as jest.Mock).mockReturnValue(renderable);
 
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
@@ -67,10 +65,10 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
   it("leaves every field the blueprint does not name byte for byte", async () => {
     const body =
       '{\n\t"name": "Dang",\n\t"price": 10.00,\n\t"id": 12345678901234567890,\n\t"ratio": 1e2,\n\t"tag": "\\u0041",\n\t"1": "x"\n}';
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-      ...aiEndpoint,
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
+      ...aiFields,
       response_body: body,
-    });
+    }));
     (endpointVariantPlanService.loadRenderable as jest.Mock).mockReturnValue(renderable);
 
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
@@ -86,12 +84,12 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
   // round the big integer, which is why the body is compacted as text instead.
   it("compacts the stored body when AI is off", async () => {
     const body = '{\n  "b": 1,\n  "1": 3,\n  "n": 12345678901234567890\n}';
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-      ...aiEndpoint,
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
+      ...aiFields,
       ai_enabled: false,
       ai_fields: [],
       response_body: body,
-    });
+    }));
 
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
@@ -100,12 +98,12 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
   });
 
   it("keeps the indentation out of a body the editor formatted", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-      ...aiEndpoint,
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
+      ...aiFields,
       ai_enabled: false,
       ai_fields: [],
       response_body: '{\n\t"name": "Dang",\n\t"old": 3,\n\t"birthday": "1/1/2023"\n}',
-    });
+    }));
 
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
@@ -113,12 +111,12 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
   });
 
   it("leaves the whitespace inside a string alone", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-      ...aiEndpoint,
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
+      ...aiFields,
       ai_enabled: false,
       ai_fields: [],
       response_body: '{\n  "msg": "hello   world",\n  "a": 1\n}',
-    });
+    }));
 
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
@@ -127,10 +125,10 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
 
   it("serves the stored text verbatim when a blueprint is missing", async () => {
     const body = '{"b":1,"1":3}';
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-      ...aiEndpoint,
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
+      ...aiFields,
       response_body: body,
-    });
+    }));
     (endpointVariantPlanService.loadRenderable as jest.Mock).mockReturnValue(null);
 
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
@@ -139,7 +137,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
 
   it("writes nothing on the serving path once a blueprint exists", async () => {
     const server = jest.requireMock("next/server") as { __afterCount: () => number };
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
     (endpointVariantPlanService.loadRenderable as jest.Mock).mockReturnValue(renderable);
 
     await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
@@ -154,7 +152,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
       __afterCount: () => number;
       __flushAfter: () => Promise<void>;
     };
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
     (endpointVariantPlanService.loadRenderable as jest.Mock).mockReturnValue(null);
 
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
@@ -164,12 +162,16 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
     expect(server.__afterCount()).toBe(1);
 
     await server.__flushAfter();
-    expect(endpointVariantPlanService.ensurePlan).toHaveBeenCalledWith(aiEndpoint);
+    // The scenario is what the blueprint hangs off, carrying the endpoint's address joined on
+    // because the prompt reads it as context.
+    expect(endpointVariantPlanService.ensurePlan).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 7n, method: "GET", path: "/users", ai_fields: ["name"] })
+    );
   });
 
   it("falls back to the base body when reading the blueprint throws", async () => {
     const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(aiEndpoint);
     (endpointVariantPlanService.loadRenderable as jest.Mock).mockImplementation(() => {
       throw new Error("plan column unreadable");
     });
@@ -183,10 +185,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
   });
 
   it("does not look at the blueprint when AI is off", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-      ...aiEndpoint,
-      ai_enabled: false,
-    });
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({ ...aiFields, ai_enabled: false }));
 
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
@@ -195,10 +194,7 @@ describe("src/app/api/fake/[projectId]/route.ts AI variants", () => {
   });
 
   it("does not look at the blueprint when AI is on but no field is selected", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-      ...aiEndpoint,
-      ai_fields: [],
-    });
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({ ...aiFields, ai_fields: [] }));
 
     await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 

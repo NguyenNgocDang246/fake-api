@@ -17,6 +17,8 @@ import {
   Eye,
   Ban,
   Check,
+  Layers,
+  ArrowLeftRight,
 } from "lucide-react";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
@@ -30,6 +32,7 @@ import {
   MAX_AI_VALUES,
 } from "@/models/endpoint/ai_fields.model";
 import { MAX_RESPONSE_HEADERS } from "@/models/endpoint/response_headers.model";
+import { MAX_SCENARIO_NAME_LENGTH } from "@/models/endpoint/scenario.model";
 import {
   MAX_ARRAY_ITEMS,
   MAX_DELAY_MS,
@@ -83,6 +86,7 @@ const TOC = [
   { id: "projects", label: "Create a Project" },
   { id: "endpoint-groups", label: "Endpoint Groups" },
   { id: "endpoints", label: "Create Endpoints" },
+  { id: "scenarios", label: "Scenarios" },
   { id: "manage-endpoints", label: "Edit, Delete & Copy URL" },
   { id: "ai-variants", label: "AI Response Variants" },
   { id: "call-api", label: "Call the Mock API" },
@@ -133,6 +137,10 @@ const ENDPOINT_FIELDS = [
   {
     field: "Path",
     detail: `Must start with /, at most ${MAX_PATH_LENGTH} characters, e.g. /api/users, /api/users/1`,
+  },
+  {
+    field: "Scenario name",
+    detail: `What this saved response stands for, up to ${MAX_SCENARIO_NAME_LENGTH} characters, e.g. Unauthorized or Empty list`,
   },
   {
     field: "Response body",
@@ -229,6 +237,10 @@ const PLAN_ROWS = [
     read: (limits: (typeof ROLE_LIMITS)["USER"]) => limits.maxEndpointsPerGroup,
   },
   {
+    label: "Scenarios per endpoint",
+    read: (limits: (typeof ROLE_LIMITS)["USER"]) => limits.maxScenariosPerEndpoint,
+  },
+  {
     label: "AI designs per day",
     read: (limits: (typeof ROLE_LIMITS)["USER"]) => limits.maxAiPlansPerDay,
   },
@@ -247,7 +259,7 @@ const TIPS = [
   "Follow RESTful naming: plural resources (/api/users), details (/api/users/123), sub-resources (/api/users/123/orders).",
   "Group related endpoints into the same Endpoint Group so they're easy to find and manage.",
   "Keep response JSON concise, only include fields you actually need, with realistic sample data.",
-  "Create multiple endpoints for different data states, e.g. an active user and an inactive user.",
+  "Give one endpoint a scenario per case you test against, then switch between them instead of retyping the body each time.",
   "Use status_code and response_body together to simulate success, validation errors, and server errors.",
   "Tick only the fields that genuinely differ between records, ids, names, prices, timestamps. Leaving the rest fixed keeps a list looking realistic and spends far less of your daily allowance.",
   "Use delay_ms to test loading states (1000-2000ms), timeouts (a high delay), or retry logic (delay plus an error status).",
@@ -437,6 +449,52 @@ export default async function DocsPage() {
             </p>
           </section>
 
+          <section id="scenarios" className="scroll-mt-24">
+            <h2 className="text-2xl font-bold mb-3">Scenarios</h2>
+            <p className="text-gray-600 leading-relaxed mb-4">
+              One endpoint can hold several saved responses, and only one of them answers at a
+              time. Keep a 200 beside a 401 and an admin-role body, then switch between them while
+              you work, instead of editing the same body back and forth and losing what was there.
+            </p>
+            <ul className="flex flex-col gap-2 text-gray-600 leading-relaxed mb-4">
+              <li className="flex items-start gap-2">
+                <Layers size={16} className="mt-1 shrink-0 text-gray-400" />
+                <span>
+                  The column beside the edit form lists them, each row showing its name, the status
+                  it answers with, and its delay. Click a row to open that scenario, or{" "}
+                  <strong>Add scenario</strong> for another.
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check size={16} className="mt-1 shrink-0 text-gray-400" />
+                <span>
+                  The one marked <strong>Serving</strong> is what your mock URL returns. Open
+                  another scenario and choose <strong>Use this one</strong> to switch.
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <ArrowLeftRight size={16} className="mt-1 shrink-0 text-gray-400" />
+                <span>
+                  You can switch without opening the form at all: click the scenario name on the
+                  endpoint row and pick another. The mock answers with it from the next call on.
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Pencil size={16} className="mt-1 shrink-0 text-gray-400" />
+                <span>
+                  Name them for the case they stand for, like <em>Unauthorized</em> or{" "}
+                  <em>Empty list</em>. The name shows beside the endpoint in the list.
+                </span>
+              </li>
+            </ul>
+            <p className="text-gray-600 leading-relaxed">
+              The method and path belong to the endpoint, so every scenario answers on the same
+              URL. The status, body, headers, delay and AI settings belong to the scenario. You can
+              keep up to {ROLE_LIMITS.USER.maxScenariosPerEndpoint} scenarios on one endpoint, or{" "}
+              {ROLE_LIMITS.USER_VIP.maxScenariosPerEndpoint} on a VIP account.
+            </p>
+          </section>
+
           <section id="manage-endpoints" className="scroll-mt-24">
             <h2 className="text-2xl font-bold mb-3">Edit, delete, and copy URL</h2>
             <ul className="flex flex-col gap-2 text-gray-600 leading-relaxed">
@@ -444,7 +502,7 @@ export default async function DocsPage() {
                 <Pencil size={16} className="mt-1 shrink-0 text-gray-400" />
                 <span>
                   <strong>Edit:</strong> click an endpoint to open the edit form, change the method,
-                  path, body, delay, or status, then Save.
+                  path, or any scenario&apos;s body, delay, and status, then Save.
                 </span>
               </li>
               <li className="flex items-start gap-2">

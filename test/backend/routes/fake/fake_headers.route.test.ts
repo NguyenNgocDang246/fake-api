@@ -1,11 +1,6 @@
-jest.mock("@/server/services/endpoint/endpoint.service", () => ({
-  __esModule: true,
-  default: {
-    getEndpointByPath: jest.fn(),
-    getEndpointByDynamicPath: jest.fn(),
-    findMethodsForPath: jest.fn(),
-  },
-}));
+jest.mock("@/server/services/endpoint/endpoint.service", () =>
+  jest.requireActual("./fake_fixture").endpointServiceMock()
+);
 
 jest.mock("@/server/services/project.service", () => ({
   __esModule: true,
@@ -21,6 +16,7 @@ import EndpointService from "@/server/services/endpoint/endpoint.service";
 import projectService from "@/server/services/project.service";
 import { GET } from "@/app/api/fake/[projectId]/route";
 import { STATUS_CODE } from "@/server/core/constants";
+import { servable } from "./fake_fixture";
 import { createJsonRequest, createRouteParams } from "../../helpers/http";
 
 const PARAMS = createRouteParams({ projectId: "PUBLIC" });
@@ -36,7 +32,7 @@ const base = {
 };
 
 function serve(overrides: Partial<typeof base> = {}) {
-  (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({ ...base, ...overrides });
+  (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({ ...base, ...overrides }));
   return GET(createJsonRequest({}, { pathname: "/users", headers: { host: MOCK_HOST } }), PARAMS);
 }
 
@@ -88,10 +84,7 @@ describe("headers the endpoint sets", () => {
   // A header the browser cannot read is a header that may as well not have been sent, so the
   // name has to be exposed. Only a browser call gets that, which is why this one sends an Origin.
   it("names them so a browser is allowed to read them", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-      ...base,
-      response_headers: JSON.stringify([{ name: "X-Total-Count", value: "42" }]),
-    });
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({ ...base, response_headers: JSON.stringify([{ name: "X-Total-Count", value: "42" }]) }));
 
     const res = await GET(
       createJsonRequest({}, { pathname: "/users", headers: { origin: "http://localhost" } }),
@@ -104,10 +97,7 @@ describe("headers the endpoint sets", () => {
   // `constructor` is a valid header name and a key every object answers to, so the locked list
   // has to be asked what it owns rather than what it inherits.
   it("names one that happens to be spelled like an object's own key", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
-      ...base,
-      response_headers: JSON.stringify([{ name: "constructor", value: "42" }]),
-    });
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({ ...base, response_headers: JSON.stringify([{ name: "constructor", value: "42" }]) }));
 
     const res = await GET(
       createJsonRequest({}, { pathname: "/users", headers: { origin: "http://localhost" } }),

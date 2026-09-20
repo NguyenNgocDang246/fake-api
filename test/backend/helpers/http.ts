@@ -56,8 +56,12 @@ export function createRouteParams<T extends Record<string, string>>(params: T) {
   return { params: Promise.resolve(params) };
 }
 
-export async function readJson(res: NextResponse) {
-  return await res.json();
+// The default keeps what `res.json()` already hands back, so every existing caller reads the
+// envelope exactly as before. A caller that wants a field typed names the shape instead.
+export async function readJson<T = Awaited<ReturnType<NextResponse["json"]>>>(
+  res: NextResponse
+): Promise<T> {
+  return (await res.json()) as T;
 }
 
 export async function expectSuccess(res: NextResponse, status = 200) {

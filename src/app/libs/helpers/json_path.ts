@@ -85,6 +85,24 @@ export function isOuterScope(outer: string, inner: string): boolean {
   return outer === "" || outer === inner || inner.startsWith(outer);
 }
 
+// `inner` read against one element of the array `container` names. `""` is the element itself,
+// which is what an array of plain values is read by. `null` when `inner` does not run through
+// that array at all. Compared step by step rather than as text, since a key may be escaped.
+export function relativeToElement(container: string, inner: string): string | null {
+  const outer = parsePath(container);
+  const steps = parsePath(inner);
+  if (steps.length < outer.length + 1) return null;
+
+  for (const [index, step] of outer.entries()) {
+    const other = steps[index];
+    if (!other || other.kind !== step.kind) return null;
+    if (step.kind === "key" && other.kind === "key" && other.key !== step.key) return null;
+  }
+  if (steps[outer.length]?.kind !== "array") return null;
+
+  return formatPath(steps.slice(outer.length + 1));
+}
+
 export function readKeys(source: unknown, keys: string[]): unknown {
   return keys.reduce<unknown>((acc, key) => (isPlainObject(acc) ? acc[key] : undefined), source);
 }

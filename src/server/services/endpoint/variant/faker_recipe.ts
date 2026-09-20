@@ -1,5 +1,12 @@
 import { MAX_ARRAY_ITEMS, MAX_UNIQUE_RETRIES } from "@/models/endpoint_plan/limits.model";
-import { AggregateOp, JsonLeaf } from "@/models/endpoint_plan/catalog.model";
+import {
+  AggregateOp,
+  CompareOp,
+  ComputeOp,
+  EqualityOp,
+  JsonLeaf,
+  isEqualityOp,
+} from "@/models/endpoint_plan/catalog.model";
 import { LeafRecipeDTO, RecipeDTO } from "@/models/endpoint_plan/recipe.model";
 import {
   catalogColumnIndex,
@@ -21,6 +28,7 @@ import {
   pickWeighted,
   renderPattern,
   shapeNumber,
+  toBoundMs,
   toEpochMs,
 } from "@/server/services/endpoint/variant/faker_value";
 
@@ -32,6 +40,55 @@ const VALUE_AGGREGATES: Record<Exclude<AggregateOp, "count">, (values: number[])
   min: (values) => values.reduce((acc, value) => (value < acc ? value : acc)),
   max: (values) => values.reduce((acc, value) => (value > acc ? value : acc)),
 };
+
+// `null` where the arithmetic has no answer, which leaves the field at its base value rather
+// than writing an Infinity or a NaN into the response.
+const COMPUTATIONS: Record<ComputeOp, (left: number, right: number) => number | null> = {
+  add: (left, right) => left + right,
+  subtract: (left, right) => left - right,
+  multiply: (left, right) => left * right,
+  divide: (left, right) => (right === 0 ? null : left / right),
+  ceil_divide: (left, right) => (right === 0 ? null : Math.ceil(left / right)),
+};
+
+// Two tables over complementary halves of `COMPARE_OPS`, so an op added to it fails the build
+// until one of them covers it. Equality answers about any leaf; ranking needs a rankable pair.
+const EQUALITIES: Record<EqualityOp, (left: JsonLeaf, right: JsonLeaf) => boolean> = {
+  eq: (left, right) => left === right,
+  neq: (left, right) => left !== right,
+};
+
+const ORDERINGS: Record<
+  Exclude<CompareOp, EqualityOp>,
+  (left: number | string, right: number | string) => boolean
+> = {
+  lt: (left, right) => left < right,
+  lte: (left, right) => left <= right,
+  gt: (left, right) => left > right,
+  gte: (left, right) => left >= right,
+};
+
+// The days give a window around now and each bound narrows it, so a date lands inside a range the
+// body itself states. Bounds that leave the window nothing decide the range by themselves, being
+// the harder promise of the two, and a lone bound is then both ends of it.
+function narrowWindow(
+  ctx: RenderContext,
+  recipe: Extract<LeafRecipeDTO, { kind: "date" }>,
+  from: number,
+  to: number
+): { from: number; to: number } {
+  const lower = recipe.not_before ? toBoundMs(readReferenced(ctx, recipe.not_before)) : null;
+  const upper = recipe.not_after ? toBoundMs(readReferenced(ctx, recipe.not_after)) : null;
+
+  let start = lower === null ? from : Math.max(from, lower);
+  let end = upper === null ? to : Math.min(to, upper);
+
+  if (start > end) {
+    start = lower ?? upper ?? start;
+    end = upper ?? lower ?? end;
+  }
+  return start > end ? { from: end, to: start } : { from: start, to: end };
+}
 
 function drawFromCatalog(ctx: RenderContext, recipe: LeafRecipeDTO): JsonLeaf | undefined {
   if (recipe.kind !== "catalog" && recipe.kind !== "catalog_range") return undefined;
@@ -124,6 +181,36 @@ function drawDerived(ctx: RenderContext, recipe: LeafRecipeDTO): JsonLeaf | unde
 
       return shapeNumber(left * right * (recipe.multiplier ?? 1), undefined, recipe.fraction_digits);
     }
+    case "compute": {
+      const [leftPath, rightPath] = recipe.of;
+      const left = readReferenced(ctx, leftPath);
+      const right = readReferenced(ctx, rightPath);
+      if (typeof left !== "number" || typeof right !== "number") return undefined;
+
+      const computed = COMPUTATIONS[recipe.op](left, right);
+      if (computed === null || !Number.isFinite(computed)) return undefined;
+
+      return shapeNumber(computed * (recipe.multiplier ?? 1), undefined, recipe.fraction_digits);
+    }
+    case "compare": {
+      const [leftPath, rightPath] = recipe.of;
+      const left = readReferenced(ctx, leftPath);
+      const right = readReferenced(ctx, rightPath);
+
+      // Same type on both sides, or the comparison is JavaScript coercion rather than an answer.
+      if (isEqualityOp(recipe.op)) {
+        const type = jsonLeafTypeOf(left);
+        if (type === undefined || type !== jsonLeafTypeOf(right)) return undefined;
+        return EQUALITIES[recipe.op](left as JsonLeaf, right as JsonLeaf);
+      }
+      if (typeof left === "number" && typeof right === "number") {
+        return ORDERINGS[recipe.op](left, right);
+      }
+      if (typeof left === "string" && typeof right === "string") {
+        return ORDERINGS[recipe.op](left, right);
+      }
+      return undefined;
+    }
     default:
       return undefined;
   }
@@ -160,11 +247,10 @@ export function drawLeaf(ctx: RenderContext, recipe: LeafRecipeDTO): JsonLeaf | 
       const back = recipe.days_back ?? 30;
       const forward = recipe.days_forward ?? 0;
       const now = Date.now();
+      const window = narrowWindow(ctx, recipe, now - back * DAY_MS, now + forward * DAY_MS + 1);
+
       return formatDate(
-        f.date.between({
-          from: new Date(now - back * DAY_MS),
-          to: new Date(now + forward * DAY_MS + 1),
-        }),
+        f.date.between({ from: new Date(window.from), to: new Date(window.to) }),
         recipe.format
       );
     }

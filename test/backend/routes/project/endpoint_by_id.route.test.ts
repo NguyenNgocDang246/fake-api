@@ -1,7 +1,11 @@
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { ENDPOINT_MESSAGES } from "@/server/services/endpoint/endpoint.constants";
-import { createJsonRequest, expectError, expectSuccess } from "../../helpers/http";
+import { createJsonRequest, expectError, expectSuccess, readJson } from "../../helpers/http";
 import {
+  endpointRow,
+  scenarioRow,
+  updateResult,
+  writeBody,
   EndpointService,
   GET,
   PUT,
@@ -15,8 +19,9 @@ import {
 
 describe("endpoint by id route: GET, PUT, DELETE", () => {
 
-  it("GET returns 403 when permission denied", async () => {
-    (EndpointService.checkPermission as jest.Mock).mockResolvedValue(false);
+  it("GET returns 403 when the endpoint is there but belongs to somebody else", async () => {
+    (EndpointService.getOwnedEndpointById as jest.Mock).mockResolvedValue(null);
+    (EndpointService.endpointExists as jest.Mock).mockResolvedValue(true);
     const res = await GET(
       createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)
@@ -25,8 +30,8 @@ describe("endpoint by id route: GET, PUT, DELETE", () => {
   });
 
   it("GET returns 404 when endpoint missing", async () => {
-    (EndpointService.checkPermission as jest.Mock).mockResolvedValue(true);
-    (EndpointService.getEndpointById as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getOwnedEndpointById as jest.Mock).mockResolvedValue(null);
+    (EndpointService.endpointExists as jest.Mock).mockResolvedValue(false);
     const res = await GET(
       createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)
@@ -35,19 +40,7 @@ describe("endpoint by id route: GET, PUT, DELETE", () => {
   });
 
   it("GET returns 200 when endpoint found", async () => {
-    (EndpointService.checkPermission as jest.Mock).mockResolvedValue(true);
-    (EndpointService.getEndpointById as jest.Mock).mockResolvedValue({
-      public_id: ENDPOINT_PUBLIC_ID,
-      path: "/x",
-      method: "GET",
-      status_code: 200,
-      response_body: "{}",
-      delay_ms: 0,
-      id: 1n,
-      ai_enabled: false,
-      ai_fields: [],
-      ai_prompt: null,
-    });
+    (EndpointService.getOwnedEndpointById as jest.Mock).mockResolvedValue(endpointRow());
     const res = await GET(
       createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)
@@ -55,24 +48,49 @@ describe("endpoint by id route: GET, PUT, DELETE", () => {
     await expectSuccess(res, 200);
   });
 
+  // The read carries the ownership chain, so a row that comes back is one this user may see and
+  // the answer costs one query rather than a permission check and then a read of the same row.
+  it("GET scopes the read to the owner and asks nothing else", async () => {
+    (EndpointService.getOwnedEndpointById as jest.Mock).mockResolvedValue(endpointRow());
+    await GET(
+      createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
+      props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)
+    );
+
+    expect(EndpointService.getOwnedEndpointById).toHaveBeenCalledWith({
+      public_id: ENDPOINT_PUBLIC_ID,
+      owner: {
+        user_public_id: USER_PUBLIC_ID,
+        project_public_id: PROJECT_PUBLIC_ID,
+        endpoint_groups_public_id: GROUP_PUBLIC_ID,
+      },
+    });
+    expect(EndpointService.checkPermission).not.toHaveBeenCalled();
+    expect(EndpointService.endpointExists).not.toHaveBeenCalled();
+  });
+
+  // This read carries every scenario, so the count is simply how many came back.
+  it("GET counts the scenarios it ships", async () => {
+    (EndpointService.getOwnedEndpointById as jest.Mock).mockResolvedValue(
+      endpointRow({ scenarios: [scenarioRow(), scenarioRow({ id: 2n, public_id: "ffffffffffff", is_active: false })] })
+    );
+    const res = await GET(
+      createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
+      props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)
+    );
+
+    await expectSuccess(res, 200);
+    const body = await readJson(res);
+    expect(body.data.scenario_count).toBe(2);
+  });
+
   it("PUT returns 200 when updated", async () => {
     (EndpointService.checkPermission as jest.Mock).mockResolvedValue(true);
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    (EndpointService.updateEndpointById as jest.Mock).mockResolvedValue({
-      public_id: ENDPOINT_PUBLIC_ID,
-      path: "/x",
-      method: "GET",
-      status_code: 200,
-      response_body: "{}",
-      delay_ms: 0,
-      id: 1n,
-      ai_enabled: false,
-      ai_fields: [],
-      ai_prompt: null,
-    });
+    (EndpointService.updateEndpointById as jest.Mock).mockResolvedValue(updateResult());
     const res = await PUT(
       createJsonRequest(
-        { method: "GET", path: "/x", status_code: 200, response_body: "{}", delay_ms: 0 },
+        writeBody(),
         { headers: { "x-userId": USER_PUBLIC_ID } }
       ),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)
@@ -85,21 +103,10 @@ describe("endpoint by id route: GET, PUT, DELETE", () => {
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
       public_id: ENDPOINT_PUBLIC_ID,
     });
-    (EndpointService.updateEndpointById as jest.Mock).mockResolvedValue({
-      public_id: ENDPOINT_PUBLIC_ID,
-      path: "/x",
-      method: "GET",
-      status_code: 200,
-      response_body: "{}",
-      delay_ms: 0,
-      id: 1n,
-      ai_enabled: false,
-      ai_fields: [],
-      ai_prompt: null,
-    });
+    (EndpointService.updateEndpointById as jest.Mock).mockResolvedValue(updateResult());
     const res = await PUT(
       createJsonRequest(
-        { method: "GET", path: "/x", status_code: 200, response_body: "{}", delay_ms: 0 },
+        writeBody(),
         { headers: { "x-userId": USER_PUBLIC_ID } }
       ),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)
@@ -114,7 +121,7 @@ describe("endpoint by id route: GET, PUT, DELETE", () => {
     });
     const res = await PUT(
       createJsonRequest(
-        { method: "GET", path: "/x", status_code: 200, response_body: "{}", delay_ms: 0 },
+        writeBody(),
         { headers: { "x-userId": USER_PUBLIC_ID } }
       ),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)

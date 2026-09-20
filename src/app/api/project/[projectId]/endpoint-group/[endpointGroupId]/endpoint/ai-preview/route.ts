@@ -10,7 +10,7 @@ import {
   ENDPOINT_AI_MESSAGES,
 } from "@/server/services/endpoint/endpoint.constants";
 import endpointGroupService from "@/server/services/endpoint_group.service";
-import endpointService from "@/server/services/endpoint/endpoint.service";
+import scenarioService from "@/server/services/endpoint/scenario.service";
 import aiUsageService from "@/server/services/ai_usage.service";
 import endpointVariantPlanService, {
   buildPlan,
@@ -85,7 +85,7 @@ export const POST = createRouteHandler<AiPreviewRouteParams>(
           });
         }
 
-        const { method, path, response_body, ai_fields, ai_prompt, count, endpoint_id } =
+        const { method, path, response_body, ai_fields, ai_prompt, count, scenario_id } =
           validation.data;
         // Kept alongside the value so a sample is written back against the author's own text,
         // exactly as the fake route serves it. A preview built any other way shows a body the
@@ -110,9 +110,9 @@ export const POST = createRouteHandler<AiPreviewRouteParams>(
         // The second free source, and the one the update form uses: an endpoint that already
         // stores a blueprint for these exact inputs. It is held to both checks the caller's own
         // blueprint is held to, since a hash only says which inputs it was built for.
-        if (!plan && endpoint_id) {
-          const stored = await endpointService.getEndpointInGroup({
-            public_id: endpoint_id,
+        if (!plan && scenario_id) {
+          const stored = await scenarioService.getScenarioInGroup({
+            public_id: scenario_id,
             endpoint_groups_public_id: ctx.endpointGroupId,
           });
 

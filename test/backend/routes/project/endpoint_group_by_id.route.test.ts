@@ -3,6 +3,8 @@ jest.mock("@/server/services/endpoint_group.service", () => ({
   default: {
     checkPermission: jest.fn(),
     getEndpointGroupById: jest.fn(),
+    getOwnedEndpointGroupById: jest.fn(),
+    endpointGroupExists: jest.fn(),
     updateEndpointGroupById: jest.fn(),
     deleteEndpointGroupById: jest.fn(),
   },
@@ -22,8 +24,19 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/route
     params: Promise.resolve({ projectId, endpointGroupId }),
   });
 
-  it("returns 403 when permission denied", async () => {
+  // A write still asks first and refuses with 403, which is what every method but GET does.
+  it("PUT returns 403 when permission denied", async () => {
     (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(false);
+    const res = await PUT(
+      createJsonRequest({ name: "New" }, { headers: { "x-userId": USER_PUBLIC_ID } }),
+      props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
+    );
+    await expectError(res, STATUS_CODE.FORBIDDEN, ERROR_MESSAGES.FORBIDDEN);
+  });
+
+  it("GET returns 403 when the group is there but belongs to somebody else", async () => {
+    (endpointGroupService.getOwnedEndpointGroupById as jest.Mock).mockResolvedValue(null);
+    (endpointGroupService.endpointGroupExists as jest.Mock).mockResolvedValue(true);
     const res = await GET(
       createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
@@ -32,13 +45,31 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/route
   });
 
   it("GET returns 404 when endpoint group not found", async () => {
-    (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
-    (endpointGroupService.getEndpointGroupById as jest.Mock).mockResolvedValue(null);
+    (endpointGroupService.getOwnedEndpointGroupById as jest.Mock).mockResolvedValue(null);
+    (endpointGroupService.endpointGroupExists as jest.Mock).mockResolvedValue(false);
     const res = await GET(
       createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
     );
     await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
+  });
+
+  it("GET scopes the read to the owner and asks nothing else", async () => {
+    (endpointGroupService.getOwnedEndpointGroupById as jest.Mock).mockResolvedValue({
+      public_id: GROUP_PUBLIC_ID,
+      name: "Group",
+      _count: { endpoints: 0 },
+    });
+    await GET(
+      createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
+      props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
+    );
+
+    expect(endpointGroupService.getOwnedEndpointGroupById).toHaveBeenCalledWith({
+      public_id: GROUP_PUBLIC_ID,
+      owner: { user_public_id: USER_PUBLIC_ID, project_public_id: PROJECT_PUBLIC_ID },
+    });
+    expect(endpointGroupService.checkPermission).not.toHaveBeenCalled();
   });
 
   it("PUT returns 200 when updated", async () => {

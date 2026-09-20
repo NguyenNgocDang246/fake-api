@@ -2,6 +2,10 @@ import { z } from "zod";
 
 export const MAX_PATH_LENGTH = 255;
 
+// The cap on an incoming mock path, not on a stored one. A dynamic segment carries a value the
+// author never wrote, so the path arriving can run longer than the template it matches.
+export const MAX_MOCK_PATH_LENGTH = 2048;
+
 export const MIN_STATUS_CODE = 100;
 export const MAX_STATUS_CODE = 599;
 export const MAX_DELAY_MS = 60_000;

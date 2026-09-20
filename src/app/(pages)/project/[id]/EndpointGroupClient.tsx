@@ -42,7 +42,9 @@ export default function EndpointGroupClient({
           />
         </div>
 
-        <div className="grow flex flex-col">
+        {/* A flex child is as wide as its content unless it is told otherwise, and one endpoint
+            with a long path would widen this column past the page. */}
+        <div className="grow min-w-0 flex flex-col">
           <div className="flex flex-col w-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div>
               <div className="font-semibold text-lg">API Endpoint: </div>
@@ -85,23 +87,8 @@ export default function EndpointGroupClient({
                 endpointsState.data.map((endpoint) => (
                   <div key={endpoint.public_id} className="mb-2">
                     <EndpointItem
-                      {...{
-                        public_id: endpoint.public_id,
-                        path: endpoint.path,
-                        delay_ms: endpoint.delay_ms,
-                        method: endpoint.method,
-                        status_code: endpoint.status_code,
-                        response_body: JSON.stringify(endpoint.response_body),
-                        response_headers: endpoint.response_headers,
-                        endpoint_groups_id: endpoint.endpoint_groups_id,
-                        project_id: projectInfoState.data?.public_id ?? "",
-                        ai_enabled: endpoint.ai_enabled,
-                        ai_fields: endpoint.ai_fields,
-                        ai_prompt: endpoint.ai_prompt,
-                        ai_unsupported_language: endpoint.ai_unsupported_language,
-                        ai_unapplied_hints: endpoint.ai_unapplied_hints,
-                        ai_has_plan: endpoint.ai_has_plan,
-                      }}
+                      endpoint={endpoint}
+                      project_id={projectInfoState.data?.public_id ?? ""}
                     />
                   </div>
                 ))
