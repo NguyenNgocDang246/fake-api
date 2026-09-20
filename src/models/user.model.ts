@@ -44,6 +44,7 @@ export const UserUsageSchema = z
         max_projects: z.number().int().nonnegative(),
         max_groups_per_project: z.number().int().nonnegative(),
         max_endpoints_per_group: z.number().int().nonnegative(),
+        max_scenarios_per_endpoint: z.number().int().nonnegative(),
         max_ai_plans_per_day: z.number().int().nonnegative(),
       })
       .strict(),

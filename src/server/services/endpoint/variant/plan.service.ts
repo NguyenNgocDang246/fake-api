@@ -30,7 +30,10 @@ export type { CachedPlan } from "@/server/services/endpoint/variant/plan_cache";
 export { buildPlan, splitSelection } from "@/server/services/endpoint/variant/plan_build";
 export type { BuildPlanInput } from "@/server/services/endpoint/variant/plan_build";
 
-export interface PlanEndpoint {
+// `id` is the scenario's, and it is what every lock and every store is keyed by. `method` and
+// `path` stay here because the prompt reads them as context, but they belong to the parent
+// endpoint, so the caller joins them on rather than reading them off one row.
+export interface PlanScenario {
   id: bigint;
   method: string;
   path: string;
@@ -42,10 +45,10 @@ export interface PlanEndpoint {
   ai_plan_hash?: string | null;
 }
 
-// Everything a blueprint is judged against. `PlanEndpoint` is this plus the row identity and the
+// Everything a blueprint is judged against. `PlanScenario` is this plus the row identity and the
 // two columns only the prompt reads, so a create can ask the same questions before it has a row,
 // and an update can ask them of values that have not been written yet.
-export type PlanSubject = Omit<PlanEndpoint, "id" | "method" | "path">;
+export type PlanSubject = Omit<PlanScenario, "id" | "method" | "path">;
 
 // The selection and hint a stored blueprint was designed under. The row holds them until an
 // update writes over them, so a write path reads it first to tell what the edit actually moved.
@@ -183,16 +186,16 @@ class EndpointVariantPlanService {
 
   // Re-stores the stored blueprint under the hash of the inputs it survived, so the row stops
   // reading as stale. `false` means the edit needs a real design.
-  async carryPlanForward(endpoint: PlanEndpoint, origin: PlanOrigin | null): Promise<boolean> {
-    const plan = this.carriableFrom(endpoint, origin);
+  async carryPlanForward(scenario: PlanScenario, origin: PlanOrigin | null): Promise<boolean> {
+    const plan = this.carriableFrom(scenario, origin);
     if (!plan) return false;
 
     try {
-      await this.storePlan(endpoint, plan);
+      await this.storePlan(scenario, plan);
       return true;
     } catch (error) {
       console.error("[ai] could not carry the blueprint forward", {
-        endpoint_id: String(endpoint.id),
+        scenario_id: String(scenario.id),
         reason: error instanceof Error ? error.message : String(error),
       });
       return false;
@@ -219,15 +222,15 @@ class EndpointVariantPlanService {
   // The third way to a stored blueprint and the only free one: the client hands back what a
   // preview designed. The hash says it was built for these inputs, `validatePlan` says it is safe
   // to run, and neither answer substitutes for the other. Never throws; `false` means design it.
-  async adoptPlan(endpoint: PlanEndpoint, plan: VariantPlanDTO, hash: string): Promise<boolean> {
-    if (!this.canAdoptPlan(endpoint, plan, hash)) return false;
+  async adoptPlan(scenario: PlanScenario, plan: VariantPlanDTO, hash: string): Promise<boolean> {
+    if (!this.canAdoptPlan(scenario, plan, hash)) return false;
 
     try {
-      await this.storePlan(endpoint, plan);
+      await this.storePlan(scenario, plan);
       return true;
     } catch (error) {
       console.error("[ai] could not adopt the blueprint sent with the endpoint", {
-        endpoint_id: String(endpoint.id),
+        scenario_id: String(scenario.id),
         reason: error instanceof Error ? error.message : String(error),
       });
       return false;
@@ -237,18 +240,18 @@ class EndpointVariantPlanService {
   // Never throws: every caller runs it in `after()`, and a failure only means the next request
   // serves the base body. The lock is released deliberately rather than in a `finally`, because
   // it doubles as the retry cooldown.
-  async ensurePlan(endpoint: PlanEndpoint): Promise<VariantPlanDTO | null> {
-    if (!endpoint.ai_enabled || endpoint.ai_fields.length === 0) return null;
+  async ensurePlan(scenario: PlanScenario): Promise<VariantPlanDTO | null> {
+    if (!scenario.ai_enabled || scenario.ai_fields.length === 0) return null;
     if (!isAiConfigured()) return null;
 
-    const existing = this.loadPlan(endpoint);
+    const existing = this.loadPlan(scenario);
     if (existing) return existing;
 
     try {
-      const startedAt = await this.acquirePlanLock(endpoint.id);
+      const startedAt = await this.acquirePlanLock(scenario.id);
       if (!startedAt) return null;
 
-      const owner = await this.ownerOf(endpoint.id);
+      const owner = await this.ownerOf(scenario.id);
       if (!owner) return null;
 
       // Claimed before the call: what the quota protects is the provider bill, and a design that
@@ -257,33 +260,33 @@ class EndpointVariantPlanService {
       if (!(await aiUsageService.trySpend({ public_id: owner.public_id }))) {
         // The cooldown exists to stop a dead provider being hammered, and a quota refusal reached
         // no provider at all, so holding the lock would only delay the first build after a reset.
-        await this.releasePlanLock(endpoint.id, startedAt);
+        await this.releasePlanLock(scenario.id, startedAt);
         return null;
       }
 
       const plan = await buildPlan({
-        method: endpoint.method,
-        path: endpoint.path,
-        responseBody: endpoint.response_body,
-        aiFields: endpoint.ai_fields,
-        aiPrompt: endpoint.ai_prompt,
+        method: scenario.method,
+        path: scenario.path,
+        responseBody: scenario.response_body,
+        aiFields: scenario.ai_fields,
+        aiPrompt: scenario.ai_prompt,
       });
 
       // An edit can land while the model is thinking: it clears the blueprint and drops the
       // lock, and without this check the build would store a blueprint for a dead body.
-      if (!(await this.holdsPlanLock(endpoint.id, startedAt))) {
+      if (!(await this.holdsPlanLock(scenario.id, startedAt))) {
         console.warn("[ai] blueprint lost its lock mid build, discarding", {
-          endpoint_id: String(endpoint.id),
+          scenario_id: String(scenario.id),
         });
         return null;
       }
 
-      await this.storePlan(endpoint, plan);
-      await this.releasePlanLock(endpoint.id, startedAt);
+      await this.storePlan(scenario, plan);
+      await this.releasePlanLock(scenario.id, startedAt);
       return plan;
     } catch (error) {
       console.error("[ai] blueprint build failed", {
-        endpoint_id: String(endpoint.id),
+        scenario_id: String(scenario.id),
         reason: error instanceof Error ? error.message : String(error),
         cause: error instanceof AppError ? error.cause : undefined,
       });
@@ -291,7 +294,7 @@ class EndpointVariantPlanService {
     }
   }
 
-  private async storePlan(endpoint: PlanEndpoint, plan: VariantPlanDTO) {
+  private async storePlan(scenario: PlanScenario, plan: VariantPlanDTO) {
     const serialized = JSON.stringify(plan);
     if (serialized.length > MAX_PLAN_BYTES) {
       throw new AppError({
@@ -300,14 +303,12 @@ class EndpointVariantPlanService {
       });
     }
 
-    const hash = planHash(this.hashInput(endpoint));
+    const hash = planHash(this.hashInput(scenario));
 
-    // Raw SQL for the same reason the lock uses it: this must not bump `updated_at`.
-    await prisma.$executeRaw`
-      UPDATE "endpoints"
-      SET "ai_plan" = ${serialized}, "ai_plan_hash" = ${hash}, "ai_plan_at" = ${new Date()}
-      WHERE "id" = ${endpoint.id}
-    `;
+    await prisma.endpoint_scenarios.update({
+      where: { id: scenario.id },
+      data: { ai_plan: serialized, ai_plan_hash: hash, ai_plan_at: new Date() },
+    });
   }
 }
 

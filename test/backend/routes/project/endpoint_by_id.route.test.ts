@@ -2,6 +2,9 @@ import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { ENDPOINT_MESSAGES } from "@/server/services/endpoint/endpoint.constants";
 import { createJsonRequest, expectError, expectSuccess } from "../../helpers/http";
 import {
+  endpointRow,
+  updateResult,
+  writeBody,
   EndpointService,
   GET,
   PUT,
@@ -36,18 +39,7 @@ describe("endpoint by id route: GET, PUT, DELETE", () => {
 
   it("GET returns 200 when endpoint found", async () => {
     (EndpointService.checkPermission as jest.Mock).mockResolvedValue(true);
-    (EndpointService.getEndpointById as jest.Mock).mockResolvedValue({
-      public_id: ENDPOINT_PUBLIC_ID,
-      path: "/x",
-      method: "GET",
-      status_code: 200,
-      response_body: "{}",
-      delay_ms: 0,
-      id: 1n,
-      ai_enabled: false,
-      ai_fields: [],
-      ai_prompt: null,
-    });
+    (EndpointService.getEndpointById as jest.Mock).mockResolvedValue(endpointRow());
     const res = await GET(
       createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)
@@ -58,21 +50,10 @@ describe("endpoint by id route: GET, PUT, DELETE", () => {
   it("PUT returns 200 when updated", async () => {
     (EndpointService.checkPermission as jest.Mock).mockResolvedValue(true);
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    (EndpointService.updateEndpointById as jest.Mock).mockResolvedValue({
-      public_id: ENDPOINT_PUBLIC_ID,
-      path: "/x",
-      method: "GET",
-      status_code: 200,
-      response_body: "{}",
-      delay_ms: 0,
-      id: 1n,
-      ai_enabled: false,
-      ai_fields: [],
-      ai_prompt: null,
-    });
+    (EndpointService.updateEndpointById as jest.Mock).mockResolvedValue(updateResult());
     const res = await PUT(
       createJsonRequest(
-        { method: "GET", path: "/x", status_code: 200, response_body: "{}", delay_ms: 0 },
+        writeBody(),
         { headers: { "x-userId": USER_PUBLIC_ID } }
       ),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)
@@ -85,21 +66,10 @@ describe("endpoint by id route: GET, PUT, DELETE", () => {
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
       public_id: ENDPOINT_PUBLIC_ID,
     });
-    (EndpointService.updateEndpointById as jest.Mock).mockResolvedValue({
-      public_id: ENDPOINT_PUBLIC_ID,
-      path: "/x",
-      method: "GET",
-      status_code: 200,
-      response_body: "{}",
-      delay_ms: 0,
-      id: 1n,
-      ai_enabled: false,
-      ai_fields: [],
-      ai_prompt: null,
-    });
+    (EndpointService.updateEndpointById as jest.Mock).mockResolvedValue(updateResult());
     const res = await PUT(
       createJsonRequest(
-        { method: "GET", path: "/x", status_code: 200, response_body: "{}", delay_ms: 0 },
+        writeBody(),
         { headers: { "x-userId": USER_PUBLIC_ID } }
       ),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)
@@ -114,7 +84,7 @@ describe("endpoint by id route: GET, PUT, DELETE", () => {
     });
     const res = await PUT(
       createJsonRequest(
-        { method: "GET", path: "/x", status_code: 200, response_body: "{}", delay_ms: 0 },
+        writeBody(),
         { headers: { "x-userId": USER_PUBLIC_ID } }
       ),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID, ENDPOINT_PUBLIC_ID)

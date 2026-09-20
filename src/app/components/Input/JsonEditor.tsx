@@ -74,6 +74,12 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
   const registerRef = useRef(register);
   registerRef.current = register;
 
+  const fitHeight = useCallback((textarea: HTMLTextAreaElement) => {
+    textarea.style.height = "auto";
+    textarea.style.height = textarea.scrollHeight + "px";
+    setHeight(textarea.scrollHeight + "px");
+  }, []);
+
   // register.onChange is called by hand: this component overrides the one register supplies, and
   // assigning textarea.value fires no React change either, so the form would only update on blur.
   const syncFormValue = useCallback((textarea: HTMLTextAreaElement) => {
@@ -119,9 +125,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
     textarea.selectionStart = textarea.selectionEnd = entry.caret;
 
-    textarea.style.height = "auto";
-    textarea.style.height = textarea.scrollHeight + "px";
-    setHeight(textarea.scrollHeight + "px");
+    fitHeight(textarea);
   };
 
   const onChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -131,9 +135,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
     pushHistory(value, e.target.selectionStart, true);
 
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
-      setHeight(textareaRef.current.scrollHeight + "px");
+      fitHeight(textareaRef.current);
     }
   };
 
@@ -172,9 +174,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
         textarea.selectionStart = textarea.selectionEnd = start + 1;
         setCaretColor("black");
 
-        textarea.style.height = "auto";
-        textarea.style.height = textarea.scrollHeight + "px";
-        setHeight(textarea.scrollHeight + "px");
+        fitHeight(textarea);
       }, 0);
     }
 
@@ -208,9 +208,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
           setCaretColor("black");
         }, 0);
 
-        textarea.style.height = "auto";
-        textarea.style.height = textarea.scrollHeight + "px";
-        setHeight(textarea.scrollHeight + "px");
+        fitHeight(textarea);
 
         return;
       }
@@ -226,9 +224,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
       setCaretColor("black");
 
-      textarea.style.height = "auto";
-      textarea.style.height = textarea.scrollHeight + "px";
-      setHeight(textarea.scrollHeight + "px");
+      fitHeight(textarea);
     }
 
     if (e.key === "{" || e.key === "[") {
@@ -253,9 +249,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       textarea.selectionStart = textarea.selectionEnd = start + 1;
       setCaretColor("black");
 
-      textarea.style.height = "auto";
-      textarea.style.height = textarea.scrollHeight + "px";
-      setHeight(textarea.scrollHeight + "px");
+      fitHeight(textarea);
     }
   };
 
@@ -282,14 +276,35 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       lastPushAtRef.current = 0;
 
       requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.style.height = "auto";
-          textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
-          setHeight(textareaRef.current.scrollHeight + "px");
-        }
+        if (textareaRef.current) fitHeight(textareaRef.current);
       });
     }
-  }, [defaultValue, syncFormValue]);
+  }, [defaultValue, syncFormValue, fitHeight]);
+
+  // An editor that mounts on a panel which is off screen measures nothing, because a hidden box
+  // reports no scroll height, and it would stay one line tall for as long as it is open. The
+  // observer reports the size it gains the first time it is shown, which is when it can be fitted.
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    let shown = textarea.offsetHeight > 0;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+
+      // Only the crossing is acted on, never every size report: fitting sets the height, which
+      // reports another size, and answering that one would never end.
+      const visible = entry.contentRect.height > 0 || entry.contentRect.width > 0;
+      if (visible === shown) return;
+
+      shown = visible;
+      if (visible) fitHeight(textarea);
+    });
+
+    observer.observe(textarea);
+    return () => observer.disconnect();
+  }, [fitHeight]);
 
   return (
     <div className={twMerge("flex flex-col gap-1", className)}>

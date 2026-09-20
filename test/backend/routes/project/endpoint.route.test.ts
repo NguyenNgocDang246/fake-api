@@ -9,9 +9,21 @@ jest.mock("@/server/services/endpoint/endpoint.service", () => ({
   },
 }));
 
+jest.mock("@/server/services/endpoint/scenario.service", () => ({
+  __esModule: true,
+  default: { canHoldScenarios: jest.fn(), getScenariosOfEndpoint: jest.fn() },
+}));
+
 jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
   __esModule: true,
-  default: { ensurePlan: jest.fn(), planInfoOf: jest.fn(), wouldDesign: jest.fn() },
+  default: {
+    ensurePlan: jest.fn(),
+    planInfoOf: jest.fn(),
+    wouldDesign: jest.fn(),
+    adoptPlan: jest.fn(),
+    carryPlanForward: jest.fn(),
+    clearPlan: jest.fn(),
+  },
 }));
 jest.mock("@/server/services/endpoint_group.service", () => ({
   __esModule: true,
@@ -22,7 +34,15 @@ jest.mock("@/server/services/ai_usage.service", () => ({
   default: { isAiAllowed: jest.fn(), quotaFor: jest.fn() },
 }));
 
+import {
+  ENDPOINT_PUBLIC_ID,
+  endpointRow,
+  scenarioRow,
+  writeBody,
+  writeResult,
+} from "./endpoint_fixture";
 import EndpointService from "@/server/services/endpoint/endpoint.service";
+import scenarioService from "@/server/services/endpoint/scenario.service";
 import endpointGroupService from "@/server/services/endpoint_group.service";
 import aiUsageService from "@/server/services/ai_usage.service";
 import endpointVariantPlanService from "@/server/services/endpoint/variant/plan.service";
@@ -34,7 +54,6 @@ import { createJsonRequest, expectError, expectSuccess } from "../../helpers/htt
 const USER_PUBLIC_ID = "aaaaaaaaaaaa";
 const PROJECT_PUBLIC_ID = "bbbbbbbbbbbb";
 const GROUP_PUBLIC_ID = "cccccccccccc";
-const ENDPOINT_PUBLIC_ID = "dddddddddddd";
 
 describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpoint/route.ts", () => {
   const props = (projectId: string, endpointGroupId: string) => ({
@@ -48,6 +67,11 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
     (aiUsageService.isAiAllowed as jest.Mock).mockResolvedValue(true);
     (aiUsageService.quotaFor as jest.Mock).mockResolvedValue({ limit: 30, spent: 0 });
     (endpointVariantPlanService.wouldDesign as jest.Mock).mockReturnValue(false);
+    (endpointVariantPlanService.adoptPlan as jest.Mock).mockResolvedValue(false);
+    (endpointVariantPlanService.carryPlanForward as jest.Mock).mockResolvedValue(false);
+    (scenarioService.canHoldScenarios as jest.Mock).mockResolvedValue(true);
+    (scenarioService.getScenariosOfEndpoint as jest.Mock).mockResolvedValue([scenarioRow()]);
+    (EndpointService.createEndpoint as jest.Mock).mockResolvedValue(writeResult());
   });
 
   it("GET returns 204 when list empty", async () => {
@@ -63,14 +87,7 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
   it("GET returns 400 when response_body is not an object (validation)", async () => {
     (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
     (EndpointService.getAllEndpoints as jest.Mock).mockResolvedValue([
-      {
-        public_id: ENDPOINT_PUBLIC_ID,
-        path: "/x",
-        method: "GET",
-        status_code: 200,
-        response_body: "not-an-object",
-        delay_ms: 0,
-      },
+      endpointRow({ scenarios: [scenarioRow({ response_body: "not-an-object" })] }),
     ]);
     const res = await GET(
       createJsonRequest({}, { headers: { "x-userId": USER_PUBLIC_ID } }),
@@ -86,13 +103,7 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
     });
     const res = await POST(
       createJsonRequest(
-        {
-          method: "GET",
-          path: "/x",
-          status_code: 200,
-          response_body: "{}",
-          delay_ms: 0,
-        },
+        writeBody([{ response_body: "{}" }]),
         { headers: { "x-userId": USER_PUBLIC_ID } }
       ),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
@@ -105,13 +116,7 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
     const res = await POST(
       createJsonRequest(
-        {
-          method: "GET",
-          path: "/x",
-          status_code: 200,
-          response_body: "[]",
-          delay_ms: 0,
-        },
+        writeBody([{ response_body: "[]" }]),
         { headers: { "x-userId": USER_PUBLIC_ID } }
       ),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
@@ -125,15 +130,9 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
 
     const res = await POST(
       createJsonRequest(
-        {
-          method: "GET",
-          path: "/x",
-          status_code: 200,
-          response_body: '{"name":"An"}',
-          delay_ms: 0,
-          ai_enabled: true,
-          ai_fields: ["name"],
-        },
+        writeBody([
+          { response_body: '{"name":"An"}', ai_enabled: true, ai_fields: ["name"] },
+        ]),
         { headers: { "x-userId": USER_PUBLIC_ID } }
       ),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
@@ -152,15 +151,9 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
 
     const res = await POST(
       createJsonRequest(
-        {
-          method: "GET",
-          path: "/x",
-          status_code: 200,
-          response_body: '{"name":"An"}',
-          delay_ms: 0,
-          ai_enabled: true,
-          ai_fields: ["name"],
-        },
+        writeBody([
+          { response_body: '{"name":"An"}', ai_enabled: true, ai_fields: ["name"] },
+        ]),
         { headers: { "x-userId": USER_PUBLIC_ID } }
       ),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)
@@ -174,21 +167,9 @@ describe("src/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpo
     (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
     (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
     (aiUsageService.isAiAllowed as jest.Mock).mockResolvedValue(false);
-    (EndpointService.createEndpoint as jest.Mock).mockResolvedValue({
-      public_id: ENDPOINT_PUBLIC_ID,
-      path: "/x",
-      method: "GET",
-      status_code: 200,
-      response_body: "{}",
-      delay_ms: 0,
-      ai_enabled: false,
-      ai_fields: [],
-      ai_prompt: null,
-    });
-
     const res = await POST(
       createJsonRequest(
-        { method: "GET", path: "/x", status_code: 200, response_body: "{}", delay_ms: 0 },
+        writeBody(),
         { headers: { "x-userId": USER_PUBLIC_ID } }
       ),
       props(PROJECT_PUBLIC_ID, GROUP_PUBLIC_ID)

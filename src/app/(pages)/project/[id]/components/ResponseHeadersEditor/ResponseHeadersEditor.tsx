@@ -33,6 +33,9 @@ interface ResponseHeadersEditorProps {
   errors: FieldErrors<ClientCreateEndpointDTO>;
   setValue: UseFormSetValue<ClientCreateEndpointDTO>;
   submitCount: number;
+  // Which page of the pager these headers belong to. The rows are a field array inside a field
+  // array, so every name carries the scenario's index.
+  index: number;
 }
 
 export const ResponseHeadersEditor: React.FC<ResponseHeadersEditorProps> = ({
@@ -41,10 +44,12 @@ export const ResponseHeadersEditor: React.FC<ResponseHeadersEditorProps> = ({
   errors,
   setValue,
   submitCount,
+  index: scenarioIndex,
 }) => {
-  const { fields, append, remove } = useFieldArray({ control, name: "response_headers" });
-  const rows = useWatch({ control, name: "response_headers" }) ?? [];
-  const rowErrors = errors.response_headers;
+  const name = `scenarios.${scenarioIndex}.response_headers` as const;
+  const { fields, append, remove } = useFieldArray({ control, name });
+  const rows = useWatch({ control, name }) ?? [];
+  const rowErrors = errors.scenarios?.[scenarioIndex]?.response_headers;
 
   return (
     <RepeatableRowList
@@ -67,13 +72,13 @@ export const ResponseHeadersEditor: React.FC<ResponseHeadersEditorProps> = ({
           <div className="min-w-0 flex-1">
             <ComboInput
               className="w-full"
-              id={`response_headers.${index}.name`}
+              id={`${name}.${index}.name`}
               label="Name"
               hideLabel
               options={COMMON_HEADER_OPTIONS}
               value={rows[index]?.name ?? ""}
               onChange={(value) =>
-                setValue(`response_headers.${index}.name`, value, {
+                setValue(`${name}.${index}.name`, value, {
                   shouldDirty: true,
                   shouldValidate: submitCount > 0,
                 })
@@ -87,9 +92,9 @@ export const ResponseHeadersEditor: React.FC<ResponseHeadersEditorProps> = ({
               className="w-full"
               label="Value"
               hideLabel
-              register={register(`response_headers.${index}.value`)}
+              register={register(`${name}.${index}.value`)}
               type="text"
-              id={`response_headers.${index}.value`}
+              id={`${name}.${index}.value`}
               placeholder="42"
             />
           </div>

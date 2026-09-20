@@ -110,7 +110,10 @@ interface UseAiEndpointSectionArgs {
   projectId: string;
   endpointGroupId: string;
   // Both absent on create: there is no endpoint yet, so there is nothing stored to reuse.
-  endpointId?: string | undefined;
+  // The scenario this card belongs to: its position in the pager, which every field name
+  // carries, and the stored row a blueprint could be reused from.
+  index: number;
+  scenarioId?: string | undefined;
   hasStoredPlan?: boolean | undefined;
   onDesign?: ((design: EndpointDesign | null) => void) | undefined;
 }
@@ -129,7 +132,8 @@ export function useAiEndpointSection({
   control,
   projectId,
   endpointGroupId,
-  endpointId,
+  index,
+  scenarioId,
   hasStoredPlan,
   onDesign,
 }: UseAiEndpointSectionArgs) {
@@ -164,10 +168,10 @@ export function useAiEndpointSection({
     staleTime: 0,
   });
 
-  const enabled = useWatch({ control, name: "ai_enabled" });
-  const bodyJson = useWatch({ control, name: "response_body" }) ?? "";
-  const aiFields = useWatch({ control, name: "ai_fields" }) ?? [];
-  const aiPrompt = useWatch({ control, name: "ai_prompt" });
+  const enabled = useWatch({ control, name: `scenarios.${index}.ai_enabled` });
+  const bodyJson = useWatch({ control, name: `scenarios.${index}.response_body` }) ?? "";
+  const aiFields = useWatch({ control, name: `scenarios.${index}.ai_fields` }) ?? [];
+  const aiPrompt = useWatch({ control, name: `scenarios.${index}.ai_prompt` });
   const method = useWatch({ control, name: "method" });
   const path = useWatch({ control, name: "path" });
 
@@ -216,7 +220,7 @@ export function useAiEndpointSection({
           // Handing the blueprint back is what makes a reroll free: the server renders from it
           // instead of designing a new one. A seeded design carries none, so the endpoint id is
           // what lets the server find the one it already stored.
-          endpoint_id: reuse ? (endpointId ?? null) : null,
+          scenario_id: reuse ? (scenarioId ?? null) : null,
           plan: reuse ? (reusable?.plan ?? null) : null,
           plan_hash: reuse ? (reusable?.hash ?? null) : null,
         })

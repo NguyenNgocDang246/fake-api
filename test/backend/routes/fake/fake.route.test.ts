@@ -1,11 +1,6 @@
-jest.mock("@/server/services/endpoint/endpoint.service", () => ({
-  __esModule: true,
-  default: {
-    getEndpointByPath: jest.fn(),
-    getEndpointByDynamicPath: jest.fn(),
-    findMethodsForPath: jest.fn(),
-  },
-}));
+jest.mock("@/server/services/endpoint/endpoint.service", () =>
+  jest.requireActual("./fake_fixture").endpointServiceMock()
+);
 
 jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
   __esModule: true,
@@ -20,13 +15,14 @@ import { GET, POST } from "@/app/api/fake/[projectId]/route";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import { MAX_MOCK_PATH_LENGTH } from "@/models/endpoint/endpoint.model";
 import { AppError } from "@/server/core/errors";
+import { servable } from "./fake_fixture";
 import { createJsonRequest, createRouteParams, expectError, readJson } from "../../helpers/http";
 
 const PARAMS = createRouteParams({ projectId: "PUBLIC" });
 
 describe("src/app/api/fake/[projectId]/route.ts", () => {
   it("answers an AppError as the standard envelope, like every other route", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockRejectedValue(
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockRejectedValue(
       new AppError({ message: ERROR_MESSAGES.SERVER_ERROR, statusCode: STATUS_CODE.SERVER_ERROR })
     );
 
@@ -43,45 +39,45 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
   });
 
   it("returns 404 when endpoint not found", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
     (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue([]);
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
   });
 
   it("does not query dynamic path when a static match is found", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/users",
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
-    });
+    }));
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     expect(res.status).toBe(200);
-    expect(EndpointService.getEndpointByDynamicPath).not.toHaveBeenCalled();
+    expect(EndpointService.getServableEndpointByDynamicPath).not.toHaveBeenCalled();
   });
 
   it("falls back to dynamic path match when static match misses", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByDynamicPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/user/:id",
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
-    });
+    }));
     const res = await GET(createJsonRequest({}, { pathname: "/user/abc123" }), PARAMS);
     expect(res.status).toBe(200);
-    expect(EndpointService.getEndpointByDynamicPath).toHaveBeenCalledWith(
+    expect(EndpointService.getServableEndpointByDynamicPath).toHaveBeenCalledWith(
       expect.objectContaining({ path: "/user/abc123", method: "GET" })
     );
   });
 
   it("returns 405 when the path exists under another method", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
     (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue(["POST", "PUT"]);
 
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
@@ -95,13 +91,13 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
   });
 
   it("does not ask which methods exist when the endpoint was found", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/users",
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
-    });
+    }));
 
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
@@ -110,56 +106,56 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
   });
 
   it("returns 204 when endpoint status_code is NO_CONTENT", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/users",
       status_code: STATUS_CODE.NO_CONTENT,
       response_body: "{}",
       delay_ms: 0,
-    });
+    }));
     const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     expect(res.status).toBe(204);
   });
 
   it("ignores query string when matching endpoint path", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/users",
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
-    });
+    }));
     const res = await GET(createJsonRequest({}, { pathname: "/users?active=true" }), PARAMS);
     expect(res.status).toBe(200);
-    expect(EndpointService.getEndpointByPath).toHaveBeenCalledWith(
+    expect(EndpointService.getServableEndpointByPath).toHaveBeenCalledWith(
       expect.objectContaining({ path: "/users" })
     );
   });
 
   it("ignores hash fragment when matching endpoint path", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/users",
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
-    });
+    }));
     const res = await GET(createJsonRequest({}, { pathname: "/users#section" }), PARAMS);
     expect(res.status).toBe(200);
-    expect(EndpointService.getEndpointByPath).toHaveBeenCalledWith(
+    expect(EndpointService.getServableEndpointByPath).toHaveBeenCalledWith(
       expect.objectContaining({ path: "/users" })
     );
   });
 
   it("honors delay_ms (fake timers)", async () => {
     jest.useFakeTimers();
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "POST",
       path: "/users",
       status_code: 200,
       response_body: "{}",
       delay_ms: 50,
-    });
+    }));
 
     const promise = POST(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     await jest.advanceTimersByTimeAsync(50);
@@ -170,8 +166,8 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
 
   describe("the mock path it looks up", () => {
     beforeEach(() => {
-      (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-      (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+      (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(null);
+      (EndpointService.getServableEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
       (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue([]);
     });
 
@@ -186,7 +182,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
     ])("reads %s as %s", async (pathname, path) => {
       await GET(createJsonRequest({}, { pathname }), PARAMS);
 
-      expect(EndpointService.getEndpointByPath).toHaveBeenLastCalledWith(
+      expect(EndpointService.getServableEndpointByPath).toHaveBeenLastCalledWith(
         expect.objectContaining({ path })
       );
     });
@@ -198,7 +194,7 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
     it("looks up a path as long as the cap allows", async () => {
       await GET(createJsonRequest({}, { pathname: atTheCap }), PARAMS);
 
-      expect(EndpointService.getEndpointByPath).toHaveBeenLastCalledWith(
+      expect(EndpointService.getServableEndpointByPath).toHaveBeenLastCalledWith(
         expect.objectContaining({ path: atTheCap })
       );
     });
@@ -207,8 +203,8 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
       const res = await GET(createJsonRequest({}, { pathname: `${atTheCap}a` }), PARAMS);
 
       await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
-      expect(EndpointService.getEndpointByPath).not.toHaveBeenCalled();
-      expect(EndpointService.getEndpointByDynamicPath).not.toHaveBeenCalled();
+      expect(EndpointService.getServableEndpointByPath).not.toHaveBeenCalled();
+      expect(EndpointService.getServableEndpointByDynamicPath).not.toHaveBeenCalled();
       expect(EndpointService.findMethodsForPath).not.toHaveBeenCalled();
     });
   });

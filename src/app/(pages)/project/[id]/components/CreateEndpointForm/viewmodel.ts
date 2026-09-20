@@ -8,6 +8,7 @@ export interface OpenCreateEndpointOptions {
   projectId?: string | undefined;
   endpointRoutes?: EndpointRoutes | undefined;
   aiAvailable?: boolean | undefined;
+  maxScenarios?: number | undefined;
   onCreated?: (() => void) | undefined;
 }
 

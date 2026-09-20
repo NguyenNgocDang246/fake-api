@@ -9,6 +9,14 @@ jest.mock("@/server/services/endpoint/endpoint.service", () => ({
   },
 }));
 
+jest.mock("@/server/services/endpoint/scenario.service", () => ({
+  __esModule: true,
+  default: {
+    canHoldScenarios: jest.fn(),
+    getScenariosOfEndpoint: jest.fn(),
+  },
+}));
+
 jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
   __esModule: true,
   default: {
@@ -17,6 +25,7 @@ jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
     ensurePlan: jest.fn(),
     planInfoOf: jest.fn(),
     wouldDesign: jest.fn(),
+    adoptPlan: jest.fn(),
     carryPlanForward: jest.fn(),
   },
 }));
@@ -26,7 +35,16 @@ jest.mock("@/server/services/ai_usage.service", () => ({
   default: { isAiAllowed: jest.fn(), quotaFor: jest.fn() },
 }));
 
+import {
+  ENDPOINT_PUBLIC_ID,
+  SCENARIO_PUBLIC_ID,
+  endpointRow,
+  scenarioRow,
+  writeBody,
+  writeResult as updateResult,
+} from "./endpoint_fixture";
 import EndpointService from "@/server/services/endpoint/endpoint.service";
+import scenarioService from "@/server/services/endpoint/scenario.service";
 import aiUsageService from "@/server/services/ai_usage.service";
 import endpointVariantPlanService from "@/server/services/endpoint/variant/plan.service";
 import { GET, PUT, DELETE } from "@/app/api/project/[projectId]/endpoint-group/[endpointGroupId]/endpoint/[endpointId]/route";
@@ -39,7 +57,6 @@ const afterQueue = jest.requireMock("next/server") as {
 const USER_PUBLIC_ID = "aaaaaaaaaaaa";
 const PROJECT_PUBLIC_ID = "bbbbbbbbbbbb";
 const GROUP_PUBLIC_ID = "cccccccccccc";
-const ENDPOINT_PUBLIC_ID = "dddddddddddd";
 
 const props = (projectId: string, endpointGroupId: string, endpointId: string) => ({
   params: Promise.resolve({ projectId, endpointGroupId, endpointId }),
@@ -51,11 +68,20 @@ beforeEach(() => {
   (aiUsageService.isAiAllowed as jest.Mock).mockResolvedValue(true);
   (aiUsageService.quotaFor as jest.Mock).mockResolvedValue({ limit: 30, spent: 0 });
   (endpointVariantPlanService.wouldDesign as jest.Mock).mockReturnValue(false);
+  (endpointVariantPlanService.adoptPlan as jest.Mock).mockResolvedValue(false);
   (endpointVariantPlanService.carryPlanForward as jest.Mock).mockResolvedValue(false);
+  (scenarioService.canHoldScenarios as jest.Mock).mockResolvedValue(true);
+  (scenarioService.getScenariosOfEndpoint as jest.Mock).mockResolvedValue([scenarioRow()]);
 });
 
 export {
+  SCENARIO_PUBLIC_ID,
+  scenarioRow,
+  endpointRow,
+  updateResult,
+  writeBody,
   EndpointService,
+  scenarioService,
   aiUsageService,
   endpointVariantPlanService,
   GET,

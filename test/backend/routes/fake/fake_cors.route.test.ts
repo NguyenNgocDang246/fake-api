@@ -1,11 +1,6 @@
-jest.mock("@/server/services/endpoint/endpoint.service", () => ({
-  __esModule: true,
-  default: {
-    getEndpointByPath: jest.fn(),
-    getEndpointByDynamicPath: jest.fn(),
-    findMethodsForPath: jest.fn(),
-  },
-}));
+jest.mock("@/server/services/endpoint/endpoint.service", () =>
+  jest.requireActual("./fake_fixture").endpointServiceMock()
+);
 
 jest.mock("@/server/services/project.service", () => ({
   __esModule: true,
@@ -26,6 +21,7 @@ import {
 } from "@/app/api/fake/[projectId]/route";
 import type { NextRequest } from "next/server";
 import { STATUS_CODE } from "@/server/core/constants";
+import { servable } from "./fake_fixture";
 import { createJsonRequest, createRouteParams } from "../../helpers/http";
 
 // Every case here is about the CORS negotiation, not about which project answers, so the route
@@ -55,7 +51,7 @@ function fromBrowser(pathname = "/users", headers: Record<string, string> = {}) 
 beforeEach(() => {
   jest.clearAllMocks();
   (projectService.getCorsConfig as jest.Mock).mockResolvedValue(OPEN_CORS);
-  (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(endpoint);
+  (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable(endpoint));
 });
 
 describe("a call with no Origin is left exactly as it was", () => {
@@ -80,8 +76,8 @@ describe("a browser call against the defaults", () => {
   // Without these the browser hides the status behind an opaque CORS failure, which is exactly
   // the case where the author most needs to see what came back.
   it("carries the headers on a 404 too", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
     (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue([]);
 
     const res = await GET(fromBrowser());
@@ -91,8 +87,8 @@ describe("a browser call against the defaults", () => {
   });
 
   it("carries the headers on a 405, and names the methods that do exist", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
     (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue(["POST", "PUT"]);
 
     const res = await GET(fromBrowser());
@@ -104,7 +100,7 @@ describe("a browser call against the defaults", () => {
   });
 
   it("carries the headers when the handler throws", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockRejectedValue(new Error("boom"));
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockRejectedValue(new Error("boom"));
 
     const res = await GET(fromBrowser());
 
@@ -114,8 +110,8 @@ describe("a browser call against the defaults", () => {
 
   it("answers a project that does not exist without CORS headers", async () => {
     (projectService.getCorsConfig as jest.Mock).mockResolvedValue(null);
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
     (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue([]);
 
     const res = await GET(fromBrowser());
@@ -211,7 +207,7 @@ describe("the preflight", () => {
 
     expect(res.status).toBe(STATUS_CODE.NO_CONTENT);
     expect(res.headers.get("access-control-allow-origin")).toBe("*");
-    expect(EndpointService.getEndpointByPath).not.toHaveBeenCalled();
+    expect(EndpointService.getServableEndpointByPath).not.toHaveBeenCalled();
   });
 
   it("falls back to the usual headers when the browser names none", async () => {
@@ -239,7 +235,7 @@ describe("the preflight", () => {
 
 describe("every verb is covered, not only GET", () => {
   it("answers a DELETE from a browser with the same headers", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue({
       ...endpoint,
       method: "DELETE",
     });

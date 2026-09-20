@@ -13,7 +13,7 @@ import {
   BODY,
   FIELDS,
   PLAN,
-  endpoint,
+  scenario,
   respond,
 } from "./plan_harness";
 
@@ -170,27 +170,29 @@ describe("buildPlan", () => {
   });
 });
 
-// `$executeRaw` is a tagged template, so the SQL arrives as the strings either side of each
-// interpolation.
-function statementsRun(): string[] {
-  return (prisma.$executeRaw as unknown as jest.Mock).mock.calls.map((call) =>
-    (call[0] as string[]).join("?")
-  );
+// Every write the blueprint layer makes goes through one of these two, so what was stored is
+// read off the `data` each was called with.
+function writesRun(): Record<string, unknown>[] {
+  return [
+    ...(prisma.endpoint_scenarios.update as jest.Mock).mock.calls,
+    ...(prisma.endpoint_scenarios.updateMany as jest.Mock).mock.calls,
+  ].map((call) => (call[0] as { data: Record<string, unknown> }).data);
 }
 
 describe("ensurePlan", () => {
   beforeEach(() => {
     isAiConfiguredMock.mockReturnValue(true);
     (aiUsageService.trySpend as jest.Mock).mockResolvedValue({ id: 9n, public_id: "u" });
-    (prisma.$executeRaw as unknown as jest.Mock).mockResolvedValue(1);
-    (prisma.endpoints.findUnique as jest.Mock).mockResolvedValue({
+    // The lock is taken when the conditional update matched a row.
+    (prisma.endpoint_scenarios.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+    (prisma.endpoint_scenarios.findUnique as jest.Mock).mockResolvedValue({
       ai_plan_started_at: null,
-      endpoint_groups: { projects: { users: { id: 5n, public_id: "u" } } },
+      endpoints: { endpoint_groups: { projects: { users: { id: 5n, public_id: "u" } } } },
     });
   });
 
   it("returns the stored blueprint without touching a model", async () => {
-    await expect(endpointVariantPlanService.ensurePlan(endpoint())).resolves.toMatchObject({
+    await expect(endpointVariantPlanService.ensurePlan(scenario())).resolves.toMatchObject({
       version: 1,
     });
     expect(chatMock).not.toHaveBeenCalled();
@@ -198,12 +200,12 @@ describe("ensurePlan", () => {
 
   it("does nothing when AI is off or unconfigured", async () => {
     await expect(
-      endpointVariantPlanService.ensurePlan(endpoint({ ai_enabled: false }))
+      endpointVariantPlanService.ensurePlan(scenario({ ai_enabled: false }))
     ).resolves.toBeNull();
 
     isAiConfiguredMock.mockReturnValue(false);
     await expect(
-      endpointVariantPlanService.ensurePlan(endpoint({ ai_plan: null }))
+      endpointVariantPlanService.ensurePlan(scenario({ ai_plan: null }))
     ).resolves.toBeNull();
     expect(chatMock).not.toHaveBeenCalled();
   });
@@ -212,7 +214,7 @@ describe("ensurePlan", () => {
     (aiUsageService.trySpend as jest.Mock).mockResolvedValue(null);
 
     await expect(
-      endpointVariantPlanService.ensurePlan(endpoint({ ai_plan: null }))
+      endpointVariantPlanService.ensurePlan(scenario({ ai_plan: null }))
     ).resolves.toBeNull();
     expect(chatMock).not.toHaveBeenCalled();
   });
@@ -220,16 +222,16 @@ describe("ensurePlan", () => {
   it("hands the lock back when the quota refuses, since nothing reached a provider", async () => {
     (aiUsageService.trySpend as jest.Mock).mockResolvedValue(null);
 
-    await endpointVariantPlanService.ensurePlan(endpoint({ ai_plan: null }));
+    await endpointVariantPlanService.ensurePlan(scenario({ ai_plan: null }));
 
-    expect(statementsRun().some((sql) => sql.includes(`"ai_plan_started_at" = NULL`))).toBe(true);
+    expect(writesRun()).toContainEqual({ ai_plan_started_at: null });
   });
 
   it("gives up quietly when the lock is already held", async () => {
-    (prisma.$executeRaw as unknown as jest.Mock).mockResolvedValue(0);
+    (prisma.endpoint_scenarios.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
 
     await expect(
-      endpointVariantPlanService.ensurePlan(endpoint({ ai_plan: null }))
+      endpointVariantPlanService.ensurePlan(scenario({ ai_plan: null }))
     ).resolves.toBeNull();
     expect(chatMock).not.toHaveBeenCalled();
   });
@@ -238,13 +240,13 @@ describe("ensurePlan", () => {
     const consoleWarn = jest.spyOn(console, "warn").mockImplementation(() => {});
     respond(JSON.stringify(PLAN));
     // The lock row no longer carries this build's timestamp, so an edit landed in between.
-    (prisma.endpoints.findUnique as jest.Mock).mockResolvedValue({
+    (prisma.endpoint_scenarios.findUnique as jest.Mock).mockResolvedValue({
       ai_plan_started_at: new Date(0),
-      endpoint_groups: { projects: { users: { id: 5n, public_id: "u" } } },
+      endpoints: { endpoint_groups: { projects: { users: { id: 5n, public_id: "u" } } } },
     });
 
     await expect(
-      endpointVariantPlanService.ensurePlan(endpoint({ ai_plan: null }))
+      endpointVariantPlanService.ensurePlan(scenario({ ai_plan: null }))
     ).resolves.toBeNull();
     expect(consoleWarn).toHaveBeenCalled();
     consoleWarn.mockRestore();
@@ -255,7 +257,7 @@ describe("ensurePlan", () => {
     chatMock.mockRejectedValue(new Error("provider down"));
 
     await expect(
-      endpointVariantPlanService.ensurePlan(endpoint({ ai_plan: null }))
+      endpointVariantPlanService.ensurePlan(scenario({ ai_plan: null }))
     ).resolves.toBeNull();
     expect(consoleError).toHaveBeenCalled();
     consoleError.mockRestore();
@@ -267,36 +269,36 @@ describe("adoptPlan", () => {
     planHash({ responseBody: BODY, aiFields: fields, aiPrompt: null });
 
   beforeEach(() => {
-    (prisma.$executeRaw as unknown as jest.Mock).mockResolvedValue(1);
+    (prisma.endpoint_scenarios.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
   });
 
   it("stores a blueprint built for these inputs without reaching a model", async () => {
     await expect(
-      endpointVariantPlanService.adoptPlan(endpoint({ ai_plan: null }), PLAN, hashOf(FIELDS))
+      endpointVariantPlanService.adoptPlan(scenario({ ai_plan: null }), PLAN, hashOf(FIELDS))
     ).resolves.toBe(true);
 
     expect(chatMock).not.toHaveBeenCalled();
     expect(aiUsageService.trySpend).not.toHaveBeenCalled();
-    expect(statementsRun().some((sql) => sql.includes(`"ai_plan" =`))).toBe(true);
+    expect(writesRun().some((data) => "ai_plan" in data)).toBe(true);
   });
 
   it("refuses one built for different inputs", async () => {
     await expect(
-      endpointVariantPlanService.adoptPlan(endpoint({ ai_plan: null }), PLAN, hashOf(["name"]))
+      endpointVariantPlanService.adoptPlan(scenario({ ai_plan: null }), PLAN, hashOf(["name"]))
     ).resolves.toBe(false);
 
-    expect(statementsRun()).toHaveLength(0);
+    expect(writesRun()).toHaveLength(0);
   });
 
   it("refuses one the hash fits but the body does not, so the hash never stands alone", async () => {
     // The hash is honestly this endpoint's, and the blueprint still writes `age`, which is no
     // longer selected. Only `validatePlan` can see that.
-    const narrowed = endpoint({ ai_plan: null, ai_fields: ["name"] });
+    const narrowed = scenario({ ai_plan: null, ai_fields: ["name"] });
 
     await expect(
       endpointVariantPlanService.adoptPlan(narrowed, PLAN, hashOf(["name"]))
     ).resolves.toBe(false);
 
-    expect(statementsRun()).toHaveLength(0);
+    expect(writesRun()).toHaveLength(0);
   });
 });

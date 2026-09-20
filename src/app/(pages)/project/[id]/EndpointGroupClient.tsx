@@ -85,23 +85,8 @@ export default function EndpointGroupClient({
                 endpointsState.data.map((endpoint) => (
                   <div key={endpoint.public_id} className="mb-2">
                     <EndpointItem
-                      {...{
-                        public_id: endpoint.public_id,
-                        path: endpoint.path,
-                        delay_ms: endpoint.delay_ms,
-                        method: endpoint.method,
-                        status_code: endpoint.status_code,
-                        response_body: JSON.stringify(endpoint.response_body),
-                        response_headers: endpoint.response_headers,
-                        endpoint_groups_id: endpoint.endpoint_groups_id,
-                        project_id: projectInfoState.data?.public_id ?? "",
-                        ai_enabled: endpoint.ai_enabled,
-                        ai_fields: endpoint.ai_fields,
-                        ai_prompt: endpoint.ai_prompt,
-                        ai_unsupported_language: endpoint.ai_unsupported_language,
-                        ai_unapplied_hints: endpoint.ai_unapplied_hints,
-                        ai_has_plan: endpoint.ai_has_plan,
-                      }}
+                      endpoint={endpoint}
+                      project_id={projectInfoState.data?.public_id ?? ""}
                     />
                   </div>
                 ))

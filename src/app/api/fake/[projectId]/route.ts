@@ -1,9 +1,11 @@
 import { after, NextRequest, NextResponse } from "next/server";
 import ApiResponse from "@/server/core/api_response";
-import EndpointService from "@/server/services/endpoint/endpoint.service";
+import EndpointService, {
+  servingScenarioOf,
+} from "@/server/services/endpoint/endpoint.service";
 import projectService from "@/server/services/project.service";
 import endpointVariantPlanService, {
-  PlanEndpoint,
+  PlanScenario,
 } from "@/server/services/endpoint/variant/plan.service";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import {
@@ -69,13 +71,13 @@ async function handle(
   const path = mockPathname(req);
   if (path === null) return notFound();
 
-  let endpoint = await EndpointService.getEndpointByPath({
+  let endpoint = await EndpointService.getServableEndpointByPath({
     project_public_id: publicId,
     path,
     method,
   });
   if (!endpoint) {
-    endpoint = await EndpointService.getEndpointByDynamicPath({
+    endpoint = await EndpointService.getServableEndpointByDynamicPath({
       project_public_id: publicId,
       path,
       method,
@@ -99,14 +101,19 @@ async function handle(
     return notFound();
   }
 
+  // Ordered rather than filtered, so the moment between a switch's two statements, when no
+  // scenario is active, falls back to the first page instead of taking the mock down.
+  const scenario = servingScenarioOf(endpoint);
+  if (!scenario) return notFound();
+
   const endpointValidation = validateData(
     {
       method: endpoint.method,
       path: endpoint.path,
-      status_code: endpoint.status_code,
-      response_body: endpoint.response_body,
-      response_headers: endpoint.response_headers,
-      delay_ms: endpoint.delay_ms,
+      status_code: scenario.status_code,
+      response_body: scenario.response_body,
+      response_headers: scenario.response_headers,
+      delay_ms: scenario.delay_ms,
     },
     EndpointResponseSchema
   );
@@ -124,7 +131,10 @@ async function handle(
     return new NextResponse(null, { status: STATUS_CODE.NO_CONTENT, headers });
   }
 
-  const body = await resolveBody(endpoint, validEndpoint.response_body);
+  const body = await resolveBody(
+    { ...scenario, method: endpoint.method, path: endpoint.path },
+    validEndpoint.response_body
+  );
 
   // Only whitespace is stripped, never handed to `NextResponse.json`, so the bytes the author
   // typed are the bytes the client reads. Rebuilding them through a parse is what loses a large
@@ -166,24 +176,24 @@ function isOnHost(location: string, host: string): boolean {
 // Returns JSON text: the stored body verbatim on every path that serves it, a rendered variant
 // stringified. The dynamic import sits past both guards so an endpoint with no blueprint never
 // loads faker's locale datasets, and its specifier is a literal so the bundler can trace it.
-async function resolveBody(endpoint: PlanEndpoint, baseBody: unknown): Promise<string> {
-  if (!endpoint.ai_enabled || endpoint.ai_fields.length === 0) return endpoint.response_body;
+async function resolveBody(scenario: PlanScenario, baseBody: unknown): Promise<string> {
+  if (!scenario.ai_enabled || scenario.ai_fields.length === 0) return scenario.response_body;
 
   try {
-    const renderable = endpointVariantPlanService.loadRenderable(endpoint);
+    const renderable = endpointVariantPlanService.loadRenderable(scenario);
 
     if (!renderable) {
       after(async () => {
         try {
-          await endpointVariantPlanService.ensurePlan(endpoint);
+          await endpointVariantPlanService.ensurePlan(scenario);
         } catch (error) {
           console.error("[ai] post-response blueprint work failed", {
-            endpoint_id: String(endpoint.id),
+            scenario_id: String(scenario.id),
             reason: error instanceof Error ? error.message : String(error),
           });
         }
       });
-      return endpoint.response_body;
+      return scenario.response_body;
     }
 
     const [{ renderVariant }, { parseJsonSource, emitFromSource }] = await Promise.all([
@@ -193,18 +203,18 @@ async function resolveBody(endpoint: PlanEndpoint, baseBody: unknown): Promise<s
 
     // Rendered against the source parse rather than the one Zod already did, so the tree the
     // literals are read back from is the very tree the draft was cloned from.
-    const source = parseJsonSource(endpoint.response_body);
+    const source = parseJsonSource(scenario.response_body);
 
     // The unique-catalog set comes off the cached blueprint rather than being walked again:
     // it is a property of the blueprint, not of the request.
     const rendered = renderVariant(renderable.plan, source ? source.value : baseBody, {
       uniqueCatalogs: renderable.uniqueCatalogs,
     });
-    if (rendered === null) return endpoint.response_body;
+    if (rendered === null) return scenario.response_body;
     return source ? emitFromSource(rendered, source) : JSON.stringify(rendered);
   } catch (error) {
-    console.error("[ai] falling back to base body", { path: endpoint.path, error });
-    return endpoint.response_body;
+    console.error("[ai] falling back to base body", { path: scenario.path, error });
+    return scenario.response_body;
   }
 }
 

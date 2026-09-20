@@ -44,3 +44,4 @@ Ensure API routes (`src/app/api/**/route.ts`), middleware (`src/middleware.ts`, 
 - Services: success, edge inputs, dependency throws, AppError wrapping/propagation.
 - Schemas with `.strict()`: include “extra field” cases.
 - Fake API: NOT_FOUND, METHOD_NOT_ALLOWED, validation failure, `delay_ms` with fake timers.
+- Scenarios: the reconcile creating, updating, deleting and repositioning; the switch deactivating before it activates; the serving lookup falling back to the first page when none is active; a save refused when the quota has no room for every scenario that would design.

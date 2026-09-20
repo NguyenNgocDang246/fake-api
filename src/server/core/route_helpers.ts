@@ -5,7 +5,7 @@ import { validateData } from "./validation";
 import { GetUserByIdSchema } from "@/models/user.model";
 import { GetProjectByIdSchema } from "@/models/project.model";
 import { GetEndpointGroupByIdSchema } from "@/models/endpoint_group.model";
-import { GetEndpointByIdSchema } from "@/models/endpoint/endpoint.model";
+import { GetEndpointByIdSchema, GetScenarioByIdSchema } from "@/models/endpoint/endpoint.model";
 
 export type RouteParams = Record<string, string | undefined>;
 export type ChainHandler<C> = (
@@ -78,5 +78,15 @@ export function withEndpointId<C>(
     const validation = validateData({ public_id: params["endpointId"] }, GetEndpointByIdSchema);
     if (!validation.success) return validation.response;
     return next(req, params, { ...ctx, endpointId: validation.data.public_id });
+  };
+}
+
+export function withScenarioId<C>(
+  next: ChainHandler<C & { scenarioId: string }>
+): ChainHandler<C> {
+  return async (req, params, ctx) => {
+    const validation = validateData({ public_id: params["scenarioId"] }, GetScenarioByIdSchema);
+    if (!validation.success) return validation.response;
+    return next(req, params, { ...ctx, scenarioId: validation.data.public_id });
   };
 }
