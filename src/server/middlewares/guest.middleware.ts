@@ -5,19 +5,28 @@ import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 import guestService from "@/server/services/guest.service";
 import { GUEST_PROXY_PREFIX, PROJECT_API_PREFIX } from "@/server/services/guest.constants";
 
-// The two shapes a visitor's playground is allowed to reach. Anything else under the prefix is
+// The shapes a visitor's playground is allowed to reach. Anything else under the prefix is
 // a 404, which is what keeps the rest of `/api/project/**` (renaming or deleting a project,
 // group CRUD) out of reach of a caller who never authenticated.
 function isAllowedPath(segments: string[]): boolean {
   const [projectId, groupLiteral, groupId, endpointLiteral, endpointId, ...extra] = segments;
 
-  if (extra.length > 0) return false;
   if (!projectId || !PUBLIC_ID_REGEX.test(projectId)) return false;
   if (groupLiteral !== "endpoint-group") return false;
   if (!groupId || !PUBLIC_ID_REGEX.test(groupId)) return false;
   if (endpointLiteral !== "endpoint") return false;
-  if (endpointId === undefined) return true;
-  return PUBLIC_ID_REGEX.test(endpointId);
+  if (endpointId === undefined) return extra.length === 0;
+  if (!PUBLIC_ID_REGEX.test(endpointId)) return false;
+  if (extra.length === 0) return true;
+
+  // The one thing reachable past an endpoint: switching which of its scenarios answers. A trial
+  // endpoint holds more than one, and the alternative is making the visitor save the whole form
+  // to change which one is serving.
+  const [scenarioLiteral, scenarioId, activateLiteral, ...rest] = extra;
+  if (rest.length > 0) return false;
+  if (scenarioLiteral !== "scenario") return false;
+  if (!scenarioId || !PUBLIC_ID_REGEX.test(scenarioId)) return false;
+  return activateLiteral === "activate";
 }
 
 const guestMiddleware = async (req: NextRequest) => {

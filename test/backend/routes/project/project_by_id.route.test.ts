@@ -2,6 +2,8 @@ jest.mock("@/server/services/project.service", () => ({
   __esModule: true,
   default: {
     getProjectById: jest.fn(),
+    getOwnedProjectById: jest.fn(),
+    projectExists: jest.fn(),
     updateProjectById: jest.fn(),
     deleteProjectById: jest.fn(),
     checkPermission: jest.fn(),
@@ -20,7 +22,8 @@ describe("src/app/api/project/[projectId]/route.ts", () => {
 
   describe("GET", () => {
     it("returns 404 when project not found", async () => {
-      (projectService.getProjectById as jest.Mock).mockResolvedValue(null);
+      (projectService.getOwnedProjectById as jest.Mock).mockResolvedValue(null);
+      (projectService.projectExists as jest.Mock).mockResolvedValue(false);
       const res = await GET(
         createJsonRequest({}, { headers: { "x-userId": "aaaaaaaaaaaa" } }),
         props(PROJECT_PUBLIC_ID)
@@ -29,12 +32,8 @@ describe("src/app/api/project/[projectId]/route.ts", () => {
     });
 
     it("returns 403 when project belongs to another user", async () => {
-      (projectService.getProjectById as jest.Mock).mockResolvedValue({
-        public_id: PROJECT_PUBLIC_ID,
-        name: "P",
-        description: null,
-      });
-      (projectService.checkPermission as jest.Mock).mockResolvedValue(false);
+      (projectService.getOwnedProjectById as jest.Mock).mockResolvedValue(null);
+      (projectService.projectExists as jest.Mock).mockResolvedValue(true);
       const res = await GET(
         createJsonRequest({}, { headers: { "x-userId": "aaaaaaaaaaaa" } }),
         props(PROJECT_PUBLIC_ID)
@@ -42,8 +41,26 @@ describe("src/app/api/project/[projectId]/route.ts", () => {
       await expectError(res, STATUS_CODE.FORBIDDEN, ERROR_MESSAGES.FORBIDDEN);
     });
 
+    it("scopes the read to the owner and asks nothing else", async () => {
+      (projectService.getOwnedProjectById as jest.Mock).mockResolvedValue({
+        public_id: PROJECT_PUBLIC_ID,
+        name: "P",
+        description: null,
+      });
+      await GET(
+        createJsonRequest({}, { headers: { "x-userId": "aaaaaaaaaaaa" } }),
+        props(PROJECT_PUBLIC_ID)
+      );
+
+      expect(projectService.getOwnedProjectById).toHaveBeenCalledWith({
+        public_id: PROJECT_PUBLIC_ID,
+        owner: { user_public_id: "aaaaaaaaaaaa" },
+      });
+      expect(projectService.checkPermission).not.toHaveBeenCalled();
+    });
+
     it("returns 200 when project belongs to user", async () => {
-      (projectService.getProjectById as jest.Mock).mockResolvedValue({
+      (projectService.getOwnedProjectById as jest.Mock).mockResolvedValue({
         public_id: PROJECT_PUBLIC_ID,
         name: "P",
         description: null,

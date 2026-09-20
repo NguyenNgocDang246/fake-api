@@ -5,7 +5,10 @@ import { Check, Trash2 } from "lucide-react";
 import { UseFormRegister } from "react-hook-form";
 import { DefaultInput } from "@/app/components/Input/DefaultInput";
 import { ErrorText } from "@/app/components/Text/ErrorText";
-import { ClientCreateEndpointDTO } from "@/models/endpoint/endpoint.model";
+import {
+  ClientCreateEndpointDTO,
+  MAX_SCENARIO_NAME_LENGTH,
+} from "@/models/endpoint/endpoint.model";
 
 interface ScenarioHeaderProps {
   register: UseFormRegister<ClientCreateEndpointDTO>;
@@ -40,6 +43,7 @@ export const ScenarioHeader: React.FC<ScenarioHeaderProps> = ({
             type="text"
             id={`scenarios.${index}.name`}
             placeholder="Unauthorized"
+            maxLength={MAX_SCENARIO_NAME_LENGTH}
           />
         </div>
 

@@ -76,9 +76,8 @@ export const API_ROUTES = {
         "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
       DELETE_BY_ID:
         "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
-      // A guest is allowed one scenario, so there is never a second one to switch to, and
-      // `guest.middleware.ts` refuses the extra path segments this template would need.
-      SCENARIO_ACTIVATE: "",
+      SCENARIO_ACTIVATE:
+        "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId/scenario/:scenarioId/activate",
     },
   },
 };

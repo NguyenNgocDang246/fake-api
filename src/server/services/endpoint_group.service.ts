@@ -1,4 +1,5 @@
 import { AppError } from "@/server/core/errors";
+import { EndpointGroupOwner, ProjectOwner } from "@/server/core/ownership";
 import { GetProjectByIdDTO } from "@/models/project.model";
 import {
   CreateEndpointGroupDTO,
@@ -50,10 +51,51 @@ class EndpointGroupService {
 
     return !!endpointGroup;
   }
+
+  // Whether the row is there at all, which is what separates a group somebody else owns from one
+  // nobody owns. Asked only once a scoped read has come back with nothing.
+  async endpointGroupExists({ public_id }: GetEndpointGroupByIdDTO) {
+    try {
+      return Boolean(
+        await prisma.endpoint_groups.findUnique({
+          where: { public_id },
+          select: { public_id: true },
+        })
+      );
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
   async getAllEndpointGroups({ public_id }: GetProjectByIdDTO) {
+    return this.readGroups(public_id);
+  }
+
+  // The same two reads with the owner in the `where`, which is what lets a caller skip the
+  // permission check beside them. Writes keep asking first, so they keep the plain reads.
+  async getOwnedEndpointGroups({ public_id, owner }: GetProjectByIdDTO & { owner: ProjectOwner }) {
+    return this.readGroups(public_id, owner);
+  }
+
+  async getEndpointGroupById({ public_id }: GetEndpointGroupByIdDTO) {
+    return this.readGroup(public_id);
+  }
+
+  async getOwnedEndpointGroupById({
+    public_id,
+    owner,
+  }: GetEndpointGroupByIdDTO & { owner: EndpointGroupOwner }) {
+    return this.readGroup(public_id, owner);
+  }
+
+  private async readGroups(public_id: string, owner?: ProjectOwner) {
     try {
       return await prisma.endpoint_groups.findMany({
-        where: { projects: { public_id } },
+        where: {
+          projects: {
+            public_id,
+            ...(owner ? { users: { public_id: owner.user_public_id } } : {}),
+          },
+        },
         include: { _count: { select: { endpoints: true } } },
         orderBy: { updated_at: "desc" },
       });
@@ -62,10 +104,20 @@ class EndpointGroupService {
     }
   }
 
-  async getEndpointGroupById({ public_id }: GetEndpointGroupByIdDTO) {
+  private async readGroup(public_id: string, owner?: EndpointGroupOwner) {
     try {
       return await prisma.endpoint_groups.findUnique({
-        where: { public_id },
+        where: {
+          public_id,
+          ...(owner
+            ? {
+                projects: {
+                  public_id: owner.project_public_id,
+                  users: { public_id: owner.user_public_id },
+                },
+              }
+            : {}),
+        },
         include: { _count: { select: { endpoints: true } } },
       });
     } catch (error) {

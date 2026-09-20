@@ -101,7 +101,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = ({
                 >
                   {scenario?.status_code || "200"}
                 </span>
-                {delay > 0 && <span>{delay}ms</span>}
+                {delay > 0 && <span className="whitespace-nowrap">{delay} ms</span>}
                 {scenario?.ai_enabled && <Sparkles size={12} className="text-blue-500" />}
               </span>
             </button>
@@ -113,7 +113,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = ({
         type="button"
         onClick={onAdd}
         disabled={count >= max}
-        className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Plus size={14} />
         Add scenario

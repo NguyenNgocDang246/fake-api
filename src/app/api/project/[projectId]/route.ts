@@ -7,29 +7,28 @@ import {
   UpdateProjectByIdSchema,
   toProjectInfoInput,
 } from "@/models/project.model";
-import { createRouteHandler, withProjectId, withUserId } from "@/server/core/route_helpers";
+import {
+  createRouteHandler,
+  missingOrForbidden,
+  withProjectId,
+  withUserId,
+} from "@/server/core/route_helpers";
 
 type ProjectRouteParams = { projectId: string };
 
 export const GET = createRouteHandler<ProjectRouteParams>(
   withUserId(
     withProjectId(async (_req, _params, ctx) => {
-      const project = await projectService.getProjectById({ public_id: ctx.projectId });
-      if (project === null) {
-        return ApiResponse.error({
-          message: ERROR_MESSAGES.NOT_FOUND,
-          statusCode: STATUS_CODE.NOT_FOUND,
-        });
-      }
-      const hasPermission = await projectService.checkPermission({
-        userProps: { public_id: ctx.userId },
-        projectProps: { public_id: ctx.projectId },
+      // Read through the owner, so a row that comes back is this user's. Only an empty answer
+      // pays for the query that says whether it was somebody else's or nobody's.
+      const project = await projectService.getOwnedProjectById({
+        public_id: ctx.projectId,
+        owner: { user_public_id: ctx.userId },
       });
-      if (!hasPermission) {
-        return ApiResponse.error({
-          message: ERROR_MESSAGES.FORBIDDEN,
-          statusCode: STATUS_CODE.FORBIDDEN,
-        });
+      if (project === null) {
+        return missingOrForbidden(
+          await projectService.projectExists({ public_id: ctx.projectId })
+        );
       }
 
       const projectInfoValidation = validateData(

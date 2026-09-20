@@ -18,6 +18,7 @@ import {
   Ban,
   Check,
   Layers,
+  ArrowLeftRight,
 } from "lucide-react";
 import { NavigationButton } from "@/app/components/Button/NavigationButton";
 import { PAGE_ROUTES } from "@/app/libs/routes";
@@ -31,6 +32,7 @@ import {
   MAX_AI_VALUES,
 } from "@/models/endpoint/ai_fields.model";
 import { MAX_RESPONSE_HEADERS } from "@/models/endpoint/response_headers.model";
+import { MAX_SCENARIO_NAME_LENGTH } from "@/models/endpoint/scenario.model";
 import {
   MAX_ARRAY_ITEMS,
   MAX_DELAY_MS,
@@ -137,6 +139,10 @@ const ENDPOINT_FIELDS = [
     detail: `Must start with /, at most ${MAX_PATH_LENGTH} characters, e.g. /api/users, /api/users/1`,
   },
   {
+    field: "Scenario name",
+    detail: `What this saved response stands for, up to ${MAX_SCENARIO_NAME_LENGTH} characters, e.g. Unauthorized or Empty list`,
+  },
+  {
     field: "Response body",
     detail: `A valid JSON object returned to the client exactly as you wrote it, key order and long numbers included, on one compact line. Up to ${MAX_RESPONSE_BODY_CHARS} characters, nested at most ${MAX_RESPONSE_BODY_DEPTH} levels deep, with at most ${MAX_ARRAY_ITEMS} items in any one list`,
   },
@@ -229,6 +235,10 @@ const PLAN_ROWS = [
   {
     label: "Endpoints per group",
     read: (limits: (typeof ROLE_LIMITS)["USER"]) => limits.maxEndpointsPerGroup,
+  },
+  {
+    label: "Scenarios per endpoint",
+    read: (limits: (typeof ROLE_LIMITS)["USER"]) => limits.maxScenariosPerEndpoint,
   },
   {
     label: "AI designs per day",
@@ -450,15 +460,23 @@ export default async function DocsPage() {
               <li className="flex items-start gap-2">
                 <Layers size={16} className="mt-1 shrink-0 text-gray-400" />
                 <span>
-                  The numbered strip in the edit form is the list of scenarios. Click a number to
-                  open that one, or the plus to add another.
+                  The column beside the edit form lists them, each row showing its name, the status
+                  it answers with, and its delay. Click a row to open that scenario, or{" "}
+                  <strong>Add scenario</strong> for another.
                 </span>
               </li>
               <li className="flex items-start gap-2">
                 <Check size={16} className="mt-1 shrink-0 text-gray-400" />
                 <span>
-                  The one marked <strong>Answering</strong> is what your mock URL returns. Open
+                  The one marked <strong>Serving</strong> is what your mock URL returns. Open
                   another scenario and choose <strong>Use this one</strong> to switch.
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <ArrowLeftRight size={16} className="mt-1 shrink-0 text-gray-400" />
+                <span>
+                  You can switch without opening the form at all: click the scenario name on the
+                  endpoint row and pick another. The mock answers with it from the next call on.
                 </span>
               </li>
               <li className="flex items-start gap-2">

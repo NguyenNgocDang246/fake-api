@@ -11,6 +11,7 @@ import { STATUS_CODE } from "@/server/core/constants";
 const PROJECT_ID = "projectPubAB";
 const GROUP_ID = "groupPubABCD";
 const ENDPOINT_ID = "endpointPub2";
+const SCENARIO_ID = "scenarioPub2";
 
 function createRequest(pathname: string, headers: Record<string, string> = {}): NextRequest {
   const url = new URL(`http://localhost${pathname}`);
@@ -59,6 +60,20 @@ describe("src/server/middlewares/guest.middleware.ts", () => {
     );
   });
 
+  // A trial endpoint holds more than one scenario, so the visitor needs the one route that
+  // switches which of them answers. It is the only path allowed past an endpoint id.
+  it("rewrites a scenario activate onto the real project route", async () => {
+    const res = await guestMiddleware(
+      createRequest(
+        `/api/guest/project/${PROJECT_ID}/endpoint-group/${GROUP_ID}/endpoint/${ENDPOINT_ID}/scenario/${SCENARIO_ID}/activate`
+      )
+    );
+
+    expect(rewrittenTo(res!)).toBe(
+      `http://localhost/api/project/${PROJECT_ID}/endpoint-group/${GROUP_ID}/endpoint/${ENDPOINT_ID}/scenario/${SCENARIO_ID}/activate`
+    );
+  });
+
   it("names the shared guest account on the forwarded request", async () => {
     const res = await guestMiddleware(
       createRequest(`/api/guest/project/${PROJECT_ID}/endpoint-group/${GROUP_ID}/endpoint`)
@@ -90,6 +105,22 @@ describe("src/server/middlewares/guest.middleware.ts", () => {
     [
       "the ai-preview route",
       `/api/guest/project/${PROJECT_ID}/endpoint-group/${GROUP_ID}/endpoint/ai-preview`,
+    ],
+    [
+      "a scenario that is not being activated",
+      `/api/guest/project/${PROJECT_ID}/endpoint-group/${GROUP_ID}/endpoint/${ENDPOINT_ID}/scenario/${SCENARIO_ID}`,
+    ],
+    [
+      "a scenario id that is not a public id",
+      `/api/guest/project/${PROJECT_ID}/endpoint-group/${GROUP_ID}/endpoint/${ENDPOINT_ID}/scenario/x/activate`,
+    ],
+    [
+      "anything past the activate segment",
+      `/api/guest/project/${PROJECT_ID}/endpoint-group/${GROUP_ID}/endpoint/${ENDPOINT_ID}/scenario/${SCENARIO_ID}/activate/extra`,
+    ],
+    [
+      "another verb on a scenario",
+      `/api/guest/project/${PROJECT_ID}/endpoint-group/${GROUP_ID}/endpoint/${ENDPOINT_ID}/scenario/${SCENARIO_ID}/delete`,
     ],
     ["a project id that is not a public id", `/api/guest/project/x/endpoint-group/${GROUP_ID}/endpoint`],
     ["a group id that is not a public id", `/api/guest/project/${PROJECT_ID}/endpoint-group/x/endpoint`],
