@@ -1,17 +1,19 @@
-// Single source for the public mock-endpoint URL, shared by server components and
-// client components alike. Everything that shows a user where their mock lives goes
-// through here, so pointing mocks at another host later is a one-file change.
-//
-// process.env["NEXT_PUBLIC_DOMAIN"] is written inline on purpose: NEXT_PUBLIC_* values
-// are substituted at build time, and a computed key would not be substituted at all.
-const MOCK_BASE_URL = process.env["NEXT_PUBLIC_DOMAIN"] ?? "http://localhost:3000";
+// Read inline because NEXT_PUBLIC_* is substituted at build time and a computed key would not be.
+// `||`, not `??`: an empty value has to fall back too, or `new URL("")` throws at module load.
+const APP_URL = new URL(process.env["NEXT_PUBLIC_DOMAIN"] || "http://localhost:3000");
 
-export function mockBaseUrl(): string {
-  return MOCK_BASE_URL;
-}
+// The two halves a mock host is built from, exported so a component can tint the id between
+// them. `host` carries the port, which is what makes `{id}.localhost:3000` come out right.
+export const MOCK_URL_PREFIX = `${APP_URL.protocol}//`;
+export const MOCK_HOST_SUFFIX = `.${APP_URL.host}`;
 
 // `projectId` and `path` are inserted verbatim, so docs pages can pass placeholders
-// such as "{projectId}" instead of a real id.
+// such as "{projectId}" instead of a real id. Built by concatenation rather than through
+// `URL`, whose host setter drops a value holding characters no hostname may carry.
+function mockBaseUrl(projectId: string): string {
+  return `${MOCK_URL_PREFIX}${projectId}${MOCK_HOST_SUFFIX}`;
+}
+
 export function mockEndpointUrl(projectId: string, path: string): string {
-  return `${MOCK_BASE_URL}/${projectId}${path}`;
+  return `${mockBaseUrl(projectId)}${path}`;
 }

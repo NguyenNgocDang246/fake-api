@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEY } from "@/app/components/Wrapper/QueryClient/Constants";
+import { endpointByIdQuery } from "@/app/(pages)/project/[id]/components/UpdateEndpointForm/endpointQuery";
 import api from "@/app/libs/helpers/api_call.client";
 import { ApiSuccessResponse, ApiErrorResponse } from "@/models/api_response.model";
 import { ClientDeleteEndpointByIdDTO } from "@/models/endpoint/endpoint.model";
@@ -8,6 +10,9 @@ import { API_ROUTES, EndpointRoutes } from "@/app/libs/routes";
 import Notify from "@/app/components/Notify";
 import { useModal } from "@/app/components/Wrapper/Modal/ModalWrapper";
 import { mockEndpointUrl } from "@/app/libs/helpers/mock_url";
+
+const HOVER_SETTLE_MS = 120;
+
 export const useEndpointViewmodel = (
   project_id: string,
   endpoint_groups_id: string,
@@ -58,5 +63,35 @@ export const useEndpointViewmodel = (
     navigator.clipboard.writeText(mockEndpointUrl(projectId, path));
     Notify.success("Copied to clipboard");
   };
-  return { openDeleteEndpointModal, copyPathToClipboard };
+
+  // The modal opens on an answer that costs a round trip whatever it holds, so the row asks for it
+  // while the pointer is still on its way to the click. `prefetchQuery` leaves a fresh entry alone,
+  // and the modal reads the same key, so a warm one turns the spinner into no wait at all.
+  const warmUpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // A pointer crossing the list on its way somewhere else is not a request, so nothing is asked
+  // for until it has settled on one row.
+  const prefetchEndpoint = (endpointId: string) => {
+    if (warmUpTimer.current) clearTimeout(warmUpTimer.current);
+    warmUpTimer.current = setTimeout(() => {
+      void queryClient.prefetchQuery(
+        endpointByIdQuery({
+          projectId: project_id,
+          endpointGroupId: endpoint_groups_id,
+          endpointId,
+          endpointRoutes,
+        })
+      );
+    }, HOVER_SETTLE_MS);
+  };
+
+  const cancelPrefetch = () => {
+    if (!warmUpTimer.current) return;
+    clearTimeout(warmUpTimer.current);
+    warmUpTimer.current = null;
+  };
+
+  useEffect(() => cancelPrefetch, []);
+
+  return { openDeleteEndpointModal, copyPathToClipboard, prefetchEndpoint, cancelPrefetch };
 };

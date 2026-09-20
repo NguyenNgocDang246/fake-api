@@ -1,14 +1,15 @@
 import {
   AiPreviewSchema,
-  CreateEndpointSchema,
   MAX_ARRAY_ITEMS,
   MAX_AI_PROMPT_LENGTH,
   MAX_AI_VALUES,
+  ScenarioWriteSchema,
 } from "@/models/endpoint/endpoint.model";
-import { VALID } from "./endpoint_fixture";
+import { VALID_SCENARIO } from "./endpoint_fixture";
 
+// The selection belongs to one scenario's body, so saving is asked of the scenario schema.
 const parse = (overrides: Record<string, unknown>) =>
-  CreateEndpointSchema.safeParse({ ...VALID, ...overrides });
+  ScenarioWriteSchema.safeParse({ ...VALID_SCENARIO, ...overrides });
 
 describe("AiPreviewSchema applies the same field checks as saving", () => {
   const PREVIEW_VALID = {

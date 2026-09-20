@@ -3,9 +3,9 @@ jest.mock("@/server/services/endpoint_group.service", () => ({
   default: { checkPermission: jest.fn() },
 }));
 
-jest.mock("@/server/services/endpoint/endpoint.service", () => ({
+jest.mock("@/server/services/endpoint/scenario.service", () => ({
   __esModule: true,
-  default: { getEndpointInGroup: jest.fn() },
+  default: { getScenarioInGroup: jest.fn() },
 }));
 
 jest.mock("@/server/services/ai_usage.service", () => ({
@@ -44,7 +44,7 @@ jest.mock("@/server/services/ai/ai_router.service", () => ({
 }));
 
 import endpointGroupService from "@/server/services/endpoint_group.service";
-import endpointService from "@/server/services/endpoint/endpoint.service";
+import scenarioService from "@/server/services/endpoint/scenario.service";
 import aiUsageService from "@/server/services/ai_usage.service";
 import userService from "@/server/services/user.service";
 import { buildPlan, planHash } from "@/server/services/endpoint/variant/plan.service";
@@ -95,7 +95,7 @@ const QUOTA = { limit: 30, spent: 4 };
 
 function allowAll() {
   (endpointGroupService.checkPermission as jest.Mock).mockResolvedValue(true);
-  (endpointService.getEndpointInGroup as jest.Mock).mockResolvedValue(null);
+  (scenarioService.getScenarioInGroup as jest.Mock).mockResolvedValue(null);
   (isAiConfigured as jest.Mock).mockReturnValue(true);
   (aiUsageService.isAiAllowed as jest.Mock).mockResolvedValue(true);
   (aiUsageService.trySpend as jest.Mock).mockResolvedValue({ id: 5n, public_id: USER_PUBLIC_ID });
@@ -107,7 +107,7 @@ function allowAll() {
 // The row the route reads a stored blueprint off. `ai_plan_hash` is given rather than derived, so
 // a spec can hand back a blueprint built for inputs the request no longer carries.
 function storedEndpoint(ai_plan_hash: string, plan: object = PLAN) {
-  (endpointService.getEndpointInGroup as jest.Mock).mockResolvedValue({
+  (scenarioService.getScenarioInGroup as jest.Mock).mockResolvedValue({
     id: 7n,
     method: VALID_BODY.method,
     path: VALID_BODY.path,
@@ -140,7 +140,7 @@ async function errorsOf(res: Parameters<typeof readJson>[0]) {
 
 export {
   endpointGroupService,
-  endpointService,
+  scenarioService,
   aiUsageService,
   userService,
   buildPlan,

@@ -2,16 +2,14 @@ import React, { useRef } from "react";
 import { useModal } from "@/app/components/Wrapper/Modal/ModalWrapper";
 import { EndpointRoutes } from "@/app/libs/routes";
 import { UpdateEndpointForm, UpdateEndpointFormHandles } from "./UpdateEndpointForm";
-import { ClientUpdateEndpointByIdDTO } from "@/models/endpoint/endpoint.model";
 
 export interface OpenUpdateEndpointOptions {
   endpointGroupId: string;
   endpointId: string;
-  old_data: ClientUpdateEndpointByIdDTO;
-  hasStoredPlan: boolean;
   projectId?: string | undefined;
   endpointRoutes?: EndpointRoutes | undefined;
   aiAvailable?: boolean | undefined;
+  maxScenarios?: number | undefined;
 }
 
 export const useUpdateEndpointViewModel = () => {

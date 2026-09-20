@@ -2,9 +2,11 @@
 // `API_ROUTES.GUEST.ENDPOINT` both satisfy it, which is what lets one component serve both.
 export interface EndpointRoutes {
   GET_ALL: string;
+  GET_BY_ID: string;
   CREATE: string;
   UPDATE_BY_ID: string;
   DELETE_BY_ID: string;
+  SCENARIO_ACTIVATE: string;
 }
 
 export const API_ROUTES = {
@@ -55,6 +57,8 @@ export const API_ROUTES = {
     DELETE_BY_ID: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
     DELETE_ALL: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint",
     AI_PREVIEW: "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint/ai-preview",
+    SCENARIO_ACTIVATE:
+      "/api/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId/scenario/:scenarioId/activate",
   },
   AI: {
     STATUS: "/api/ai/status",
@@ -65,11 +69,15 @@ export const API_ROUTES = {
     SANDBOX: "/api/guest/sandbox",
     ENDPOINT: {
       GET_ALL: "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint",
+      GET_BY_ID:
+        "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
       CREATE: "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint",
       UPDATE_BY_ID:
         "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
       DELETE_BY_ID:
         "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId",
+      SCENARIO_ACTIVATE:
+        "/api/guest/project/:projectId/endpoint-group/:endpointGroupId/endpoint/:endpointId/scenario/:scenarioId/activate",
     },
   },
 };

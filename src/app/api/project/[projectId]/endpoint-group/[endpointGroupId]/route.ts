@@ -5,6 +5,7 @@ import endpointGroupService from "@/server/services/endpoint_group.service";
 import { UpdateEndpointGroupByIdSchema, EndpointGroupInfoSchema } from "@/models/endpoint_group.model";
 import {
   createRouteHandler,
+  missingOrForbidden,
   withEndpointGroupId,
   withProjectId,
   withUserId,
@@ -16,26 +17,16 @@ export const GET = createRouteHandler<EndpointGroupRouteParams>(
   withUserId(
     withProjectId(
       withEndpointGroupId(async (_req, _params, ctx) => {
-        const hasPermission = await endpointGroupService.checkPermission({
-          userProps: { public_id: ctx.userId },
-          projectProps: { public_id: ctx.projectId },
-          endpointGroupProps: { public_id: ctx.endpointGroupId },
-        });
-        if (!hasPermission) {
-          return ApiResponse.error({
-            message: ERROR_MESSAGES.FORBIDDEN,
-            statusCode: STATUS_CODE.FORBIDDEN,
-          });
-        }
-
-        const endpointgroup = await endpointGroupService.getEndpointGroupById({
+        // Read through the owner, so a row that comes back is one this user may see. Only an
+        // empty answer pays for the query that says which refusal it is.
+        const endpointgroup = await endpointGroupService.getOwnedEndpointGroupById({
           public_id: ctx.endpointGroupId,
+          owner: { user_public_id: ctx.userId, project_public_id: ctx.projectId },
         });
         if (endpointgroup === null) {
-          return ApiResponse.error({
-            message: ERROR_MESSAGES.NOT_FOUND,
-            statusCode: STATUS_CODE.NOT_FOUND,
-          });
+          return missingOrForbidden(
+            await endpointGroupService.endpointGroupExists({ public_id: ctx.endpointGroupId })
+          );
         }
         const endpointGroupInfoValidation = validateData(
           {

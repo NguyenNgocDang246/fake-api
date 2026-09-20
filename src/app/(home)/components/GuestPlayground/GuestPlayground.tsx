@@ -8,7 +8,7 @@ import { EndpointItem } from "@/app/(pages)/project/[id]/components/EndpointItem
 import { ROLE_LIMITS } from "@/server/core/role_limits";
 import { GUEST_PROJECT_LIFETIME_IN_SECONDS } from "@/server/services/guest.constants";
 import { API_ROUTES, PAGE_ROUTES } from "@/app/libs/routes";
-import { mockBaseUrl } from "@/app/libs/helpers/mock_url";
+import { MOCK_HOST_SUFFIX, MOCK_URL_PREFIX } from "@/app/libs/helpers/mock_url";
 import { useGuestPlaygroundViewModel } from "./viewmodel";
 
 const MAX_ENDPOINTS = ROLE_LIMITS.GUEST.maxEndpointsPerGroup;
@@ -33,11 +33,11 @@ export function GuestPlayground() {
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="font-semibold text-lg">Your endpoints answer on:</div>
         <div className="text-blue-800 py-2 flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto">
-          <span>{mockBaseUrl()}/</span>
+          <span>{MOCK_URL_PREFIX}</span>
           <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">
             {sandbox?.project_id ?? ":id"}
           </span>
-          <span>/</span>
+          <span>{MOCK_HOST_SUFFIX}/</span>
           <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">:path</span>
         </div>
 
@@ -75,25 +75,11 @@ export function GuestPlayground() {
           endpoints.map((endpoint) => (
             <div key={endpoint.public_id} className="mb-2">
               <EndpointItem
-                {...{
-                  public_id: endpoint.public_id,
-                  path: endpoint.path,
-                  delay_ms: endpoint.delay_ms,
-                  method: endpoint.method,
-                  status_code: endpoint.status_code,
-                  response_body: JSON.stringify(endpoint.response_body),
-                  response_headers: endpoint.response_headers,
-                  endpoint_groups_id: endpoint.endpoint_groups_id,
-                  project_id: sandbox?.project_id ?? "",
-                  ai_enabled: endpoint.ai_enabled,
-                  ai_fields: endpoint.ai_fields,
-                  ai_prompt: endpoint.ai_prompt,
-                  ai_unsupported_language: endpoint.ai_unsupported_language,
-                  ai_unapplied_hints: endpoint.ai_unapplied_hints,
-                  ai_has_plan: endpoint.ai_has_plan,
-                  endpointRoutes: API_ROUTES.GUEST.ENDPOINT,
-                  aiAvailable: false,
-                }}
+                endpoint={endpoint}
+                project_id={sandbox?.project_id ?? ""}
+                endpointRoutes={API_ROUTES.GUEST.ENDPOINT}
+                aiAvailable={false}
+                maxScenarios={ROLE_LIMITS.GUEST.maxScenariosPerEndpoint}
               />
             </div>
           ))

@@ -1,3 +1,4 @@
+import { renderVariant } from "@/server/services/endpoint/variant/faker.service";
 import { plan, render } from "./faker_harness";
 
 describe("derived relations", () => {
@@ -148,6 +149,205 @@ describe("aggregate", () => {
       expect(out.min_price).toBe(Math.min(...prices));
       expect(out.max_price).toBe(Math.max(...prices));
       expect(out.avg_price).toBeCloseTo(prices.reduce((a, b) => a + b, 0) / prices.length, 2);
+    }
+  });
+});
+
+describe("compute and compare", () => {
+  const BASE = { page: 1, per_page: 10, total: 42, page_count: 1, has_next: false, ratio: 0 };
+
+  const PLAN = plan({
+    fields: [
+      { path: "page", recipe: { kind: "int", min: 1, max: 5 } },
+      { path: "per_page", recipe: { kind: "pick", values: [10, 20, 25] } },
+      { path: "total", recipe: { kind: "int", min: 0, max: 400 } },
+      {
+        path: "page_count",
+        recipe: { kind: "compute", op: "ceil_divide", of: ["total", "per_page"] },
+      },
+      { path: "has_next", recipe: { kind: "compare", op: "lt", of: ["page", "page_count"] } },
+    ],
+  });
+
+  it("derives a page count and a flag that agree with the numbers beside them", () => {
+    for (const out of render(PLAN, BASE, 300)) {
+      const page = out.page as number;
+      const expected = Math.ceil((out.total as number) / (out.per_page as number));
+
+      expect(out.page_count).toBe(expected);
+      expect(out.has_next).toBe(page < expected);
+    }
+  });
+
+  // Every other recipe leaves the base value on a read it cannot use, and this is the same rule.
+  it("leaves the base value in place when the divisor is zero", () => {
+    const zeroed = plan({
+      fields: [
+        { path: "per_page", recipe: { kind: "const", value: 0 } },
+        { path: "ratio", recipe: { kind: "compute", op: "divide", of: ["total", "per_page"] } },
+      ],
+    });
+
+    for (const out of render(zeroed, BASE, 20)) {
+      expect(out.ratio).toBe(0);
+      expect(Number.isFinite(out.ratio as number)).toBe(true);
+    }
+  });
+
+  it("refuses to compare across types rather than coercing", () => {
+    const mixed = plan({
+      fields: [{ path: "has_next", recipe: { kind: "compare", op: "gt", of: ["total", "page"] } }],
+    });
+
+    for (const out of render(mixed, BASE, 20)) {
+      expect(typeof out.has_next).toBe("boolean");
+    }
+  });
+
+  // Ranking is what the four other ops need a number or a string for; these two only ask whether
+  // the sides match, which a boolean answers as well as anything.
+  it("answers eq and neq about two booleans", () => {
+    const flags = { is_admin: true, is_verified: false, in_sync: false, differs: false };
+    const PAIRED = plan({
+      fields: [
+        { path: "is_admin", recipe: { kind: "bool", probability: 0.5 } },
+        { path: "is_verified", recipe: { kind: "bool", probability: 0.5 } },
+        { path: "in_sync", recipe: { kind: "compare", op: "eq", of: ["is_admin", "is_verified"] } },
+        { path: "differs", recipe: { kind: "compare", op: "neq", of: ["is_admin", "is_verified"] } },
+      ],
+    });
+
+    const seen = new Set<boolean>();
+    for (const out of render(PAIRED, flags, 120)) {
+      expect(out.in_sync).toBe(out.is_admin === out.is_verified);
+      expect(out.differs).toBe(!out.in_sync);
+      seen.add(out.in_sync);
+    }
+    // Both answers actually come up, so neither assertion above is passing on one constant.
+    expect(seen.size).toBe(2);
+  });
+});
+
+describe("bounded dates", () => {
+  const BASE = {
+    from: "2024-01-01",
+    to: "2024-03-31",
+    created_at: "2024-02-01",
+    items: [{ at: "2024-02-01" }],
+  };
+
+  it("keeps the date inside the range the body states", () => {
+    const PLAN = plan({
+      fields: [
+        {
+          path: "created_at",
+          // A window far wider than the bounds, so only the bounds can be holding it in.
+          recipe: {
+            kind: "date",
+            format: "date",
+            days_back: 3650,
+            days_forward: 3650,
+            not_before: "from",
+            not_after: "to",
+          },
+        },
+      ],
+    });
+
+    for (const out of render(PLAN, BASE, 200)) {
+      expect(out.created_at >= BASE.from).toBe(true);
+      expect(out.created_at <= BASE.to).toBe(true);
+    }
+  });
+
+  // One bound and no other is the case the days window can still swallow, since there is no
+  // second bound to pin the other end against.
+  describe("a lone bound", () => {
+    it("holds a date after a `not_before` the window cannot reach", () => {
+      const PLAN = plan({
+        fields: [
+          {
+            path: "created_at",
+            recipe: { kind: "date", format: "date", days_back: 30, not_before: "far" },
+          },
+        ],
+      });
+
+      for (const out of render(PLAN, { ...BASE, far: "2090-01-01" }, 60)) {
+        expect(out.created_at >= "2090-01-01").toBe(true);
+      }
+    });
+
+    it("holds a date before a `not_after` the window cannot reach", () => {
+      const PLAN = plan({
+        fields: [
+          {
+            path: "created_at",
+            recipe: { kind: "date", format: "date", days_back: 30, not_after: "ancient" },
+          },
+        ],
+      });
+
+      for (const out of render(PLAN, { ...BASE, ancient: "1970-06-01" }, 60)) {
+        expect(out.created_at <= "1970-06-01").toBe(true);
+      }
+    });
+
+    it("still narrows rather than replaces when the window does reach it", () => {
+      const PLAN = plan({
+        fields: [
+          {
+            path: "created_at",
+            recipe: { kind: "date", format: "date", days_back: 3650, not_before: "from" },
+          },
+        ],
+      });
+
+      const dates = render(PLAN, BASE, 200).map((out) => out.created_at);
+      for (const date of dates) expect(date >= BASE.from).toBe(true);
+      // A replaced range would answer the bound itself every time.
+      expect(new Set(dates).size).toBeGreaterThan(1);
+    });
+  });
+
+  // A blueprint stored before the bound was checked can still name a count, and the executor has
+  // to read that the same way the validator now does: as no bound, not as a moment in 1970.
+  // `not_after` is the direction that bites, since 1970 is earlier than any window `not_before`
+  // would widen and `Math.max` absorbs it, while `Math.min` collapses the whole range onto it.
+  it("ignores a bound the body does not mean as a moment", () => {
+    const PLAN = plan({
+      fields: [
+        {
+          path: "created_at",
+          recipe: { kind: "date", format: "date", days_back: 30, not_after: "year" },
+        },
+      ],
+    });
+    const body = { ...BASE, year: 2024 };
+    const floor = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    for (let i = 0; i < 40; i += 1) {
+      const out = renderVariant(PLAN, body) as typeof body;
+      expect(out.created_at >= floor).toBe(true);
+    }
+  });
+
+  it("holds every element of a list inside a range named outside it", () => {
+    const PLAN = plan({
+      fields: [
+        { path: "items", recipe: { kind: "array_length", min: 3, max: 6 } },
+        {
+          path: "items[].at",
+          recipe: { kind: "date", format: "date", days_back: 3650, not_before: "from", not_after: "to" },
+        },
+      ],
+    });
+
+    for (const out of render(PLAN, BASE, 60)) {
+      for (const item of out.items as { at: string }[]) {
+        expect(item.at >= BASE.from).toBe(true);
+        expect(item.at <= BASE.to).toBe(true);
+      }
     }
   });
 });

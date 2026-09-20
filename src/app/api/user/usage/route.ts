@@ -32,6 +32,7 @@ export const GET = createStaticRouteHandler(
           max_projects: limits.maxProjects,
           max_groups_per_project: limits.maxGroupsPerProject,
           max_endpoints_per_group: limits.maxEndpointsPerGroup,
+          max_scenarios_per_endpoint: limits.maxScenariosPerEndpoint,
           max_ai_plans_per_day: limits.maxAiPlansPerDay,
         },
         used: { projects, ai_plans_today: aiQuota.spent },

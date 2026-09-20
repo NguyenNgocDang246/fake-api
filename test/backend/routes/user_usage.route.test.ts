@@ -47,6 +47,7 @@ describe("GET src/app/api/user/usage/route.ts", () => {
         max_projects: ROLE_LIMITS.USER.maxProjects,
         max_groups_per_project: ROLE_LIMITS.USER.maxGroupsPerProject,
         max_endpoints_per_group: ROLE_LIMITS.USER.maxEndpointsPerGroup,
+        max_scenarios_per_endpoint: ROLE_LIMITS.USER.maxScenariosPerEndpoint,
         max_ai_plans_per_day: ROLE_LIMITS.USER.maxAiPlansPerDay,
       },
       used: { projects: 3, ai_plans_today: 12 },

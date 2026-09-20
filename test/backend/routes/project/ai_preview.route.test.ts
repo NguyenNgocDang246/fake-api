@@ -127,7 +127,7 @@ describe("ai-preview route: designing and rerolling", () => {
     allowAll();
     storedEndpoint(planHash({ responseBody: '{"name":"An"}', aiFields: ["name"], aiPrompt: null }));
 
-    const res = await post({ ...VALID_BODY, endpoint_id: ENDPOINT_PUBLIC_ID });
+    const res = await post({ ...VALID_BODY, scenario_id: ENDPOINT_PUBLIC_ID });
     await expectSuccess(res, 200);
 
     expect(buildPlan).not.toHaveBeenCalled();
@@ -140,7 +140,7 @@ describe("ai-preview route: designing and rerolling", () => {
     // The saved body, against a request carrying an unsaved edit to it.
     storedEndpoint(planHash({ responseBody: '{"name":"Bo"}', aiFields: ["name"], aiPrompt: null }));
 
-    await post({ ...VALID_BODY, endpoint_id: ENDPOINT_PUBLIC_ID });
+    await post({ ...VALID_BODY, scenario_id: ENDPOINT_PUBLIC_ID });
 
     expect(buildPlan).toHaveBeenCalledTimes(1);
   });
@@ -157,7 +157,7 @@ describe("ai-preview route: designing and rerolling", () => {
       fields: [{ path: "name", recipe: { kind: "int", min: 1, max: 9 } }],
     });
 
-    await post({ ...body, endpoint_id: ENDPOINT_PUBLIC_ID });
+    await post({ ...body, scenario_id: ENDPOINT_PUBLIC_ID });
 
     expect(buildPlan).toHaveBeenCalledTimes(1);
   });
@@ -166,7 +166,7 @@ describe("ai-preview route: designing and rerolling", () => {
     allowAll();
     storedEndpoint(planHash({ responseBody: '{"name":"An"}', aiFields: ["name"], aiPrompt: null }));
 
-    // No `endpoint_id`, so the route never looks the row up: the create form previews the same
+    // No `scenario_id`, so the route never looks the row up: the create form previews the same
     // way whether or not an endpoint elsewhere happens to hold a matching blueprint.
     await post();
 

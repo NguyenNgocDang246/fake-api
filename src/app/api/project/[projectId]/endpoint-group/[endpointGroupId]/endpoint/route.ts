@@ -7,15 +7,24 @@ import {
   EndpointInfoSchema,
   CreateEndpointSchema,
   PlanEnvelopeSchema,
-  splitPlanEnvelope,
+  splitScenarioPlanEnvelopes,
   toEndpointInfoInput,
 } from "@/models/endpoint/endpoint.model";
 import endpointService from "@/server/services/endpoint/endpoint.service";
+import scenarioService from "@/server/services/endpoint/scenario.service";
 import endpointGroupService from "@/server/services/endpoint_group.service";
 import aiUsageService from "@/server/services/ai_usage.service";
-import endpointVariantPlanService from "@/server/services/endpoint/variant/plan.service";
+import {
+  countDesigns,
+  hasAiEnabled,
+  envelopeAt,
+  readWriteBody,
+  settleScenarioPlans,
+} from "@/server/services/endpoint/scenario_plan";
+import { planScenarioOf, scenarioInfoOf } from "@/server/services/endpoint/scenario_view";
 import {
   createRouteHandler,
+  missingOrForbidden,
   withEndpointGroupId,
   withProjectId,
   withUserId,
@@ -27,29 +36,41 @@ export const GET = createRouteHandler<EndpointCollectionRouteParams>(
   withUserId(
     withProjectId(
       withEndpointGroupId(async (_req, _params, ctx) => {
-        const hasPermission = await endpointGroupService.checkPermission({
-          userProps: { public_id: ctx.userId },
-          projectProps: { public_id: ctx.projectId },
-          endpointGroupProps: { public_id: ctx.endpointGroupId },
+        // Read through the owner, so a row that comes back is one this user may see. An empty
+        // answer is the only one that has to ask whether the group was theirs at all.
+        const endpoints = await endpointService.getAllEndpoints({
+          public_id: ctx.endpointGroupId,
+          owner: { user_public_id: ctx.userId, project_public_id: ctx.projectId },
         });
-        if (!hasPermission) {
-          return ApiResponse.error({
-            message: ERROR_MESSAGES.FORBIDDEN,
-            statusCode: STATUS_CODE.FORBIDDEN,
-          });
-        }
-
-        const endpoints = await endpointService.getAllEndpoints({ public_id: ctx.endpointGroupId });
         if (endpoints.length === 0) {
+          const hasPermission = await endpointGroupService.checkPermission({
+            userProps: { public_id: ctx.userId },
+            projectProps: { public_id: ctx.projectId },
+            endpointGroupProps: { public_id: ctx.endpointGroupId },
+          });
+          if (!hasPermission) {
+            return missingOrForbidden(
+              await endpointGroupService.endpointGroupExists({ public_id: ctx.endpointGroupId })
+            );
+          }
+
           return ApiResponse.error({
             message: ERROR_MESSAGES.NO_CONTENT,
             statusCode: STATUS_CODE.NO_CONTENT,
           });
         }
 
+        // One scenario per endpoint, the active one, and the count of the rest. The edit modal
+        // and the row's switcher ask `GET_BY_ID` for those, so a group of ten endpoints does not
+        // ship ten full sets to draw ten badges.
         const endpointInfoValidation = validateData(
           endpoints.map((e) =>
-            toEndpointInfoInput(e, ctx.endpointGroupId, endpointVariantPlanService.planInfoOf(e))
+            toEndpointInfoInput(
+              e,
+              ctx.endpointGroupId,
+              e.scenarios.map(scenarioInfoOf),
+              e._count.scenarios
+            )
           ),
           [EndpointInfoSchema]
         );
@@ -87,8 +108,11 @@ export const POST = createRouteHandler<EndpointCollectionRouteParams>(
           });
         }
 
-        const { envelope, endpoint: endpointBody } = splitPlanEnvelope(await req.json());
-        const planValidation = validateData(envelope, PlanEnvelopeSchema);
+        const read = await readWriteBody(req);
+        if (!read.ok) return read.response;
+
+        const { envelopes, endpoint: endpointBody } = splitScenarioPlanEnvelopes(read.body);
+        const planValidation = validateData(envelopes, [PlanEnvelopeSchema]);
         if (!planValidation.success) return planValidation.response;
 
         const endpointValidation = validateData(
@@ -96,32 +120,41 @@ export const POST = createRouteHandler<EndpointCollectionRouteParams>(
           CreateEndpointSchema
         );
         if (!endpointValidation.success) return endpointValidation.response;
+        const { scenarios } = endpointValidation.data;
 
-        // Only asked when the flag is on, so an ordinary endpoint costs no extra query. Without
-        // it a role with no AI saves the flag and is served the base body forever, silently.
-        if (
-          endpointValidation.data.ai_enabled &&
-          !(await aiUsageService.isAiAllowed({ public_id: ctx.userId }))
-        ) {
+        const canHold = await scenarioService.canHoldScenarios({
+          user_public_id: ctx.userId,
+          count: scenarios.length,
+        });
+        if (!canHold) {
+          return ApiResponse.error({
+            message: LIMIT_MESSAGES.SCENARIO_LIMIT_REACHED,
+            statusCode: STATUS_CODE.FORBIDDEN,
+          });
+        }
+
+        // Only asked when some scenario has the flag on, so an ordinary endpoint costs no extra
+        // query. Without it a role with no AI saves the flag and is served the base body
+        // forever, silently.
+        if (hasAiEnabled(scenarios) && !(await aiUsageService.isAiAllowed({ public_id: ctx.userId }))) {
           return ApiResponse.error({
             message: LIMIT_MESSAGES.AI_NOT_AVAILABLE_FOR_ROLE,
             statusCode: STATUS_CODE.FORBIDDEN,
           });
         }
 
-        // A create with no blueprint to adopt has to design one, and designing it in `after()`
-        // on a spent quota would save an AI endpoint that answers with the base body forever
-        // and says nothing. Refused here instead, while nothing has been written.
-        if (
-          endpointVariantPlanService.wouldDesign(
-            { ...endpointValidation.data, ai_plan: null, ai_plan_hash: null },
-            planValidation.data.plan,
-            planValidation.data.plan_hash,
-            null
-          )
-        ) {
+        // Nothing is stored yet, so every scenario that needs a blueprint has to design one.
+        // Designing in `after()` on a spent quota would save an AI scenario that answers with the
+        // base body forever and says nothing. Refused here, while nothing has been written.
+        const inputs = scenarios.map((row, index) => ({
+          row,
+          envelope: envelopeAt(planValidation.data, index),
+          stored: null,
+        }));
+        const needed = countDesigns(inputs);
+        if (needed > 0) {
           const quota = await aiUsageService.quotaFor({ public_id: ctx.userId });
-          if (quota.spent >= quota.limit) {
+          if (quota.spent + needed > quota.limit) {
             return ApiResponse.error({
               message: LIMIT_MESSAGES.AI_PLAN_LIMIT_REACHED_ON_SAVE,
               statusCode: STATUS_CODE.FORBIDDEN,
@@ -142,25 +175,18 @@ export const POST = createRouteHandler<EndpointCollectionRouteParams>(
           });
         }
 
-        const endpointCreate = await endpointService.createEndpoint(endpointValidation.data);
-
-        // Warms the blueprint so the first real request already serves varied data. A blueprint
-        // the user previewed is adopted instead, which is the same design they already paid for.
-        after(async () => {
-          const { plan, plan_hash } = planValidation.data;
-          if (plan && plan_hash) {
-            const adopted = await endpointVariantPlanService.adoptPlan(
-              endpointCreate,
-              plan,
-              plan_hash
-            );
-            if (adopted) return;
-          }
-          await endpointVariantPlanService.ensurePlan(endpointCreate);
+        const { endpoint } = await endpointService.createEndpoint(endpointValidation.data);
+        const stored = await scenarioService.getScenariosOfEndpoint({
+          endpoint_public_id: endpoint.public_id,
         });
 
+        // Warms the active scenario's blueprint so the first real request already serves varied
+        // data. One the user previewed is adopted instead, which is the design they already paid
+        // for, and the other pages build on their own first request.
+        after(() => settleScenarioPlans(stored.map((s) => planScenarioOf(s, endpoint)), inputs));
+
         const endpointInfoValidation = validateData(
-          toEndpointInfoInput(endpointCreate, ctx.endpointGroupId),
+          toEndpointInfoInput(endpoint, ctx.endpointGroupId, stored.map(scenarioInfoOf)),
           EndpointInfoSchema
         );
         if (!endpointInfoValidation.success) return endpointInfoValidation.response;

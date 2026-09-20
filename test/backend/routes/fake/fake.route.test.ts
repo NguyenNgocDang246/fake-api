@@ -1,11 +1,6 @@
-jest.mock("@/server/services/endpoint/endpoint.service", () => ({
-  __esModule: true,
-  default: {
-    getEndpointByPath: jest.fn(),
-    getEndpointByDynamicPath: jest.fn(),
-    findMethodsForPath: jest.fn(),
-  },
-}));
+jest.mock("@/server/services/endpoint/endpoint.service", () =>
+  jest.requireActual("./fake_fixture").endpointServiceMock()
+);
 
 jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
   __esModule: true,
@@ -18,67 +13,74 @@ jest.mock("@/server/services/endpoint/variant/plan.service", () => ({
 import EndpointService from "@/server/services/endpoint/endpoint.service";
 import { GET, POST } from "@/app/api/fake/[projectId]/route";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
+import { MAX_MOCK_PATH_LENGTH } from "@/models/endpoint/endpoint.model";
 import { AppError } from "@/server/core/errors";
-import { createJsonRequest, expectError, readJson } from "../../helpers/http";
+import { servable } from "./fake_fixture";
+import { createJsonRequest, createRouteParams, expectError, readJson } from "../../helpers/http";
+
+const PARAMS = createRouteParams({ projectId: "PUBLIC" });
 
 describe("src/app/api/fake/[projectId]/route.ts", () => {
   it("answers an AppError as the standard envelope, like every other route", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockRejectedValue(
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockRejectedValue(
       new AppError({ message: ERROR_MESSAGES.SERVER_ERROR, statusCode: STATUS_CODE.SERVER_ERROR })
     );
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     await expectError(res, STATUS_CODE.SERVER_ERROR, ERROR_MESSAGES.SERVER_ERROR);
   });
 
   it("returns 404 when publicId missing", async () => {
-    const res = await GET(createJsonRequest({}, { pathname: "/" }));
+    const res = await GET(
+      createJsonRequest({}, { pathname: "/" }),
+      createRouteParams({ projectId: "" })
+    );
     await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
   });
 
   it("returns 404 when endpoint not found", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
     (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue([]);
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
   });
 
   it("does not query dynamic path when a static match is found", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/users",
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
-    });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     expect(res.status).toBe(200);
-    expect(EndpointService.getEndpointByDynamicPath).not.toHaveBeenCalled();
+    expect(EndpointService.getServableEndpointByDynamicPath).not.toHaveBeenCalled();
   });
 
   it("falls back to dynamic path match when static match misses", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByDynamicPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/user/:id",
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
-    });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/user/abc123" }));
+    }));
+    const res = await GET(createJsonRequest({}, { pathname: "/user/abc123" }), PARAMS);
     expect(res.status).toBe(200);
-    expect(EndpointService.getEndpointByDynamicPath).toHaveBeenCalledWith(
+    expect(EndpointService.getServableEndpointByDynamicPath).toHaveBeenCalledWith(
       expect.objectContaining({ path: "/user/abc123", method: "GET" })
     );
   });
 
   it("returns 405 when the path exists under another method", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue(null);
-    (EndpointService.getEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(null);
+    (EndpointService.getServableEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
     (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue(["POST", "PUT"]);
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     await expectError(res, STATUS_CODE.METHOD_NOT_ALLOWED, ERROR_MESSAGES.METHOD_NOT_ALLOWED);
     expect(await readJson(res)).toMatchObject({ errors: { allow: ["POST", "PUT"] } });
@@ -89,76 +91,121 @@ describe("src/app/api/fake/[projectId]/route.ts", () => {
   });
 
   it("does not ask which methods exist when the endpoint was found", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/users",
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
-    });
+    }));
 
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
 
     expect(res.status).toBe(200);
     expect(EndpointService.findMethodsForPath).not.toHaveBeenCalled();
   });
 
   it("returns 204 when endpoint status_code is NO_CONTENT", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/users",
       status_code: STATUS_CODE.NO_CONTENT,
       response_body: "{}",
       delay_ms: 0,
-    });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     expect(res.status).toBe(204);
   });
 
   it("ignores query string when matching endpoint path", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/users",
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
-    });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users?active=true" }));
+    }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users?active=true" }), PARAMS);
     expect(res.status).toBe(200);
-    expect(EndpointService.getEndpointByPath).toHaveBeenCalledWith(
+    expect(EndpointService.getServableEndpointByPath).toHaveBeenCalledWith(
       expect.objectContaining({ path: "/users" })
     );
   });
 
   it("ignores hash fragment when matching endpoint path", async () => {
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "GET",
       path: "/users",
       status_code: 200,
       response_body: "{}",
       delay_ms: 0,
-    });
-    const res = await GET(createJsonRequest({}, { pathname: "/PUBLIC/users#section" }));
+    }));
+    const res = await GET(createJsonRequest({}, { pathname: "/users#section" }), PARAMS);
     expect(res.status).toBe(200);
-    expect(EndpointService.getEndpointByPath).toHaveBeenCalledWith(
+    expect(EndpointService.getServableEndpointByPath).toHaveBeenCalledWith(
       expect.objectContaining({ path: "/users" })
     );
   });
 
   it("honors delay_ms (fake timers)", async () => {
     jest.useFakeTimers();
-    (EndpointService.getEndpointByPath as jest.Mock).mockResolvedValue({
+    (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(servable({
       method: "POST",
       path: "/users",
       status_code: 200,
       response_body: "{}",
       delay_ms: 50,
-    });
+    }));
 
-    const promise = POST(createJsonRequest({}, { pathname: "/PUBLIC/users" }));
+    const promise = POST(createJsonRequest({}, { pathname: "/users" }), PARAMS);
     await jest.advanceTimersByTimeAsync(50);
     const res = await promise;
     expect(res.status).toBe(200);
     jest.useRealTimers();
+  });
+
+  describe("the mock path it looks up", () => {
+    beforeEach(() => {
+      (EndpointService.getServableEndpointByPath as jest.Mock).mockResolvedValue(null);
+      (EndpointService.getServableEndpointByDynamicPath as jest.Mock).mockResolvedValue(null);
+      (EndpointService.findMethodsForPath as jest.Mock).mockResolvedValue([]);
+    });
+
+    // A dynamic segment carries whatever the caller put in the URL. An encoded `/` stays inside
+    // its segment, and a segment that does not decode is kept as it arrived.
+    it.each([
+      ["/users/", "/users"],
+      ["/user/Nguy%E1%BB%85n", "/user/Nguyễn"],
+      ["/user/a%20b", "/user/a b"],
+      ["/files/a%2Fb", "/files/a%2Fb"],
+      ["/user/%E0%A4%A", "/user/%E0%A4%A"],
+    ])("reads %s as %s", async (pathname, path) => {
+      await GET(createJsonRequest({}, { pathname }), PARAMS);
+
+      expect(EndpointService.getServableEndpointByPath).toHaveBeenLastCalledWith(
+        expect.objectContaining({ path })
+      );
+    });
+
+    // The cap stands in for the path validation the lookup no longer runs, so a path nothing could
+    // ever match answers before it costs a query. It includes its own limit.
+    const atTheCap = "/a".repeat(MAX_MOCK_PATH_LENGTH / 2);
+
+    it("looks up a path as long as the cap allows", async () => {
+      await GET(createJsonRequest({}, { pathname: atTheCap }), PARAMS);
+
+      expect(EndpointService.getServableEndpointByPath).toHaveBeenLastCalledWith(
+        expect.objectContaining({ path: atTheCap })
+      );
+    });
+
+    it("answers 404 for a path past the cap without looking anything up", async () => {
+      const res = await GET(createJsonRequest({}, { pathname: `${atTheCap}a` }), PARAMS);
+
+      await expectError(res, STATUS_CODE.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
+      expect(EndpointService.getServableEndpointByPath).not.toHaveBeenCalled();
+      expect(EndpointService.getServableEndpointByDynamicPath).not.toHaveBeenCalled();
+      expect(EndpointService.findMethodsForPath).not.toHaveBeenCalled();
+    });
   });
 });

@@ -8,6 +8,7 @@ import buildUrl from "@/app/libs/helpers/url_builder";
 import { API_ROUTES } from "@/app/libs/routes";
 import { ApiErrorResponse, ApiSuccessResponse } from "@/models/api_response.model";
 import { ERROR_MESSAGES } from "@/server/core/constants";
+import { ROLE_LIMITS } from "@/server/core/role_limits";
 import { EndpointInfoDTO } from "@/models/endpoint/endpoint.model";
 import {
   GUEST_SANDBOX_STORAGE_KEY,
@@ -119,6 +120,9 @@ export function useGuestPlaygroundViewModel() {
       projectId: target.project_id,
       endpointRoutes: API_ROUTES.GUEST.ENDPOINT,
       aiAvailable: false,
+      // A visitor has no session for the usage route to answer, so the cap is passed rather than
+      // asked for, the same way the endpoint rows below pass it.
+      maxScenarios: ROLE_LIMITS.GUEST.maxScenariosPerEndpoint,
       onCreated: () => trackEvent("guest_endpoint_created"),
     });
   }, [ensureSandbox, openCreateEndpointModal, queryClient, trackEvent]);

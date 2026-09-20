@@ -50,8 +50,18 @@ export function createThrowingJsonRequest(
   return req as unknown as NextRequest;
 }
 
-export async function readJson(res: NextResponse) {
-  return await res.json();
+// The second argument a `createRouteHandler` export takes. One resolved promise is reused across
+// calls, which is all the handler ever does with it.
+export function createRouteParams<T extends Record<string, string>>(params: T) {
+  return { params: Promise.resolve(params) };
+}
+
+// The default keeps what `res.json()` already hands back, so every existing caller reads the
+// envelope exactly as before. A caller that wants a field typed names the shape instead.
+export async function readJson<T = Awaited<ReturnType<NextResponse["json"]>>>(
+  res: NextResponse
+): Promise<T> {
+  return (await res.json()) as T;
 }
 
 export async function expectSuccess(res: NextResponse, status = 200) {

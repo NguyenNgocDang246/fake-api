@@ -21,6 +21,15 @@ export const DEFAULT_MOCK_HEADERS: Record<string, string> = {
   "cache-control": "no-store",
 };
 
+// Set after the endpoint's own headers, so no author can lift them. A mock host shares its parent
+// domain with the app and a body a browser opens as a page must not run script there, and it
+// serves no robots.txt of its own, so the header is the only place indexing can be refused.
+export const LOCKED_MOCK_HEADERS: Record<string, string> = {
+  "content-security-policy": "sandbox",
+  "x-content-type-options": "nosniff",
+  "x-robots-tag": "noindex",
+};
+
 // The CORS safelist already lets a browser read content-type, cache-control and their neighbours,
 // so only the ones it would otherwise hide are worth naming here.
 const BASE_EXPOSE_HEADERS = ["ETag", "Location", "Retry-After"];

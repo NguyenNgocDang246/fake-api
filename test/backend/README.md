@@ -1,14 +1,14 @@
 # Backend Test Flow
 
 ## Purpose
-Ensure API routes (`src/app/api/**/route.ts`) and backend services (`src/server/services/**`) behave correctly without hitting real DB/network.
+Ensure API routes (`src/app/api/**/route.ts`), middleware (`src/middleware.ts`, `src/server/middlewares/**`), backend services (`src/server/services/**`), shared core utilities (`src/server/core/**`) and the DTO schemas in `src/models/**` behave correctly without hitting real DB/network.
 
 ## How tests run
 1) **Runner**: `npm run test:backend` (uses `test/backend/run-jest.cjs` to start Jest).
 2) **Transforms**: `ts-jest` compiles TypeScript using `test/backend/tsconfig.jest.json` (ES2020 target for BigInt).
 3) **Setup**: `test/backend/jest.setup.ts` runs before tests to mock NextResponse, cookies, webstorage, and seed env defaults.
-4) **Execution**: Jest loads specs under `test/backend/routes/**` and `test/backend/services/**`.
-5) **Assertion helpers**: `test/backend/helpers/http.ts` provides request builders and response matchers (`expectSuccess`, `expectError`).
+4) **Execution**: Jest loads every `*.test.ts` under `test/backend/**`, per `testMatch` in `test/backend/jest.config.cjs`.
+5) **Assertion helpers**: `test/backend/helpers/http.ts` provides request builders (`createJsonRequest`, `createRouteParams` for the params argument a dynamic route takes) and response matchers (`expectSuccess`, `expectError`).
 
 ## Running tests
 - All backend tests: `npm run test:backend`
@@ -17,8 +17,11 @@ Ensure API routes (`src/app/api/**/route.ts`) and backend services (`src/server/
 
 ## Project layout for tests
 - `test/backend/routes/**` — tests for each API route handler
+- `test/backend/middlewares/**` — tests for the middleware entry point and each middleware it dispatches to
 - `test/backend/services/**` — tests for each backend service/module
-- `test/backend/helpers/http.ts` — common request/response utilities
+- `test/backend/core/**` — tests for the shared utilities in `src/server/core/**`
+- `test/backend/models/**` — tests for the DTO schemas in `src/models/**`
+- `test/backend/helpers/**` — common request/response utilities, plus tests for the pure helpers in `src/app/libs/helpers/**`
 - `test/backend/jest.setup.ts` — global mocks and env defaults
 - `test/backend/.jest-localstorage/` — Node webstorage artifacts (git-ignored)
 
@@ -41,3 +44,4 @@ Ensure API routes (`src/app/api/**/route.ts`) and backend services (`src/server/
 - Services: success, edge inputs, dependency throws, AppError wrapping/propagation.
 - Schemas with `.strict()`: include “extra field” cases.
 - Fake API: NOT_FOUND, METHOD_NOT_ALLOWED, validation failure, `delay_ms` with fake timers.
+- Scenarios: the reconcile creating, updating, deleting and repositioning; the switch deactivating before it activates; the serving lookup falling back to the first page when none is active; a save refused when the quota has no room for every scenario that would design.

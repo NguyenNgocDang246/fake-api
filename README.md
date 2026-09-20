@@ -8,10 +8,10 @@
 
 You define the path, the method, the JSON body, the status code and the delay. The endpoint answers exactly that, to anyone holding its URL. It is for building a frontend before the real API exists, reproducing a slow or failing response on demand, and demos that need believable data.
 
-Every project gets a public `projectId`, and its endpoints live under it:
+Every project gets a public `projectId`, and that id is the project's own subdomain:
 
 ```bash
-curl -X GET https://fake-api.dev/QGONEwKEqJg/api/users/1
+curl -X GET https://k7mqx4rb9dtz.fake-api.dev/api/users/1
 ```
 
 ## Features

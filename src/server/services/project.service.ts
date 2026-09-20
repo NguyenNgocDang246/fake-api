@@ -9,7 +9,9 @@ import {
 import { GetUserByIdDTO, UserSchema } from "@/models/user.model";
 import { prisma } from "@/server/prisma/prisma_provider";
 import { AppError } from "@/server/core/errors";
+import { ProjectOwner } from "@/server/core/ownership";
 import { createWithUniquePublicId } from "@/server/core/prisma_retry";
+import { generateProjectPublicId } from "@/app/libs/helpers/publicId";
 import endpointGroupService from "@/server/services/endpoint_group.service";
 import userService from "@/server/services/user.service";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
@@ -80,6 +82,30 @@ class ProjectService {
     }
   }
 
+  // The same read with the owner in the `where`, which is what lets a caller skip the permission
+  // check beside it. Writes keep asking first, so they keep the plain read above.
+  async getOwnedProjectById({ public_id, owner }: GetProjectByIdDTO & { owner: ProjectOwner }) {
+    try {
+      return await prisma.projects.findUnique({
+        where: { public_id, users: { public_id: owner.user_public_id } },
+      });
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
+  // Whether the row is there at all, which separates a project somebody else owns from one nobody
+  // owns. Asked only once a scoped read has come back with nothing.
+  async projectExists({ public_id }: GetProjectByIdDTO) {
+    try {
+      return Boolean(
+        await prisma.projects.findUnique({ where: { public_id }, select: { public_id: true } })
+      );
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError();
+    }
+  }
+
   // Read on the serving path for every browser call, so it selects the three columns it needs
   // rather than the whole row. A project that does not exist has no CORS config, not an open one.
   async getCorsConfig({ public_id }: GetProjectByIdDTO) {
@@ -127,16 +153,18 @@ class ProjectService {
         ...(cors_origins === undefined ? {} : { cors_origins }),
         ...(cors_allow_credentials === undefined ? {} : { cors_allow_credentials }),
       };
-      const newProject = await createWithUniquePublicId((public_id) =>
-        prisma.projects.create({
-          data: {
-            ...projectData,
-            public_id,
-            users: {
-              connect: { public_id: user_public_id },
+      const newProject = await createWithUniquePublicId(
+        (public_id) =>
+          prisma.projects.create({
+            data: {
+              ...projectData,
+              public_id,
+              users: {
+                connect: { public_id: user_public_id },
+              },
             },
-          },
-        })
+          }),
+        generateProjectPublicId
       );
       await endpointGroupService.createEndpointGroup({
         project_public_id: newProject.public_id,

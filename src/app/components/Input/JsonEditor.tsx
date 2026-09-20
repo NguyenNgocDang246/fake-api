@@ -62,8 +62,13 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
     jsonToColoredSpans(defaultValue)
   );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const overlayRef = useRef<HTMLPreElement>(null);
   const [height, setHeight] = useState("auto");
   const [caretColor, setCaretColor] = useState("black");
+
+  // Read once, off the element itself, because the box is sized border-box and a caller can
+  // restyle it: the height set below has to carry the border the scroll height leaves out.
+  const borderRef = useRef<number | null>(null);
 
   // The Tab/Enter/{ [ branches assign textarea.value directly, which throws away the browser's
   // own undo stack. This keeps the history instead, one entry per state (content plus caret).
@@ -73,6 +78,34 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
   const registerRef = useRef(register);
   registerRef.current = register;
+
+  // The two layers are one editor: the text the caret moves through is the textarea's, the text
+  // that is read is the overlay's, so whatever one scrolls sideways the other scrolls with it.
+  const syncScroll = useCallback((textarea: HTMLTextAreaElement) => {
+    const overlay = overlayRef.current;
+    if (overlay) overlay.scrollLeft = textarea.scrollLeft;
+  }, []);
+
+  const fitHeight = useCallback((textarea: HTMLTextAreaElement) => {
+    if (borderRef.current === null) {
+      const style = getComputedStyle(textarea);
+      borderRef.current =
+        parseFloat(style.borderTopWidth || "0") + parseFloat(style.borderBottomWidth || "0");
+    }
+
+    textarea.style.height = "auto";
+    const content = textarea.scrollHeight + borderRef.current;
+    textarea.style.height = content + "px";
+
+    // A line wider than the box puts a scrollbar inside it, and the scroll height does not count
+    // that bar, so the last line would be left sitting underneath it.
+    const bar = textarea.offsetHeight - textarea.clientHeight - borderRef.current;
+    const fitted = content + Math.max(bar, 0);
+
+    textarea.style.height = fitted + "px";
+    setHeight(fitted + "px");
+    syncScroll(textarea);
+  }, [syncScroll]);
 
   // register.onChange is called by hand: this component overrides the one register supplies, and
   // assigning textarea.value fires no React change either, so the form would only update on blur.
@@ -119,9 +152,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
 
     textarea.selectionStart = textarea.selectionEnd = entry.caret;
 
-    textarea.style.height = "auto";
-    textarea.style.height = textarea.scrollHeight + "px";
-    setHeight(textarea.scrollHeight + "px");
+    fitHeight(textarea);
   };
 
   const onChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -131,9 +162,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
     pushHistory(value, e.target.selectionStart, true);
 
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
-      setHeight(textareaRef.current.scrollHeight + "px");
+      fitHeight(textareaRef.current);
     }
   };
 
@@ -172,9 +201,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
         textarea.selectionStart = textarea.selectionEnd = start + 1;
         setCaretColor("black");
 
-        textarea.style.height = "auto";
-        textarea.style.height = textarea.scrollHeight + "px";
-        setHeight(textarea.scrollHeight + "px");
+        fitHeight(textarea);
       }, 0);
     }
 
@@ -208,9 +235,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
           setCaretColor("black");
         }, 0);
 
-        textarea.style.height = "auto";
-        textarea.style.height = textarea.scrollHeight + "px";
-        setHeight(textarea.scrollHeight + "px");
+        fitHeight(textarea);
 
         return;
       }
@@ -226,9 +251,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
       setCaretColor("black");
 
-      textarea.style.height = "auto";
-      textarea.style.height = textarea.scrollHeight + "px";
-      setHeight(textarea.scrollHeight + "px");
+      fitHeight(textarea);
     }
 
     if (e.key === "{" || e.key === "[") {
@@ -253,9 +276,7 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       textarea.selectionStart = textarea.selectionEnd = start + 1;
       setCaretColor("black");
 
-      textarea.style.height = "auto";
-      textarea.style.height = textarea.scrollHeight + "px";
-      setHeight(textarea.scrollHeight + "px");
+      fitHeight(textarea);
     }
   };
 
@@ -282,14 +303,35 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
       lastPushAtRef.current = 0;
 
       requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.style.height = "auto";
-          textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
-          setHeight(textareaRef.current.scrollHeight + "px");
-        }
+        if (textareaRef.current) fitHeight(textareaRef.current);
       });
     }
-  }, [defaultValue, syncFormValue]);
+  }, [defaultValue, syncFormValue, fitHeight]);
+
+  // An editor that mounts on a panel which is off screen measures nothing, because a hidden box
+  // reports no scroll height, and it would stay one line tall for as long as it is open. The
+  // observer reports the size it gains the first time it is shown, which is when it can be fitted.
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    let shown = textarea.offsetHeight > 0;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+
+      // Only the crossing is acted on, never every size report: fitting sets the height, which
+      // reports another size, and answering that one would never end.
+      const visible = entry.contentRect.height > 0 || entry.contentRect.width > 0;
+      if (visible === shown) return;
+
+      shown = visible;
+      if (visible) fitHeight(textarea);
+    });
+
+    observer.observe(textarea);
+    return () => observer.disconnect();
+  }, [fitHeight]);
 
   return (
     <div className={twMerge("flex flex-col gap-1", className)}>
@@ -306,21 +348,28 @@ export const JsonEditor: React.FC<JsonEditorInputProps> = ({
           id={id}
           placeholder={placeholder}
           rows={rows}
+          // A body is read by its indentation, so a long line runs off the side and is scrolled
+          // to rather than folded into the line below it.
+          wrap="off"
           onChange={onChange}
           onKeyDown={handleKeyDown}
+          onScroll={(e) => syncScroll(e.currentTarget)}
           style={{ caretColor }}
           className={twMerge(
             "border border-gray-300 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all",
-            "box-border px-3 py-2 w-full rounded-lg text-transparent placeholder-shown:text-black selection:text-gray-300 selection:bg-gray-300 overflow-hidden",
+            // The same font and the same tab stops as the overlay, or the caret would sit beside
+            // the character it is on rather than on it.
+            "box-border px-3 py-2 w-full rounded-lg font-mono [tab-size:8] text-transparent placeholder-shown:text-black selection:text-gray-300 selection:bg-gray-300 overflow-x-auto overflow-y-hidden",
             className
           )}
         />
 
         <pre
+          ref={overlayRef}
           aria-hidden="true"
           id="json-overlay"
           style={{ height }}
-          className="absolute top-0 left-0 w-full box-border rounded-lg px-3 py-2 pointer-events-none bg-transparent text-black font-mono whitespace-pre-wrap break-words overflow-hidden"
+          className="absolute top-0 left-0 w-full box-border rounded-lg border border-transparent px-3 py-2 pointer-events-none bg-transparent text-black font-mono [tab-size:8] whitespace-pre overflow-hidden"
         >
           {coloredJson}
         </pre>

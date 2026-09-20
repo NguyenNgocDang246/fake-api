@@ -31,6 +31,7 @@ import endpointGroupService from "@/server/services/endpoint_group.service";
 import userService from "@/server/services/user.service";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
 import { AppError } from "@/server/core/errors";
+import { PROJECT_PUBLIC_ID_REGEX } from "@/app/libs/helpers/publicId";
 
 describe("src/server/services/project.service.ts", () => {
   describe("canCreateProject", () => {
@@ -129,5 +130,30 @@ describe("src/server/services/project.service.ts", () => {
       project_public_id: "proj1",
       name: "default",
     });
+  });
+
+  // A project id becomes the first label of its mock host, and DNS folds case, so one carrying
+  // uppercase names a host nobody can reach. This is the only place that generator is chosen.
+  it("createProject takes its id from the lowercase alphabet", async () => {
+    (prisma.projects.create as jest.Mock).mockResolvedValue({ public_id: "proj1", name: "P" });
+    (endpointGroupService.createEndpointGroup as jest.Mock).mockResolvedValue({
+      public_id: "group1",
+    });
+
+    // Repeated rather than sampled once: a single id off the wider alphabet still comes out all
+    // lowercase about once in seven hundred, which is a test that passes on the broken wiring.
+    for (let i = 0; i < 30; i++) {
+      await projectService.createProject({
+        user_public_id: "user1",
+        name: "P",
+        description: null,
+      });
+    }
+
+    const ids = (prisma.projects.create as jest.Mock).mock.calls.map(
+      ([arg]) => arg.data.public_id as string
+    );
+    expect(ids).toHaveLength(30);
+    for (const id of ids) expect(id).toMatch(PROJECT_PUBLIC_ID_REGEX);
   });
 });
