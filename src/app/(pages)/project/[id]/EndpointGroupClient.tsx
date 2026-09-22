@@ -8,6 +8,9 @@ import { useCreateEndpointViewModel } from "@/app/(pages)/project/[id]/component
 import { useCreateEndpointGroupViewModel } from "@/app/(pages)/project/[id]/components/CreateEndpointGroupForm/viewmodel";
 import { EndpointGroupContainer } from "@/app/(pages)/project/[id]/components/EndpointGroupContainer/EndpointGroupContainer";
 import { MOCK_HOST_SUFFIX, MOCK_URL_PREFIX } from "@/app/libs/helpers/mock_url";
+import { TourAnchor, TOUR_ANCHOR } from "@/app/components/Tour/TourAnchor";
+import { PageTour } from "@/app/components/Tour/PageTour";
+import { TOUR_STAGE } from "@/app/components/Tour/tourSteps";
 
 interface EndpointGroupClientProps {
   projectId: string;
@@ -37,45 +40,51 @@ export default function EndpointGroupClient({
     <div>
       <div className="flex flex-col mt-4 gap-4 xl:flex-row xl:gap-8">
         <div className="xl:w-1/4">
-          <EndpointGroupContainer
-            {...{ endpointGroupsState, selectedGroupId, setSelectedGroupId }}
-          />
+          <TourAnchor id={TOUR_ANCHOR.GROUP_LIST}>
+            <EndpointGroupContainer
+              {...{ endpointGroupsState, selectedGroupId, setSelectedGroupId }}
+            />
+          </TourAnchor>
         </div>
 
         {/* A flex child is as wide as its content unless it is told otherwise, and one endpoint
             with a long path would widen this column past the page. */}
         <div className="grow min-w-0 flex flex-col">
-          <div className="flex flex-col w-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div>
-              <div className="font-semibold text-lg">API Endpoint: </div>
-              <div className="text-blue-800 py-2 min-w-full flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto">
-                <span>{MOCK_URL_PREFIX}</span>
-                <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">{projectId}</span>
-                <span>{MOCK_HOST_SUFFIX}/</span>
-                <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">:path</span>
+          <TourAnchor id={TOUR_ANCHOR.MOCK_URL}>
+            <div className="flex flex-col w-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div>
+                <div className="font-semibold text-lg">API Endpoint: </div>
+                <div className="text-blue-800 py-2 min-w-full flex flex-nowrap items-center gap-1 whitespace-nowrap overflow-x-auto">
+                  <span>{MOCK_URL_PREFIX}</span>
+                  <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">{projectId}</span>
+                  <span>{MOCK_HOST_SUFFIX}/</span>
+                  <span className="mx-0.5 px-2 font-medium rounded-md bg-blue-100">:path</span>
+                </div>
+              </div>
+              <div className="flex flex-row gap-2 justify-center sm:justify-end mt-3">
+                <TourAnchor id={TOUR_ANCHOR.ENDPOINT_CREATE}>
+                  <ActionButton
+                    label="New Endpoint"
+                    variant="create"
+                    className="w-full sm:w-auto"
+                    onClick={() => {
+                      openCreateEndpointModal({ endpointGroupId: selectedGroupId });
+                    }}
+                    disabled={!hasEndpointGroups}
+                  />
+                </TourAnchor>
+                <ActionButton
+                  label="Delete all"
+                  variant="delete"
+                  className="w-full sm:w-auto"
+                  onClick={() => {
+                    openDeleteAllEndpointModal();
+                  }}
+                  disabled={!hasEndpoints}
+                />
               </div>
             </div>
-            <div className="flex flex-row gap-2 justify-center sm:justify-end mt-3">
-              <ActionButton
-                label="New Endpoint"
-                variant="create"
-                className="w-full sm:w-auto"
-                onClick={() => {
-                  openCreateEndpointModal({ endpointGroupId: selectedGroupId });
-                }}
-                disabled={!hasEndpointGroups}
-              />
-              <ActionButton
-                label="Delete all"
-                variant="delete"
-                className="w-full sm:w-auto"
-                onClick={() => {
-                  openDeleteAllEndpointModal();
-                }}
-                disabled={!hasEndpoints}
-              />
-            </div>
-          </div>
+          </TourAnchor>
           <div className="mt-4">
             {(endpointGroupsState.isFetching && selectedGroupId.length == 0) ||
             (endpointGroupsState.isFetched && hasEndpointGroups && !endpointsState.isFetched) ? (
@@ -123,6 +132,8 @@ export default function EndpointGroupClient({
           </div>
         </div>
       </div>
+
+      <PageTour stage={TOUR_STAGE.PROJECT_DETAIL} ready={endpointGroupsState.isFetched} />
     </div>
   );
 }
