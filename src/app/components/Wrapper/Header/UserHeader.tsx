@@ -6,6 +6,7 @@ import { HeaderNav } from "@/app/components/Wrapper/Header/HeaderNav";
 import { LogoutButton } from "@/app/components/Button/LogoutButton";
 import { TextLink } from "@/app/components/Link/TextLink";
 import { useAuth } from "@/app/components/Wrapper/Auth/AuthWrapper";
+import { TourAnchor, TOUR_ANCHOR } from "@/app/components/Tour/TourAnchor";
 import { PAGE_ROUTES } from "@/app/libs/routes";
 
 export function UserHeader() {
@@ -27,7 +28,9 @@ export function UserHeader() {
       </TextLink>
 
       <div className="flex items-center sm:gap-6 gap-3">
-        <HeaderNav />
+        <TourAnchor id={TOUR_ANCHOR.HEADER_NAV}>
+          <HeaderNav />
+        </TourAnchor>
         <DropdownButton
           position="left"
           variant="outline"
