@@ -11,7 +11,7 @@ import type { NextRequest } from "next/server";
 import { NextURL } from "next/dist/server/web/next-url";
 import { config, middleware } from "@/middleware";
 import authMiddleware from "@/server/middlewares/auth.middleware";
-import { PROJECT_PUBLIC_ID_ALPHABET, PUBLIC_ID_LENGTH } from "@/app/libs/helpers/publicId";
+import { PUBLIC_ID_ALPHABET, PUBLIC_ID_LENGTH } from "@/app/libs/helpers/publicId";
 import { STATUS_CODE } from "@/server/core/constants";
 
 const PROJECT_ID = "projectpubab";
@@ -73,7 +73,7 @@ describe("src/middleware.ts", () => {
       (char) => {
         const host = `${char.repeat(PUBLIC_ID_LENGTH)}.fake-api.dev`;
 
-        expect(mockHost.test(host)).toBe(PROJECT_PUBLIC_ID_ALPHABET.includes(char));
+        expect(mockHost.test(host)).toBe(PUBLIC_ID_ALPHABET.includes(char));
       }
     );
 

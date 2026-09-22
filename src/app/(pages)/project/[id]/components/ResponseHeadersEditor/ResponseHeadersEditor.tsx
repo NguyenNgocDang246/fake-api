@@ -52,54 +52,62 @@ export const ResponseHeadersEditor: React.FC<ResponseHeadersEditorProps> = ({
   const rowErrors = errors.scenarios?.[scenarioIndex]?.response_headers;
 
   return (
-    <RepeatableRowList
-      itemKeys={fields.map((field) => field.id)}
-      max={MAX_RESPONSE_HEADERS}
-      addLabel="Add header"
-      emptyHint="No headers yet. This endpoint still answers with JSON, it just sends nothing extra."
-      onAdd={() => append({ name: "", value: "" })}
-      onRemove={remove}
-      removeLabel={(index) => `Remove header ${index + 1}`}
-      rowError={(index) =>
-        rowErrors?.[index]?.name?.message ?? rowErrors?.[index]?.value?.message
-      }
-      listError={
-        rowErrors?.root?.message ??
-        (typeof rowErrors?.message === "string" ? rowErrors.message : undefined)
-      }
-      renderRow={(index) => (
-        <div className="flex min-w-0 gap-2">
-          <div className="min-w-0 flex-1">
-            <ComboInput
-              className="w-full"
-              id={`${name}.${index}.name`}
-              label="Name"
-              hideLabel
-              options={COMMON_HEADER_OPTIONS}
-              value={rows[index]?.name ?? ""}
-              onChange={(value) =>
-                setValue(`${name}.${index}.name`, value, {
-                  shouldDirty: true,
-                  shouldValidate: submitCount > 0,
-                })
-              }
-              allowCreate
-              placeholder="X-Total-Count"
-            />
+    <div className="flex flex-col gap-3">
+      {/* Named by the label the project form carries, so the reader is looking for the same
+          words there. curl and anything server-side read these either way. */}
+      <p className="text-xs leading-relaxed text-gray-500">
+        A browser reads these only when the project allows the origin you call from.
+      </p>
+
+      <RepeatableRowList
+        itemKeys={fields.map((field) => field.id)}
+        max={MAX_RESPONSE_HEADERS}
+        minRows={1}
+        addLabel="Add header"
+        onAdd={() => append({ name: "", value: "" })}
+        onRemove={remove}
+        removeLabel={(index) => `Remove header ${index + 1}`}
+        rowError={(index) =>
+          rowErrors?.[index]?.name?.message ?? rowErrors?.[index]?.value?.message
+        }
+        listError={
+          rowErrors?.root?.message ??
+          (typeof rowErrors?.message === "string" ? rowErrors.message : undefined)
+        }
+        renderRow={(index) => (
+          <div className="flex min-w-0 gap-2">
+            <div className="min-w-0 flex-1">
+              <ComboInput
+                className="w-full"
+                id={`${name}.${index}.name`}
+                label="Name"
+                hideLabel
+                options={COMMON_HEADER_OPTIONS}
+                value={rows[index]?.name ?? ""}
+                onChange={(value) =>
+                  setValue(`${name}.${index}.name`, value, {
+                    shouldDirty: true,
+                    shouldValidate: submitCount > 0,
+                  })
+                }
+                allowCreate
+                placeholder="X-Total-Count"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <DefaultInput
+                className="w-full"
+                label="Value"
+                hideLabel
+                register={register(`${name}.${index}.value`)}
+                type="text"
+                id={`${name}.${index}.value`}
+                placeholder="42"
+              />
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <DefaultInput
-              className="w-full"
-              label="Value"
-              hideLabel
-              register={register(`${name}.${index}.value`)}
-              type="text"
-              id={`${name}.${index}.value`}
-              placeholder="42"
-            />
-          </div>
-        </div>
-      )}
-    />
+        )}
+      />
+    </div>
   );
 };

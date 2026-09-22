@@ -12,7 +12,9 @@ import {
   EndpointMethod,
   EndpointResponseSchema,
   MAX_MOCK_PATH_LENGTH,
+  ResponseCookie,
   isBlockedHeader,
+  serializeResponseCookie,
 } from "@/models/endpoint/endpoint.model";
 import { validateData } from "@/server/core/validation";
 import { createRouteHandler, withErrorHandling } from "@/server/core/route_helpers";
@@ -113,6 +115,7 @@ async function handle(
       status_code: scenario.status_code,
       response_body: scenario.response_body,
       response_headers: scenario.response_headers,
+      response_cookies: scenario.response_cookies,
       delay_ms: scenario.delay_ms,
     },
     EndpointResponseSchema
@@ -124,6 +127,7 @@ async function handle(
   const status = validEndpoint.status_code || STATUS_CODE.OK;
   const headers = mockHeaders(validEndpoint.response_headers);
   dropForeignRedirect(headers, status, requestHost(req));
+  appendMockCookies(headers, validEndpoint.response_cookies);
 
   // A 204 still carries headers, and `Location` on one is the reason an author sets any.
   if (status == STATUS_CODE.NO_CONTENT) {
@@ -155,6 +159,18 @@ function mockHeaders(stored: { name: string; value: string }[]): Headers {
   for (const [name, value] of Object.entries(LOCKED_MOCK_HEADERS)) headers.set(name, value);
 
   return headers;
+}
+
+// `append`, once per cookie: `Set-Cookie` is the one response header a browser reads as a list,
+// and `set` would leave only the last row standing. Its own pass rather than a line inside
+// `mockHeaders`, whose whole contract is the opposite, and it runs before the 204 branch because
+// a mocked logout answers 204 and its cookie is the entire point of it. A row the rules would
+// refuse today is skipped rather than served, the same way a blocked header is.
+function appendMockCookies(headers: Headers, stored: ResponseCookie[]) {
+  for (const row of stored) {
+    const cookie = serializeResponseCookie(row);
+    if (cookie !== null) headers.append("set-cookie", cookie);
+  }
 }
 
 // A browser follows a 3xx by itself, so a Location off the mock's own host would make the
@@ -220,6 +236,11 @@ async function resolveBody(scenario: PlanScenario, baseBody: unknown): Promise<s
 
 // Everything a browser can read without being told to. Whatever else the response ended up
 // carrying, an endpoint's own headers and `Allow` on a 405, is what gets named to the browser.
+// `Set-Cookie` is a forbidden response-header name: no browser hands it to script whatever CORS
+// says, so naming it here would be a promise that cannot be kept. A mock's cookie is meant for
+// the jar, not for `res.headers.get`.
+const NEVER_EXPOSED = new Set(["set-cookie", "set-cookie2"]);
+
 const SAFELISTED_HEADERS = new Set([
   "cache-control",
   "content-language",
@@ -235,6 +256,7 @@ function exposableHeaders(res: NextResponse): string[] {
   return [...res.headers.keys()].filter(
     (name) =>
       !SAFELISTED_HEADERS.has(name) &&
+      !NEVER_EXPOSED.has(name) &&
       // `hasOwn`, not `in`: `constructor` and `toString` are header names an author may pick.
       !Object.hasOwn(LOCKED_MOCK_HEADERS, name) &&
       !name.startsWith("access-control-")

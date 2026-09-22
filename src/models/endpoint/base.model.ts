@@ -38,7 +38,7 @@ export const EndpointInfoSchema = EndpointSchema.omit({
   .strict();
 export type EndpointInfoDTO = z.infer<typeof EndpointInfoSchema>;
 
-// The six fields the fake route answers from, unchanged in shape: two off the endpoint and four
+// The seven fields the fake route answers from, unchanged in shape: two off the endpoint and five
 // off the scenario it is serving.
 export const EndpointResponseSchema = EndpointSchema.pick({ method: true, path: true })
   .extend(
@@ -46,6 +46,7 @@ export const EndpointResponseSchema = EndpointSchema.pick({ method: true, path: 
       status_code: true,
       response_body: true,
       response_headers: true,
+      response_cookies: true,
       delay_ms: true,
     }).shape
   )

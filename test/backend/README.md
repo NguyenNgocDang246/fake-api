@@ -45,3 +45,4 @@ Ensure API routes (`src/app/api/**/route.ts`), middleware (`src/middleware.ts`, 
 - Schemas with `.strict()`: include “extra field” cases.
 - Fake API: NOT_FOUND, METHOD_NOT_ALLOWED, validation failure, `delay_ms` with fake timers.
 - Scenarios: the reconcile creating, updating, deleting and repositioning; the switch deactivating before it activates; the serving lookup falling back to the first page when none is active; a save refused when the quota has no room for every scenario that would design.
+- Cookies: one `Set-Cookie` appended per row and read back with `getSetCookie`, never the comma-joined `get`; no `Domain` emitted whatever a stored row holds; `SameSite=None` forcing `Secure`; a 204 and a redirect both still carrying them; a row today's rules would refuse skipped while the one beside it ships; `set-cookie` absent from the expose list and still refused by the header editor.

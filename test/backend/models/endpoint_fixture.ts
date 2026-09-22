@@ -4,6 +4,7 @@ export const VALID_SCENARIO = {
   status_code: 200,
   response_body: '{"name":"An"}',
   response_headers: [],
+  response_cookies: [],
   delay_ms: 0,
 };
 

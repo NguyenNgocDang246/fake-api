@@ -9,6 +9,13 @@ import {
   parseResponseHeaders,
 } from "@/models/endpoint/response_headers.model";
 import {
+  ClientResponseCookieListSchema,
+  EMPTY_RESPONSE_COOKIES,
+  ResponseCookieReadListSchema,
+  ResponseCookiesFromInput,
+  parseResponseCookies,
+} from "@/models/endpoint/response_cookies.model";
+import {
   IntegerFromInput,
   JsonSchema,
   JsonValue,
@@ -46,6 +53,7 @@ export const ScenarioSchema = z
     }),
     response_body: JsonSchema,
     response_headers: ResponseHeadersFromInput().default(EMPTY_RESPONSE_HEADERS),
+    response_cookies: ResponseCookiesFromInput().default(EMPTY_RESPONSE_COOKIES),
     delay_ms: IntegerFromInput({
       min: 0,
       max: MAX_DELAY_MS,
@@ -92,6 +100,7 @@ export const ScenarioInfoSchema = ScenarioSchema.omit({
     // The column holds text, every reader here wants the rows, and reading never enforces the
     // write rules: a row that would fail them must not take the whole response down with it.
     response_headers: z.preprocess(parseResponseHeaders, ResponseHeaderReadListSchema),
+    response_cookies: z.preprocess(parseResponseCookies, ResponseCookieReadListSchema),
   })
   .extend({
     public_id: z.string(),
@@ -119,6 +128,7 @@ export const ClientScenarioSchema = z
     name: ScenarioNameSchema,
     response_body: z.string(),
     response_headers: ResponseHeaderListSchema,
+    response_cookies: ClientResponseCookieListSchema,
     delay_ms: z
       .string()
       .refine(

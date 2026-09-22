@@ -15,6 +15,7 @@ import {
 export * from "@/models/endpoint/primitives.model";
 export * from "@/models/endpoint/ai_fields.model";
 export * from "@/models/endpoint/response_headers.model";
+export * from "@/models/endpoint/response_cookies.model";
 export * from "@/models/endpoint/scenario.model";
 export * from "@/models/endpoint/base.model";
 
@@ -171,6 +172,7 @@ export function toScenarioInfoInput(
     status_code: number;
     response_body: string;
     response_headers: string;
+    response_cookies: string;
     delay_ms: number;
     ai_enabled: boolean;
     ai_fields: string[];
@@ -188,6 +190,7 @@ export function toScenarioInfoInput(
     status_code: scenario.status_code,
     response_body: scenario.response_body,
     response_headers: scenario.response_headers,
+    response_cookies: scenario.response_cookies,
     delay_ms: scenario.delay_ms,
     ai_enabled: scenario.ai_enabled,
     ai_fields: scenario.ai_fields,

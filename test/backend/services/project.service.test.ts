@@ -31,7 +31,7 @@ import endpointGroupService from "@/server/services/endpoint_group.service";
 import userService from "@/server/services/user.service";
 import { ROLE_LIMITS } from "@/server/core/role_limits";
 import { AppError } from "@/server/core/errors";
-import { PROJECT_PUBLIC_ID_REGEX } from "@/app/libs/helpers/publicId";
+import { PUBLIC_ID_REGEX } from "@/app/libs/helpers/publicId";
 
 describe("src/server/services/project.service.ts", () => {
   describe("canCreateProject", () => {
@@ -154,6 +154,6 @@ describe("src/server/services/project.service.ts", () => {
       ([arg]) => arg.data.public_id as string
     );
     expect(ids).toHaveLength(30);
-    for (const id of ids) expect(id).toMatch(PROJECT_PUBLIC_ID_REGEX);
+    for (const id of ids) expect(id).toMatch(PUBLIC_ID_REGEX);
   });
 });

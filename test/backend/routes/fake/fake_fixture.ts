@@ -19,6 +19,7 @@ export function servable(
         status_code: 200,
         response_body: "{}",
         response_headers: "[]",
+        response_cookies: "[]",
         delay_ms: 0,
         ai_enabled: false,
         ai_fields: [],

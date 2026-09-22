@@ -9,9 +9,12 @@ export const MAX_HEADER_VALUE_LENGTH = 1024;
 const HEADER_NAME_REGEX = /^[A-Za-z0-9!#$%&'*+.^_`|~-]+$/;
 const HEADER_VALUE_REGEX = /^[\x20-\x7E]*$/;
 
-// A mock host shares its parent domain with the app, so `set-cookie` could reach the app's own
-// session and `refresh` sends a browser anywhere. The three the fake route locks are refused here
-// too, the rest are framework owned or, for `access-control-*`, the project's CORS settings.
+// A cookie has an editor of its own, in `response_cookies.model.ts`, where every row is host-only
+// to the project's subdomain because no `Domain` is ever written. A header row carries no such
+// structure, so it could aim one at the apex where the app's own session lives: `set-cookie`
+// stays refused here, and one surface emits a cookie rather than two. `refresh` sends a browser
+// anywhere. The three the fake route locks are refused here too, and the rest are framework owned
+// or, for `access-control-*`, the project's CORS settings.
 const BLOCKED_HEADERS = new Set([
   "set-cookie",
   "set-cookie2",

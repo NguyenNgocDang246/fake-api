@@ -50,11 +50,13 @@ describe("what a header value may be", () => {
 });
 
 describe("the headers Fake API keeps for itself", () => {
-  // A mock host shares its parent domain with the app, so a cookie set here could land on the
-  // app's own session, and a page it serves must stay sandboxed.
+  // A cookie belongs to the Cookies tab, where a row can carry no Domain and so lands only on the
+  // project's own subdomain. A header row has no such structure, so it stays refused here and one
+  // surface emits a cookie rather than two. A page a mock serves must stay sandboxed too.
   it.each([
     "Set-Cookie",
     "set-cookie",
+    "Set-Cookie2",
     "Refresh",
     "Content-Security-Policy",
     "X-Content-Type-Options",
@@ -143,6 +145,7 @@ describe("the column round trip", () => {
       name: "Default",
       response_body: '{"a":1}',
       response_headers: rows(["X-Total-Count", "42"]),
+      response_cookies: [],
       delay_ms: "0",
       status_code: "200",
       ai_enabled: false,

@@ -28,16 +28,23 @@ async function fetchUser(): Promise<UserInfoDTO | null> {
   }
 }
 
-export const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
+// The query itself, so anything rendered outside this provider can still read the signed-in user.
+// A modal renders under `ModalWrapper`, which sits above this wrapper, so its context is empty
+// there while the query client, which is above both, still answers.
+export const useAuthUser = () => {
   const pathname = usePathname();
 
-  const { data: user, isLoading } = useQuery<UserInfoDTO | null>({
+  return useQuery<UserInfoDTO | null>({
     queryKey: [QUERY_KEY.AUTH.CHECK],
     queryFn: fetchUser,
     staleTime: STALETIME,
     retry: 0,
     enabled: pathname !== PAGE_ROUTES.AUTH.LOGIN && pathname !== PAGE_ROUTES.AUTH.REGISTER,
   });
+};
+
+export const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
+  const { data: user, isLoading } = useAuthUser();
 
   return (
     <AuthContext.Provider value={{ user: user ?? null, loading: isLoading }}>
