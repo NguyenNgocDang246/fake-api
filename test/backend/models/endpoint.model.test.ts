@@ -187,6 +187,7 @@ describe("the client schema applies the same numeric bounds", () => {
     name: "Default",
     response_body: '{"name":"An"}',
     response_headers: [],
+    response_cookies: [],
     delay_ms: "0",
     status_code: "200",
     ai_enabled: false,

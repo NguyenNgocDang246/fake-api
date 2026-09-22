@@ -1,6 +1,6 @@
 jest.mock("@/server/services/guest.service", () => ({
   __esModule: true,
-  default: { getGuestUser: jest.fn(async () => ({ id: 1n, public_id: "guestPubABCD" })) },
+  default: { getGuestUser: jest.fn(async () => ({ id: 1n, public_id: "guestpubabcd" })) },
 }));
 
 import type { NextRequest, NextResponse } from "next/server";
@@ -8,10 +8,10 @@ import guestMiddleware from "@/server/middlewares/guest.middleware";
 import { STATUS_CODE } from "@/server/core/constants";
 
 // 12 chars each, and only characters `PUBLIC_ID_ALPHABET` actually contains.
-const PROJECT_ID = "projectPubAB";
-const GROUP_ID = "groupPubABCD";
-const ENDPOINT_ID = "endpointPub2";
-const SCENARIO_ID = "scenarioPub2";
+const PROJECT_ID = "projectpubab";
+const GROUP_ID = "grouppubabcd";
+const ENDPOINT_ID = "endpointpub2";
+const SCENARIO_ID = "scenariopub2";
 
 function createRequest(pathname: string, headers: Record<string, string> = {}): NextRequest {
   const url = new URL(`http://localhost${pathname}`);
@@ -79,7 +79,7 @@ describe("src/server/middlewares/guest.middleware.ts", () => {
       createRequest(`/api/guest/project/${PROJECT_ID}/endpoint-group/${GROUP_ID}/endpoint`)
     );
 
-    expect(forwardedHeaders(res!)?.get("x-userId")).toBe("guestPubABCD");
+    expect(forwardedHeaders(res!)?.get("x-userId")).toBe("guestpubabcd");
   });
 
   it("drops an x-userId the caller put on the wire", async () => {
@@ -90,7 +90,7 @@ describe("src/server/middlewares/guest.middleware.ts", () => {
       })
     );
 
-    expect(forwardedHeaders(res!)?.get("x-userId")).toBe("guestPubABCD");
+    expect(forwardedHeaders(res!)?.get("x-userId")).toBe("guestpubabcd");
     expect(forwardedHeaders(res!)?.get("x-role")).toBeNull();
   });
 

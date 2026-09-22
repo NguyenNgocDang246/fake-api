@@ -31,7 +31,7 @@ import {
 } from "@/server/services/guest.constants";
 import { STATUS_CODE } from "@/server/core/constants";
 
-const GUEST_ROW = { id: 1n, public_id: "guestPublicI" };
+const GUEST_ROW = { id: 1n, public_id: "guestpubaaab" };
 
 // The service caches the guest user on the instance, so each spec needs a fresh module.
 async function loadService() {
@@ -120,13 +120,13 @@ describe("src/server/services/guest.service.ts", () => {
     (prisma.projects.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
     (projectService.createProject as jest.Mock).mockResolvedValue({ public_id: "projectPubl" });
     (endpointGroupService.getAllEndpointGroups as jest.Mock).mockResolvedValue([
-      { public_id: "groupPublicI", name: "default" },
+      { public_id: "grouppubaaab", name: "default" },
     ]);
     const guestService = await loadService();
 
     await expect(guestService.createSandbox()).resolves.toEqual({
       project_id: "projectPubl",
-      endpoint_group_id: "groupPublicI",
+      endpoint_group_id: "grouppubaaab",
     });
 
     expect(projectService.createProject).toHaveBeenCalledTimes(1);
@@ -144,7 +144,7 @@ describe("src/server/services/guest.service.ts", () => {
     (prisma.projects.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
     (projectService.createProject as jest.Mock).mockResolvedValue({ public_id: "projectPubl" });
     (endpointGroupService.getAllEndpointGroups as jest.Mock).mockResolvedValue([
-      { public_id: "groupPublicI" },
+      { public_id: "grouppubaaab" },
     ]);
     const guestService = await loadService();
 
@@ -170,7 +170,7 @@ describe("src/server/services/guest.service.ts", () => {
     });
     (projectService.createProject as jest.Mock).mockResolvedValue({ public_id: "projectPubl" });
     (endpointGroupService.getAllEndpointGroups as jest.Mock).mockResolvedValue([
-      { public_id: "groupPublicI" },
+      { public_id: "grouppubaaab" },
     ]);
     const guestService = await loadService();
 

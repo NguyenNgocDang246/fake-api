@@ -21,6 +21,7 @@ import {
   EndpointDesign,
 } from "@/app/(pages)/project/[id]/components/AiEndpointSection/AiEndpointSection";
 import { ResponseHeadersEditor } from "@/app/(pages)/project/[id]/components/ResponseHeadersEditor/ResponseHeadersEditor";
+import { ResponseCookiesEditor } from "@/app/(pages)/project/[id]/components/ResponseCookiesEditor/ResponseCookiesEditor";
 import { ScenarioList } from "@/app/(pages)/project/[id]/components/ScenarioList/ScenarioList";
 import { ScenarioHeader } from "@/app/(pages)/project/[id]/components/ScenarioHeader/ScenarioHeader";
 
@@ -138,6 +139,7 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
     scenarioErrors?.status_code
   );
   const headersHasError = !!scenarioErrors?.response_headers;
+  const cookiesHasError = !!scenarioErrors?.response_cookies;
   const aiHasError = !!(scenarioErrors?.ai_fields || scenarioErrors?.ai_prompt);
 
   const address = (
@@ -181,6 +183,8 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
     const publicId = scenario?.public_id;
     const headerCount =
       scenario?.response_headers?.filter((row) => row.name.trim() !== "").length ?? 0;
+    const cookieCount =
+      scenario?.response_cookies?.filter((row) => row.name.trim() !== "").length ?? 0;
 
     const basics = (
       <>
@@ -260,9 +264,27 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
               hasError: index === page && headersHasError,
               marked: headerCount > 0,
               description:
-                "Extra headers this scenario sends back. Every response already carries a JSON content type and is never cached, so this is for the rest: a page count, an ETag, a redirect target.",
+                "Extra headers this scenario sends back, such as a page count or a redirect target.",
               content: (
                 <ResponseHeadersEditor
+                  register={register}
+                  control={control}
+                  errors={errors}
+                  setValue={setValue}
+                  submitCount={submitCount}
+                  index={index}
+                />
+              ),
+            },
+            {
+              id: "cookies",
+              label: "Cookies",
+              hasError: index === page && cookiesHasError,
+              marked: cookieCount > 0,
+              description:
+                "Cookies this scenario sets, on your project's own address and nowhere else.",
+              content: (
+                <ResponseCookiesEditor
                   register={register}
                   control={control}
                   errors={errors}
@@ -282,7 +304,7 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
                     hasError: index === page && aiHasError,
                     marked: !!enabled,
                     description:
-                      "Turn this on and AI rewrites the fields you pick, so every call answering with this scenario sends different data instead of the same body twice. Everything else stays exactly as you wrote it.",
+                      "AI rewrites the fields you pick, so every call sends different data.",
                     content: (
                       <AiEndpointSection
                         control={control}
@@ -311,7 +333,7 @@ export const EndpointForm: React.FC<EndpointFormProps> = ({
       {address}
 
       {multiScenario ? (
-        <div className="grid grid-cols-1 gap-4 @min-[560px]:grid-cols-[11.5rem_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-4 @min-[700px]:grid-cols-[11.5rem_minmax(0,1fr)]">
           <ScenarioList
             scenarioKeys={scenarioKeys}
             scenarios={scenarios}
