@@ -27,8 +27,7 @@ export async function retryOnPublicIdConflict<T>(run: () => Promise<T>): Promise
 }
 
 export function createWithUniquePublicId<T>(
-  createFn: (public_id: string) => Promise<T>,
-  generate: () => string = generatePublicId
+  createFn: (public_id: string) => Promise<T>
 ): Promise<T> {
-  return retryOnPublicIdConflict(() => createFn(generate()));
+  return retryOnPublicIdConflict(() => createFn(generatePublicId()));
 }

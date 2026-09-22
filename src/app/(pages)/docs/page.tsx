@@ -32,6 +32,7 @@ import {
   MAX_AI_VALUES,
 } from "@/models/endpoint/ai_fields.model";
 import { MAX_RESPONSE_HEADERS } from "@/models/endpoint/response_headers.model";
+import { MAX_RESPONSE_COOKIES } from "@/models/endpoint/response_cookies.model";
 import { MAX_SCENARIO_NAME_LENGTH } from "@/models/endpoint/scenario.model";
 import {
   MAX_ARRAY_ITEMS,
@@ -46,7 +47,7 @@ import { JsonLd } from "@/app/components/JsonLd";
 import { Breadcrumb } from "@/app/components/Link/Breadcrumb";
 import { SITE, absoluteUrl, breadcrumbSchema, buildMetadata, type Crumb } from "@/app/libs/seo";
 import { CodeBlock } from "@/app/components/Code/CodeBlock";
-import { mockEndpointUrl } from "@/app/libs/helpers/mock_url";
+import { MOCK_HOST_SUFFIX, mockEndpointUrl } from "@/app/libs/helpers/mock_url";
 import { WarningCallout } from "@/app/(pages)/docs/components/WarningCallout";
 import { DocsToc } from "@/app/(pages)/docs/components/DocsToc";
 
@@ -736,13 +737,51 @@ const total = response.headers.get('X-Total-Count');`}</CodeBlock>
               You can set up to {MAX_RESPONSE_HEADERS} of them per endpoint, and setting{" "}
               <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">Content-Type</code> or{" "}
               <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">Cache-Control</code>{" "}
-              replaces what the response would have used. A handful of names, cookies among them,
-              belong to Fake API itself and are refused with a message saying so. On a redirect
+              replaces what the response would have used. A handful of names belong to Fake API
+              itself and are refused with a message saying so, cookies among them, because those
+              have a tab of their own below. On a redirect
               status such as 302, a{" "}
               <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">Location</code> is only
               sent when it stays on your project&apos;s own address, like{" "}
               <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">/login</code>, so a mock
               can never send a visitor to another site.
+            </p>
+
+            <h3 className="text-lg font-semibold mb-2">Cookies of your own</h3>
+            <p className="text-gray-600 leading-relaxed mb-4">
+              The Cookies tab sets real cookies on this scenario&apos;s response, so you can mock a
+              login that hands back a session and a logout that clears it again. A cookie you set
+              here belongs to your project&apos;s own address,{" "}
+              <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">
+                k7mqx4rb9dtz{MOCK_HOST_SUFFIX}
+              </code>
+              , and to nothing else. You cannot aim it at another domain, so it never reaches the
+              site you are testing from and never reaches your Fake API account.
+            </p>
+            <p className="text-gray-600 leading-relaxed mb-4">
+              curl, Postman and anything server-side get these cookies as they are. A browser is
+              stricter: because the mock answers from a different address than your app, it only
+              keeps the cookie when the call asks for it, and when the project has{" "}
+              <strong>Send cookies and auth headers</strong> turned on under More options with at
+              least one origin named. Without both the response still arrives and the cookie is
+              quietly dropped:
+            </p>
+            <div className="flex flex-col gap-4 mb-6">
+              <CodeBlock lang="fetch">{`await fetch('${mockEndpointUrl("k7mqx4rb9dtz", "/api/login")}', {
+  method: 'POST',
+  credentials: 'include',
+});`}</CodeBlock>
+            </div>
+            <p className="text-gray-600 leading-relaxed mb-6">
+              Leave Max age empty and the cookie lasts until the browser closes. Set it to 0 and the
+              browser deletes a cookie of that name, which is how a &quot;logged out&quot; scenario
+              undoes what the &quot;logged in&quot; one set. HttpOnly keeps it out of{" "}
+              <code className="text-sm bg-gray-100 rounded px-1.5 py-0.5">document.cookie</code>{" "}
+              while the browser still sends it back on the next call, which is usually the thing you
+              are testing. SameSite starts at None, the one setting that lets a cross-site call keep
+              a cookie at all, and None always travels with Secure because no browser accepts it
+              otherwise. You can set up to {MAX_RESPONSE_COOKIES} cookies per scenario, and
+              switching which scenario answers switches its cookies with it.
             </p>
 
             <h3 className="text-lg font-semibold mb-2">When you want a call blocked</h3>

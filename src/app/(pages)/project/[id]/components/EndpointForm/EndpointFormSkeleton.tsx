@@ -52,21 +52,26 @@ export function EndpointFormSkeleton({ multiScenario, aiAvailable }: EndpointFor
       </div>
 
       {multiScenario ? (
-        <div className="grid grid-cols-1 gap-4 @min-[560px]:grid-cols-[11.5rem_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-4 @min-[700px]:grid-cols-[11.5rem_minmax(0,1fr)]">
           <div className="flex flex-col gap-2">
-            <div className="flex items-baseline justify-between gap-2 px-1">
-              <div className="h-3 w-20 rounded bg-gray-200" />
-              <div className="h-3 w-10 rounded bg-gray-200" />
-            </div>
+            {/* Narrow enough and the list is one button, the way the real column folds. */}
+            <div className="h-10 rounded-xl border border-gray-200 @min-[700px]:hidden" />
 
-            {[0, 1].map((row) => (
-              <div key={row} className="flex flex-col gap-2 rounded-xl border border-gray-200 p-3">
-                <div className="h-4 w-3/4 rounded bg-gray-200" />
-                <div className="h-3 w-1/2 rounded bg-gray-200" />
+            <div className="hidden flex-col gap-2 @min-[700px]:flex">
+              <div className="flex items-baseline justify-between gap-2 px-1">
+                <div className="h-3 w-20 rounded bg-gray-200" />
+                <div className="h-3 w-10 rounded bg-gray-200" />
               </div>
-            ))}
 
-            <div className="h-9 rounded-xl border border-dashed border-gray-300" />
+              {[0, 1].map((row) => (
+                <div key={row} className="flex flex-col gap-2 rounded-xl border border-gray-200 p-3">
+                  <div className="h-4 w-3/4 rounded bg-gray-200" />
+                  <div className="h-3 w-1/2 rounded bg-gray-200" />
+                </div>
+              ))}
+
+              <div className="h-9 rounded-xl border border-dashed border-gray-300" />
+            </div>
           </div>
 
           {panel}

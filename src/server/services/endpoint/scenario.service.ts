@@ -19,6 +19,7 @@ function payloadOf(row: ScenarioWriteDTO) {
     status_code: row.status_code,
     response_body: row.response_body,
     response_headers: row.response_headers,
+    response_cookies: row.response_cookies,
     delay_ms: row.delay_ms,
     ai_enabled: row.ai_enabled,
     ai_fields: row.ai_fields,

@@ -48,6 +48,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   status_code: 200,
   response_body: '{"a":1}',
   response_headers: "[]",
+  response_cookies: "[]",
   delay_ms: 0,
   ai_enabled: false,
   ai_fields: [],
@@ -59,7 +60,7 @@ const tx = () => ({ endpoint_scenarios: prisma.endpoint_scenarios }) as never;
 
 beforeEach(() => {
   let next = 0;
-  (generatePublicId as jest.Mock).mockImplementation(() => `new${next++}`.padEnd(12, "x"));
+  (generatePublicId as jest.Mock).mockImplementation(() => `newscenario${String.fromCharCode(97 + next++)}`);
   (prisma.endpoint_scenarios.create as jest.Mock).mockImplementation(
     async ({ data }: { data: { public_id: string } }) => ({ public_id: data.public_id })
   );
@@ -127,7 +128,7 @@ describe("reconcileScenarios", () => {
       data: { is_active: false },
     });
     expect(prisma.endpoint_scenarios.update).toHaveBeenLastCalledWith({
-      where: { public_id: "new1xxxxxxxx" },
+      where: { public_id: "newscenariob" },
       data: { is_active: true },
     });
   });
@@ -205,7 +206,7 @@ describe("canHoldScenarios", () => {
     (userService.getUserById as jest.Mock).mockResolvedValue({ role: "GUEST" });
 
     await expect(
-      scenarioService.canHoldScenarios({ user_public_id: "guestPublicI", count: 2 })
+      scenarioService.canHoldScenarios({ user_public_id: "guestpubaaab", count: 2 })
     ).resolves.toBe(true);
   });
 
@@ -214,7 +215,7 @@ describe("canHoldScenarios", () => {
 
     await expect(
       scenarioService.canHoldScenarios({
-        user_public_id: "guestPublicI",
+        user_public_id: "guestpubaaab",
         count: ROLE_LIMITS.GUEST.maxScenariosPerEndpoint + 1,
       })
     ).resolves.toBe(false);
@@ -225,13 +226,13 @@ describe("canHoldScenarios", () => {
 
     await expect(
       scenarioService.canHoldScenarios({
-        user_public_id: "userPublicId",
+        user_public_id: "userpubaaaab",
         count: ROLE_LIMITS.USER.maxScenariosPerEndpoint,
       })
     ).resolves.toBe(true);
     await expect(
       scenarioService.canHoldScenarios({
-        user_public_id: "userPublicId",
+        user_public_id: "userpubaaaab",
         count: ROLE_LIMITS.USER.maxScenariosPerEndpoint + 1,
       })
     ).resolves.toBe(false);
@@ -241,7 +242,7 @@ describe("canHoldScenarios", () => {
     (userService.getUserById as jest.Mock).mockResolvedValue(null);
 
     await expect(
-      scenarioService.canHoldScenarios({ user_public_id: "goneAccount1", count: 1 })
+      scenarioService.canHoldScenarios({ user_public_id: "goneaccountx", count: 1 })
     ).resolves.toBe(false);
   });
 });

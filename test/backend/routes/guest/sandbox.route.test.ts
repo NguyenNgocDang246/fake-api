@@ -16,7 +16,7 @@ import { STATUS_CODE } from "@/server/core/constants";
 import { GUEST_MESSAGES } from "@/server/services/guest.constants";
 import { AppError } from "@/server/core/errors";
 
-const SANDBOX = { project_id: "projectPubAB", endpoint_group_id: "groupPubABCD" };
+const SANDBOX = { project_id: "projectpubab", endpoint_group_id: "grouppubabcd" };
 
 function createRequest(ip?: string): NextRequest {
   return {

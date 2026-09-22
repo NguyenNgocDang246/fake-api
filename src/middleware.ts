@@ -67,7 +67,7 @@ export const config = {
   matcher: [
     "/((?!_next|favicon\\.ico|.*\\.(?:png|jpg|jpeg|gif|svg|css|js|woff2?|ttf|map)$).*)",
     // On a mock host a static-looking path is still a mock path. Next reads `config` without
-    // running it, so this is a literal copy of the project id alphabet, kept in step by a test.
+    // running it, so this is a literal copy of the id alphabet, kept in step by a test.
     { source: "/:path*", has: [{ type: "host", value: "[2-9a-km-z]{12}\\..+" }] },
   ],
   runtime: "nodejs",

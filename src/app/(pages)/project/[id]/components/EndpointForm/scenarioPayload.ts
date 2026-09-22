@@ -8,6 +8,32 @@ import {
   planEnvelopeOf,
 } from "@/app/(pages)/project/[id]/components/AiEndpointSection/viewmodel";
 
+// A row the author has just added. SameSite starts at Lax, which is the browser's own default for
+// a cookie that names none, so a row left alone behaves the way the reader expects; a mock called
+// from another origin is cross-site and wants None instead, which is one click away. `path` starts
+// empty rather than at "/" so its placeholder is the thing naming the box, which is the only label
+// it has; an empty path is stored as "/" anyway.
+export function blankCookie(): ClientCreateEndpointDTO["scenarios"][number]["response_cookies"][number] {
+  return {
+    name: "",
+    value: "",
+    path: "",
+    max_age: "",
+    http_only: false,
+    secure: false,
+    same_site: "lax",
+    partitioned: false,
+  };
+}
+
+// The mirror of `String(scenario.delay_ms)` below: an input holds a string, and empty is the
+// session cookie a stored `null` means.
+function toClientCookie(
+  cookie: ScenarioInfoDTO["response_cookies"][number]
+): ClientCreateEndpointDTO["scenarios"][number]["response_cookies"][number] {
+  return { ...cookie, max_age: cookie.max_age === null ? "" : String(cookie.max_age) };
+}
+
 // A page the author has just added: no row behind it yet, and the same empty response a new
 // endpoint has always started on.
 export function blankScenario(name: string): ClientCreateEndpointDTO["scenarios"][number] {
@@ -17,6 +43,7 @@ export function blankScenario(name: string): ClientCreateEndpointDTO["scenarios"
     status_code: "200",
     response_body: "",
     response_headers: [],
+    response_cookies: [],
     delay_ms: "0",
     ai_enabled: false,
     ai_fields: [],
@@ -72,6 +99,7 @@ export function toClientEndpoint(endpoint: EndpointInfoDTO): ClientCreateEndpoin
       status_code: String(scenario.status_code),
       response_body: JSON.stringify(scenario.response_body),
       response_headers: scenario.response_headers,
+      response_cookies: scenario.response_cookies.map(toClientCookie),
       delay_ms: String(scenario.delay_ms),
       ai_enabled: scenario.ai_enabled,
       ai_fields: scenario.ai_fields,

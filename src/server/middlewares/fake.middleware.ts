@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PROJECT_PUBLIC_ID_REGEX } from "@/app/libs/helpers/publicId";
+import { PUBLIC_ID_REGEX } from "@/app/libs/helpers/publicId";
 import ApiResponse from "@/server/core/api_response";
 import { ERROR_MESSAGES, STATUS_CODE } from "@/server/core/constants";
 
@@ -40,7 +40,7 @@ const fakeMiddleware = (req: NextRequest) => {
   }
 
   const label = host.slice(0, -MOCK_HOST_SUFFIX.length);
-  if (!PROJECT_PUBLIC_ID_REGEX.test(label)) return notFound();
+  if (!PUBLIC_ID_REGEX.test(label)) return notFound();
 
   // Only the id goes on the rewritten URL. The route handler reads the mock path off the
   // original `req.nextUrl.pathname`, which a rewrite leaves as the caller wrote it.

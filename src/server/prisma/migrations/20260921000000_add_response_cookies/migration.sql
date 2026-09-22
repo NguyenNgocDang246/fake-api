@@ -1,0 +1,15 @@
+-- A scenario can now answer with cookies of its own, so an author can rehearse a login that hands
+-- back a session and a logout that clears it, instead of only swapping a body.
+--
+-- They get a column rather than rows in "response_headers" because a cookie is a set of attributes,
+-- not a string, and because one of those attributes is never the author's to set: nothing written
+-- here carries a Domain, so every mock cookie is host-only to {public_id}.{DOMAIN}. That is the
+-- boundary the whole feature rests on. It is what stops a mock planting a cookie on the apex where
+-- the app's own access_token lives, and what keeps two projects' cookies out of each other's jar.
+-- "set-cookie" therefore stays on the header blocklist: two surfaces that can both emit one are two
+-- places that rule has to hold.
+--
+-- TEXT holding a JSON array, like "response_headers", "response_body" and "ai_plan"; no column here
+-- is JSONB. Every existing row backfills to the empty list, which is what it already sends, so this
+-- migration changes no mock's answer.
+ALTER TABLE "endpoint_scenarios" ADD COLUMN "response_cookies" TEXT NOT NULL DEFAULT '[]';

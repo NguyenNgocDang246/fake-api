@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ProjectPublicIdSchema, PublicIdSchema } from "@/app/libs/helpers/publicId";
+import { PublicIdSchema } from "@/app/libs/helpers/publicId";
 
 export const MAX_CORS_ORIGINS = 20;
 export const MAX_CORS_ORIGIN_LENGTH = 255;
@@ -80,8 +80,7 @@ const CORS_FIELDS = {
 
 export const ProjectSchema = z
   .object({
-    // A project id has to survive being a hostname label, so it is the stricter of the two.
-    public_id: ProjectPublicIdSchema,
+    public_id: PublicIdSchema,
     user_public_id: PublicIdSchema,
     name: z
       .string()

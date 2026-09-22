@@ -65,6 +65,11 @@ model endpoint_scenarios {
   /// Headers the author wants on this scenario's response, as a JSON array of {name, value}.
   /// Read on the serving path, where they are layered over the defaults every mock carries.
   response_headers   String    @default("[]")
+  /// Cookies this scenario sets, as a JSON array of rows. No row carries a Domain, so every one
+  /// of them is host-only to `{project.public_id}.{DOMAIN}`: that is what keeps a mock cookie out
+  /// of the app's own jar on the apex and out of every other project's. Appended one Set-Cookie
+  /// per row on the serving path rather than layered, the way `response_headers` is.
+  response_cookies   String    @default("[]")
   delay_ms           Int       @default(0)
   ai_enabled         Boolean   @default(false)
   ai_fields          String[]  @default([])

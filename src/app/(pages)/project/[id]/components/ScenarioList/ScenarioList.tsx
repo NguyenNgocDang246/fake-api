@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useId, useState } from "react";
 import { Plus, Sparkles } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { FieldErrors } from "react-hook-form";
@@ -33,10 +33,41 @@ export const ScenarioList: React.FC<ScenarioListProps> = ({
   onAdd,
 }) => {
   const count = scenarioKeys.length;
+  const listId = useId();
+
+  // Only the narrow layout reads this: past the breakpoint the list is the column itself and is
+  // always on screen.
+  const [open, setOpen] = useState(false);
+
+  const anyError = scenarioKeys.some((_, index) => !!errors.scenarios?.[index]);
+  const currentName = scenarios[current]?.name.trim() || `Scenario ${current + 1}`;
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between gap-2 px-1">
+      {/* Narrow enough and the list folds behind this button, because ten cards laid across the top
+          push the form off the screen and a strip of them hides all but the first two. */}
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-controls={listId}
+        className="flex min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-left transition-colors hover:bg-gray-50 @min-[700px]:hidden"
+      >
+        <span
+          className={twMerge(
+            "size-2 shrink-0 rounded-full",
+            anyError ? "bg-red-500" : current === active ? "bg-emerald-500" : "bg-gray-300"
+          )}
+        />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">
+          {currentName}
+        </span>
+        <span className="shrink-0 text-xs text-gray-400">
+          {count} of {max}
+        </span>
+      </button>
+
+      <div className="hidden items-baseline justify-between gap-2 px-1 @min-[700px]:flex">
         <span className="text-xs font-semibold tracking-wide text-gray-500 uppercase">
           Scenarios
         </span>
@@ -45,10 +76,13 @@ export const ScenarioList: React.FC<ScenarioListProps> = ({
         </span>
       </div>
 
-      {/* Narrow enough and the column lies down as a scrolling strip, because a list of ten rows
-          above the form would push the body off the screen. The bottom room is the scrollbar's own
-          height, so the bar is laid out below the cards rather than across the edge of one. */}
-      <div className="flex gap-2 overflow-x-auto pb-[calc(var(--scroll-size)+0.25rem)] @min-[560px]:flex-col @min-[560px]:overflow-visible @min-[560px]:pb-0">
+      <div
+        id={listId}
+        className={twMerge(
+          "flex-col gap-2 @min-[700px]:flex",
+          open ? "flex" : "hidden"
+        )}
+      >
         {scenarioKeys.map((key, index) => {
           const scenario = scenarios[index];
           const hasError = !!errors.scenarios?.[index];
@@ -60,15 +94,18 @@ export const ScenarioList: React.FC<ScenarioListProps> = ({
             <button
               key={key}
               type="button"
-              onClick={() => onSelect(index)}
+              onClick={() => {
+                onSelect(index);
+                setOpen(false);
+              }}
               aria-current={isCurrent}
               className={twMerge(
-                "flex max-w-56 min-w-40 shrink-0 flex-col gap-1 rounded-xl border p-3 text-left transition-colors @min-[560px]:w-auto @min-[560px]:max-w-none @min-[560px]:min-w-0",
-                // An inset ring rather than one outside the border: the strip is a scroll
-                // container, and it clips whatever a card paints past its own box.
+                "flex min-w-0 flex-col gap-1 rounded-xl border p-3 text-left transition-colors",
+                // An inset ring rather than one outside the border, so the card the author is on
+                // takes exactly the room the others do.
                 isCurrent
                   ? "border-blue-500 inset-ring-1 inset-ring-blue-500"
-                  : "border-gray-200 hover:bg-gray-50",
+                  : "border-gray-200 hover:bg-gray-50"
               )}
             >
               <span className="flex min-w-0 items-center gap-2">
@@ -77,18 +114,15 @@ export const ScenarioList: React.FC<ScenarioListProps> = ({
                 <span
                   className={twMerge(
                     "size-2 shrink-0 rounded-full",
-                    hasError ? "bg-red-500" : isActive ? "bg-emerald-500" : "bg-gray-300",
+                    hasError ? "bg-red-500" : isActive ? "bg-emerald-500" : "bg-gray-300"
                   )}
                 />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">
                   {scenario?.name.trim() || `Scenario ${index + 1}`}
                 </span>
-                {/* A long name gives way rather than pushing this off the row, and once the column
-                    lies down as a strip the green dot says the same thing in the space there is. */}
+                {/* A long name gives way rather than pushing this off the row. */}
                 {isActive && (
-                  <span className="hidden shrink-0 text-xs font-medium text-emerald-600 @min-[560px]:inline">
-                    Serving
-                  </span>
+                  <span className="shrink-0 text-xs font-medium text-emerald-600">Serving</span>
                 )}
               </span>
 
@@ -96,7 +130,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = ({
                 <span
                   className={twMerge(
                     "rounded px-1.5 py-0.5 font-semibold",
-                    statusColor(Number(scenario?.status_code)),
+                    statusColor(Number(scenario?.status_code))
                   )}
                 >
                   {scenario?.status_code || "200"}
@@ -107,17 +141,20 @@ export const ScenarioList: React.FC<ScenarioListProps> = ({
             </button>
           );
         })}
-      </div>
 
-      <button
-        type="button"
-        onClick={onAdd}
-        disabled={count >= max}
-        className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        <Plus size={14} />
-        Add scenario
-      </button>
+        <button
+          type="button"
+          onClick={() => {
+            onAdd();
+            setOpen(false);
+          }}
+          disabled={count >= max}
+          className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Plus size={14} />
+          Add scenario
+        </button>
+      </div>
     </div>
   );
 };
